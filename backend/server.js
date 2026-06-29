@@ -11,6 +11,9 @@ const PORT = process.env.PORT || 5000;
 const DB_FILE = path.join(__dirname, 'db.json');
 const leadRoutes = require("./src/routes/leadRoutes.js");
 const activityRoutes = require("./src/routes/activityRoutes.js");
+const authRoutes=require("./src/routes/authRoutes.js");
+
+const emailRoutes=require("./src/routes/emailRoutes.js");
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
@@ -19,6 +22,8 @@ app.use(bodyParser.json());
 
 app.use("/api/leads", leadRoutes);
 app.use("/api/activities", activityRoutes);
+app.use("/auth",authRoutes);
+app.use("/api/emails",emailRoutes);
 
 function readDB() {
   if (!fs.existsSync(DB_FILE)) {

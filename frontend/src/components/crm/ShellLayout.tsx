@@ -166,7 +166,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       </div>
 
       {/* Top Navbar / Odoo-inspired App Switcher Menu */}
-      <header className="bg-card text-txt-primary shadow-sm border-b border-border-crm shrink-0 sticky top-0 z-40">
+      <header className="bg-card  shadow-sm border-b border-border-crm shrink-0 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
           
           {/* Logo & Platform Title */}
@@ -202,7 +202,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                   className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
                     currentTab === tab.id
                       ? 'bg-primary text-white'
-                      : 'text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary dark:hover:text-txt-primary'
+                      : 'text-txt-secondary hover:bg-slate-200 blue:hover:bg-slate-800 '
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />

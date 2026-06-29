@@ -69,22 +69,22 @@ export default function ReferralsView({
 
       {/* Workflow Diagram */}
       <div className="bg-card border border-border-crm rounded-2xl p-5 flex flex-col md:flex-row items-center justify-around gap-4 text-center">
-        <div className="p-3 bg-blue-50 dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl w-44">
+        <div className="p-3 bg-blue-50 dark:bg-slate-200 border border-blue-100 dark:border-slate-700 rounded-xl w-44">
           <span className="font-extrabold text-primary dark:text-blue-400">Won Client</span>
           <p className="text-[10px] text-txt-secondary mt-1">Client deal marked Won</p>
         </div>
         <ChevronRight className="w-5 h-5 text-slate-400 rotate-90 md:rotate-0" />
-        <div className="p-3 bg-blue-50 dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl w-44">
+        <div className="p-3 bg-blue-50 dark:bg-slate-200 border border-blue-100 dark:border-slate-700 rounded-xl w-44">
           <span className="font-extrabold text-primary dark:text-blue-400">Auto Enrolled</span>
           <p className="text-[10px] text-txt-secondary mt-1">Client gains referral code</p>
         </div>
         <ChevronRight className="w-5 h-5 text-slate-400 rotate-90 md:rotate-0" />
-        <div className="p-3 bg-blue-50 dark:bg-slate-800 border border-blue-100 dark:border-slate-700 rounded-xl w-44">
+        <div className="p-3 bg-blue-50 dark:bg-slate-200 border border-blue-100 dark:border-slate-700 rounded-xl w-44">
           <span className="font-extrabold text-primary dark:text-blue-400">Referral Submitted</span>
           <p className="text-[10px] text-txt-secondary mt-1">New lead is registered</p>
         </div>
         <ChevronRight className="w-5 h-5 text-slate-400 rotate-90 md:rotate-0" />
-        <div className="p-3 bg-success/10 border border-emerald-250 dark:border-emerald-800 rounded-xl w-44">
+        <div className="p-3 bg-success/10 border border-emerald-250 dark:border-emerald-200 rounded-xl w-44">
           <span className="font-extrabold text-success">Reward Approved</span>
           <p className="text-[10px] text-txt-secondary mt-1">Receive credit incentive</p>
         </div>
@@ -115,7 +115,7 @@ export default function ReferralsView({
             </thead>
             <tbody className="divide-y divide-border-crm">
               {referrals.map(ref => (
-                <tr key={ref.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition text-txt-primary font-medium">
+                <tr key={ref.id} className="hover:bg-slate-50 dark:hover:bg-slate-200 transition text-txt-primary font-medium">
                   <td className="px-6 py-4">
                     <div className="font-bold">{ref.referrerName}</div>
                     <div className="text-[10px] text-slate-400">{ref.referrerCompany}</div>
@@ -189,7 +189,7 @@ export default function ReferralsView({
                 <label className="block text-slate-400 font-semibold mb-1">Referred Person Name</label>
                 <input
                   type="text" required
-                  className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none bg-white dark:bg-slate-800"
+                  className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none bg-white dark:bg-slate-600"
                   value={referralForm.referredLeadName}
                   onChange={e => setReferralForm({ ...referralForm, referredLeadName: e.target.value })}
                 />

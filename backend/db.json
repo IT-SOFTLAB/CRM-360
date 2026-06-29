@@ -47,7 +47,7 @@
     {
       "id": "p_3",
       "name": "Discussion",
-      "order": 4
+      "order": 2
     },
     {
       "id": "p_4",
@@ -72,7 +72,7 @@
     {
       "id": "p_1782467758119",
       "name": "new",
-      "order": 2
+      "order": 4
     }
   ],
   "referralPipelines": [
@@ -673,11 +673,11 @@
       "referredLeadName": "Lois Lane",
       "referredCompany": "Metropolis Gazette",
       "dealValue": 75000,
-      "stage": "rp_3",
+      "stage": "rp_5",
       "dateSubmitted": "2026-06-10",
       "rewardType": "Credits",
       "rewardValue": "$1,500 CRM Credits",
-      "rewardApproved": false
+      "rewardApproved": true
     },
     {
       "id": "ref_2",
@@ -700,6 +700,42 @@
     "logoText": "CRM 360"
   },
   "auditLogs": [
+    {
+      "id": "log_1782730645818_v7tc9",
+      "timestamp": "2026-06-29T10:57:25.818Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_REFERRAL",
+      "module": "Referral Program",
+      "details": "Updated referral ID: ref_1"
+    },
+    {
+      "id": "log_1782722846689_a2e7s",
+      "timestamp": "2026-06-29T08:47:26.689Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1782722845395_01utr",
+      "timestamp": "2026-06-29T08:47:25.395Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1782722841781_hy4hx",
+      "timestamp": "2026-06-29T08:47:21.781Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
     {
       "id": "log_1782712506955_cecqa",
       "timestamp": "2026-06-29T05:55:06.956Z",
