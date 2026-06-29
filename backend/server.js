@@ -10,6 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const DB_FILE = path.join(__dirname, 'db.json');
 const leadRoutes = require("./src/routes/leadRoutes.js");
+const activityRoutes = require("./src/routes/activityRoutes.js");
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
@@ -17,7 +18,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.use("/api/leads", leadRoutes);
-
+app.use("/api/activities", activityRoutes);
 
 function readDB() {
   if (!fs.existsSync(DB_FILE)) {

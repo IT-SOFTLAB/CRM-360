@@ -285,6 +285,100 @@
   ],
   "opportunities": [
     {
+      "id": "o_1782467621825",
+      "customerName": "yashika",
+      "company": "orgYashika",
+      "dealValue": 15000,
+      "expectedClosing": "2026-07-26",
+      "assignedSalesperson": "Sarah Connor",
+      "priority": "Medium",
+      "tags": [
+        "CSV/Excel Import",
+        "IT"
+      ],
+      "stageId": "p_1782467758119",
+      "createdDate": "2026-06-26"
+    },
+    {
+      "id": "o_1782467832055",
+      "customerName": "yashika",
+      "company": "orgYashika",
+      "dealValue": 15000,
+      "expectedClosing": "2026-07-26",
+      "assignedSalesperson": "Sarah Connor",
+      "priority": "Medium",
+      "tags": [
+        "CSV/Excel Import",
+        "IT"
+      ],
+      "stageId": "p_1",
+      "createdDate": "2026-06-26"
+    },
+    {
+      "id": "o_1782469193251",
+      "leadId": "cmqugzch00000o0j03zwp7z9d",
+      "customerName": "Parthika ",
+      "company": "Microsoft",
+      "dealValue": 15000,
+      "expectedClosing": "2026-07-26",
+      "assignedSalesperson": "John Doe (SA)",
+      "priority": "Medium",
+      "tags": [
+        "Website",
+        "IT Services"
+      ],
+      "stageId": "p_1",
+      "createdDate": "2026-06-26"
+    },
+    {
+      "id": "o_1782469212910",
+      "leadId": "cmqugzch00000o0j03zwp7z9d",
+      "customerName": "Parthika ",
+      "company": "Microsoft",
+      "dealValue": 15000,
+      "expectedClosing": "2026-07-26",
+      "assignedSalesperson": "John Doe (SA)",
+      "priority": "Medium",
+      "tags": [
+        "Website",
+        "IT Services"
+      ],
+      "stageId": "p_1",
+      "createdDate": "2026-06-26"
+    },
+    {
+      "id": "o_1782469414047",
+      "leadId": "cmqugzch00000o0j03zwp7z9d",
+      "customerName": "Parthika ",
+      "company": "Microsoft",
+      "dealValue": 15000,
+      "expectedClosing": "2026-07-26",
+      "assignedSalesperson": "John Doe (SA)",
+      "priority": "Medium",
+      "tags": [
+        "Website",
+        "IT Services"
+      ],
+      "stageId": "p_1",
+      "createdDate": "2026-06-26"
+    },
+    {
+      "id": "o_1782469458315",
+      "leadId": "cmqulaitu0000o0fgmgzd2omh",
+      "customerName": "yashika",
+      "company": "orgYashika",
+      "dealValue": 15000,
+      "expectedClosing": "2026-07-26",
+      "assignedSalesperson": "Sarah Connor",
+      "priority": "Medium",
+      "tags": [
+        "CSV/Excel Import",
+        "IT"
+      ],
+      "stageId": "p_1",
+      "createdDate": "2026-06-26"
+    },
+    {
       "id": "o_1782469774723",
       "leadId": "cmquh1iaz0002o0j0wufl1lrc",
       "customerName": "xyz",
@@ -361,7 +455,7 @@
       "salesperson": "John Doe (SA)",
       "leadId": "",
       "opportunityId": "o_2",
-      "done": false
+      "done": true
     },
     {
       "id": "a_2",
@@ -521,7 +615,7 @@
       "company": "Stark Industries",
       "opportunityId": "o_2",
       "date": "2026-06-20",
-      "status": "Approved",
+      "status": "Sent",
       "taxRate": 10,
       "discount": 50000,
       "items": [
@@ -607,8 +701,8 @@
   },
   "auditLogs": [
     {
-      "id": "log_1782722826090_y75ik",
-      "timestamp": "2026-06-29T08:47:06.090Z",
+      "id": "log_1782722846689_a2e7s",
+      "timestamp": "2026-06-29T08:47:26.689Z",
       "user": "System",
       "role": "System",
       "action": "REORDER_PIPELINE",
@@ -616,49 +710,22 @@
       "details": "Reordered pipeline stages"
     },
     {
-      "id": "log_1782722315937_ym129",
-      "timestamp": "2026-06-29T08:38:35.938Z",
-      "user": "Sarah Connor",
-      "role": "Admin",
-      "action": "LOGIN",
-      "module": "Authentication",
-      "details": "User logged in from IP."
-    },
-    {
-      "id": "log_1782719955858_lp0o4",
-      "timestamp": "2026-06-29T07:59:15.858Z",
+      "id": "log_1782722845395_01utr",
+      "timestamp": "2026-06-29T08:47:25.395Z",
       "user": "System",
       "role": "System",
-      "action": "UPDATE_QUOTATION",
-      "module": "Quotations",
-      "details": "Updated quotation: QT-2026-002 (Status: Approved)"
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
     },
     {
-      "id": "log_1782719700722_4p7dy",
-      "timestamp": "2026-06-29T07:55:00.722Z",
+      "id": "log_1782722841781_hy4hx",
+      "timestamp": "2026-06-29T08:47:21.781Z",
       "user": "System",
       "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Microsoft (Stage: p_3)"
-    },
-    {
-      "id": "log_1782719652747_6ya1c",
-      "timestamp": "2026-06-29T07:54:12.747Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Microsoft (Stage: p_4)"
-    },
-    {
-      "id": "log_1782717175690_d0bbm",
-      "timestamp": "2026-06-29T07:12:55.690Z",
-      "user": "System",
-      "role": "System",
-      "action": "CONVERT_LEAD",
-      "module": "Leads",
-      "details": "Converted lead PQRS into Opportunity (Valued at ₹25000)"
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
     },
     {
       "id": "log_1782712506955_cecqa",
