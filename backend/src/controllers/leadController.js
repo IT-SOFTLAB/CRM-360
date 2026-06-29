@@ -266,7 +266,7 @@ const importLeads = async (req, res) => {
         serviceType: trimmedServiceType,
         assignedUser: trimmedAssignedUser,
         status: 'New',              // Automatically set status to "New"
-        createdAt: parsedCreatedAt.toISOString(),
+        createdAt: parsedCreatedAt.toISOString().split('T')[0],
         createdDate: parsedCreatedAt.toISOString().split('T')[0]
       };
 

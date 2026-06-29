@@ -309,7 +309,7 @@ export default function LeadsView({
                   />
                   <div className="flex flex-wrap gap-1 mt-2">
                     <span className="bg-blue-50 text-primary border border-blue-100 text-[10px] px-2 py-0.5 rounded font-semibold">{selectedLead.category}</span>
-                    <span className="bg-slate-100 text-slate-700 border border-slate-200 text-[10px] px-2 py-0.5 rounded font-semibold">{selectedLead.source}</span>
+                   
                   </div>
                 </div>
 

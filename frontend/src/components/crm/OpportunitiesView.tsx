@@ -72,10 +72,10 @@ export default function OpportunitiesView({
 
   return (
     <div className="flex flex-col gap-4">
-      
-      {/* Kanban Columns view */}
+
+
       <div className="flex space-x-4 overflow-x-auto pb-4 items-start select-none">
-        
+
         {pipelines.map(stage => {
           const stageOpps = applyFilters(opportunities.filter(o => o.stageId === stage.id), 'opportunities');
           const totalValue = stageOpps.reduce((sum, opp) => sum + opp.dealValue, 0);
@@ -87,7 +87,7 @@ export default function OpportunitiesView({
               onDrop={() => handleDrop(stage.id)}
               className="w-72 shrink-0 bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col max-h-160"
             >
-              {/* Stage Header */}
+
               <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
                 <div className="min-w-0">
                   <h4 className="font-bold text-xs text-txt-primary truncate" title={stage.name}>
@@ -124,7 +124,7 @@ export default function OpportunitiesView({
                 )}
               </div>
 
-              {/* Opportunity Cards List */}
+
               <div className="flex-1 overflow-y-auto space-y-3 min-h-24">
                 {stageOpps.map(opp => (
                   <div
@@ -136,17 +136,11 @@ export default function OpportunitiesView({
                   >
                     <div className="flex justify-between items-start mb-2">
                       <span className="text-[10px] text-slate-400 font-semibold">{opp.company}</span>
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold tracking-wider ${
-                        opp.priority === 'High' ? 'bg-rose-50 text-danger border border-rose-100' :
-                        opp.priority === 'Medium' ? 'bg-amber-50 text-warning border border-amber-100' :
-                        'bg-slate-100 text-slate-600'
-                      }`}>
-                        {opp.priority}
-                      </span>
+
                     </div>
 
                     <h5 className="font-bold text-xs text-txt-primary mb-3 leading-tight">{opp.customerName}</h5>
-                    
+
                     <div className="flex items-center justify-between text-xs border-t border-border-crm pt-3">
                       <span className="font-extrabold text-primary">₹{opp.dealValue.toLocaleString()}</span>
                       <div className="flex items-center space-x-1">
@@ -169,7 +163,7 @@ export default function OpportunitiesView({
 
       </div>
 
-      {/* Create pipeline stage Modal */}
+
       {showStageModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-card border border-border-crm rounded-2xl shadow-2xl p-6 max-w-sm w-full text-txt-primary">
@@ -207,23 +201,26 @@ export default function OpportunitiesView({
       {/* Centered Opportunity Detail Modal styled like a Lead Card */}
       {selectedOpp && (() => {
         // Find associated lead in leads list or construct from opportunity
-        const associatedLead = leads.find(l => 
+        const associatedLead = leads.find(l =>
           l.id === selectedOpp.leadId ||
           ((l.contactName === selectedOpp.customerName || l.name === selectedOpp.customerName) && l.company === selectedOpp.company)
         ) || {
           contactName: selectedOpp.customerName,
           company: selectedOpp.company || '',
           email: selectedOpp.email || 'info@' + (selectedOpp.company ? selectedOpp.company.toLowerCase().replace(/[^a-z0-9]/g, '') : 'example') + '.com',
-          phone: selectedOpp.phone || '+1 (555) 0100',
+          phone: selectedOpp.phone || 'xxxxxxxxxx',
           category: selectedOpp.tags?.[1] || 'IT Services',
           serviceType: selectedOpp.tags?.[0] || 'Service Based',
           assignedUser: selectedOpp.assignedSalesperson || 'Kyle Reese',
           status: pipelines.find(p => p.id === selectedOpp.stageId)?.name || 'New',
-          createdAt: selectedOpp.createdDate || selectedOpp.createdAt || new Date().toISOString().split('T')[0],
-          source: selectedOpp.tags?.[0] || 'Direct Opportunity'
+          createdAt:
+            selectedOpp.createdDate ||
+            (selectedOpp.createdAt
+              ? selectedOpp.createdAt.split('T')[0]
+              : new Date().toISOString().split('T')[0]),
+
         };
 
-        // Normalize values
         const contactName = associatedLead.contactName || associatedLead.name || 'Unknown';
         const company = associatedLead.company || '';
         const email = associatedLead.email || '';
@@ -232,14 +229,16 @@ export default function OpportunitiesView({
         const serviceType = associatedLead.serviceType || '';
         const assignedUser = associatedLead.assignedUser || 'Unassigned';
         const status = associatedLead.status || 'New';
-        const createdAt = associatedLead.createdDate || associatedLead.createdAt || '';
+        const createdAt = associatedLead.createdAt
+          ? associatedLead.createdAt.split('T')[0]
+          : '';
 
         return (
-          <div 
+          <div
             className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 transition-all animate-in fade-in duration-200"
             onClick={() => setSelectedOpp(null)}
           >
-            <div 
+            <div
               className="relative w-full max-w-md bg-card shadow-2xl border border-border-crm rounded-3xl p-6 flex flex-col z-10 text-txt-primary animate-in fade-in zoom-in-95 duration-200"
               onClick={e => e.stopPropagation()}
             >
@@ -248,8 +247,8 @@ export default function OpportunitiesView({
                 <h3 className="font-extrabold text-sm tracking-tight text-txt-primary flex items-center gap-2">
                   <Briefcase className="w-4.5 h-4.5 text-primary" /> Opportunity Detailed Profile
                 </h3>
-                <button 
-                  onClick={() => setSelectedOpp(null)} 
+                <button
+                  onClick={() => setSelectedOpp(null)}
                   className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-slate-400 hover:text-txt-primary transition-colors"
                 >
                   <X className="w-4.5 h-4.5" />
@@ -288,7 +287,7 @@ export default function OpportunitiesView({
                   </div>
                 </div>
 
-                {/* Contact stats grid */}
+
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div className="col-span-2 sm:col-span-1">
                     <p className="text-slate-400 font-semibold uppercase text-[10px] mb-1">Email</p>
