@@ -17,14 +17,37 @@ model User {
 }
 
 model Lead {
-  id          String   @id @default(cuid())
-  contactName String
-  company     String?
-  email       String?
-  phone       String?
-  category    String
-  serviceType String
+  id           String   @id @default(cuid())
+  email        String?
+  phone        String?
+  status       String   @default("New")
+  createdAt    DateTime @default(now())
+  category     String
+  company      String?
+  contactName  String
+  serviceType  String
   assignedUser String?
-  status      String   @default("New")
-  createdAt   DateTime @default(now())
+}
+
+model Activity {
+  id             String   @id @default(cuid())
+
+  title          String
+  type           String
+
+  date           DateTime
+  time           String
+  duration       Int
+
+  description    String?
+
+  salesperson    String?
+
+  leadId         String?
+  opportunityId  String?
+
+  done           Boolean @default(false)
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }

@@ -258,10 +258,10 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         { id: 'rp_5', name: 'Reward Approved', order: 5 }
       ]);
       setCategories(['Healthcare', 'Manufacturing', 'Education', 'Real Estate', 'E-Commerce', 'Finance', 'Logistics', 'Hospitality', 'IT Services']);
-      setActivities([
-        { id: 'a_1', title: 'Stark proposal alignment', type: 'Meeting', date: '2026-06-25', time: '14:00', duration: '60', description: 'Align deal parameters.', salesperson: 'John Doe (SA)', done: false, opportunityId: 'o_2' },
-        { id: 'a_2', title: 'Call Bruce Wayne', type: 'Call', date: '2026-06-26', time: '10:00', duration: '15', description: 'Schedule security demo.', salesperson: 'Sarah Connor', done: false, opportunityId: 'o_1' }
-      ]);
+      // setActivities([
+      //   { id: 'a_1', title: 'Stark proposal alignment', type: 'Meeting', date: '2026-06-25', time: '14:00', duration: '60', description: 'Align deal parameters.', salesperson: 'John Doe (SA)', done: false, opportunityId: 'o_2' },
+      //   { id: 'a_2', title: 'Call Bruce Wayne', type: 'Call', date: '2026-06-26', time: '10:00', duration: '15', description: 'Schedule security demo.', salesperson: 'Sarah Connor', done: false, opportunityId: 'o_1' }
+      // ]);
       setEmails([
         {
           id: 'e_1', sender: 'tony@starkindustries.com', recipient: 'superadmin@crm.com', subject: 'Stark CRM Proposal Draft',
@@ -535,28 +535,44 @@ const res = await apiCall(
   };
 
   const handleActivityCreate = async (activityForm: any) => {
-    const res = await apiCall('/activities', 'POST', activityForm);
-    if (res) {
-      setActivities(prev => [...prev, res]);
-      addToast('success', 'Activity scheduled!');
-    } else {
-      const mockAct = { id: 'a_' + Date.now(), done: false, ...activityForm };
-      setActivities(prev => [...prev, mockAct]);
-      addToast('success', 'Activity scheduled (Offline)');
-    }
-    setShowActivityModal(false);
-  };
+  try {
+    await apiCall("/activities", "POST", activityForm);
 
-  const toggleActivityDone = async (activityId: string, currentStatus: boolean) => {
-    const res = await apiCall(`/activities/${activityId}`, 'PUT', { done: !currentStatus });
-    if (res) {
-      addToast('success', `Marked activity as ${!currentStatus ? 'Completed' : 'Open'}`);
-      loadCRMData();
-    } else {
-      setActivities(prev => prev.map(a => a.id === activityId ? { ...a, done: !currentStatus } : a));
-      addToast('success', 'Activity status updated (Offline)');
-    }
-  };
+    await loadCRMData();
+
+    addToast("success", "Activity scheduled!");
+
+    setShowActivityModal(false);
+
+  } catch (err) {
+
+    addToast("error", "Unable to schedule activity.");
+
+  }
+};
+
+  const toggleActivityDone = async (
+  activityId: string,
+  currentStatus: boolean
+) => {
+
+  try {
+
+    await apiCall(`/activities/${activityId}`, "PUT", {
+      done: !currentStatus
+    });
+
+    await loadCRMData();
+
+    addToast("success", "Activity updated");
+
+  } catch {
+
+    addToast("error", "Unable to update activity");
+
+  }
+
+};
 
   const handleSendEmail = async (replyText: string, emailObject: any) => {
     const payload = {

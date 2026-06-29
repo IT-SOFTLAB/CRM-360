@@ -24,6 +24,10 @@ export default function ActivitiesView({
     description: '', salesperson: '', leadId: '', opportunityId: ''
   });
 
+const [selectedActivity, setSelectedActivity] = useState<any>(null);
+const hours = Array.from({ length: 24 }, (_, i) => i);
+
+const [selectedDate, setSelectedDate] = useState(new Date());
   const handleActivitySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onScheduleActivity({
@@ -74,45 +78,210 @@ export default function ActivitiesView({
                 <div key={d} className="bg-bg-main p-2 border-r border-b border-border-crm font-bold text-center text-txt-secondary select-none">
                   {d}
                 </div>
-              ))}
+              )
+              )}
               
+
               {/* Empty slots for spacing */}
               {Array.from({ length: 1 }).map((_, i) => (
-                <div key={i} className="min-h-24 p-1 border-r border-b border-border-crm bg-slate-50"></div>
+                <div key={i}  className="min-h-24 p-1 border-r border-b border-border-crm bg-slate-50"></div>
               ))}
 
               {/* Day cells containing activities */}
               {Array.from({ length: 30 }).map((_, i) => {
                 const dayNumber = i + 1;
                 const formattedDate = `2026-06-${dayNumber < 10 ? '0' + dayNumber : dayNumber}`;
-                const dayActivities = activities.filter(a => a.date === formattedDate);
+                const dayActivities = activities.filter(
+  a => new Date(a.date).toISOString().split("T")[0] === formattedDate
+);
 
                 return (
-                  <div key={i} className="min-h-24 p-2 border-r border-b border-border-crm flex flex-col justify-between">
+                  <div key={i}  onClick={() => {
+        setSelectedDate(new Date(formattedDate));
+        setCalendarView("day");
+    }} className="min-h-24 p-2 border-r border-b border-border-crm flex flex-col justify-between">
                     <span className="font-semibold text-[10px] text-slate-400 select-none">{dayNumber}</span>
                     <div className="space-y-1 mt-1 overflow-y-auto flex-1 max-h-16">
                       {dayActivities.map(act => (
                         <div
-                          key={act.id}
-                          onClick={() => alert(`${act.type}: ${act.description}`)}
-                          className={`p-1 rounded text-[8px] font-bold cursor-pointer truncate ${
-                            act.done ? 'bg-emerald-50 text-success border border-emerald-100 line-through' :
-                            act.type === 'Meeting' ? 'bg-blue-50 text-primary border border-blue-100' :
-                            'bg-amber-50 text-warning border border-amber-100'
-                          }`}
-                        >
-                          {act.time} - {act.title}
-                        </div>
+    key={act.id}
+    
+    onClick={() => setSelectedActivity(act)}
+    className={`rounded-lg px-2 py-1 mb-1 shadow-sm cursor-pointer transition hover:scale-[1.02]
+      ${
+        act.done
+          ? "bg-green-100 border border-green-300"
+          : act.type === "Meeting"
+          ? "bg-blue-100 border border-blue-300"
+          : act.type === "Call"
+          ? "bg-emerald-100 border border-emerald-300"
+          : act.type === "Email"
+          ? "bg-purple-100 border border-purple-300"
+          : "bg-amber-100 border border-amber-300"
+      }`}
+  >
+    <div className="text-[9px] font-bold">
+      🕒 {act.time}
+    </div>
+
+    <div className="text-[10px] font-semibold truncate">
+      {act.title}
+    </div>
+  </div>
                       ))}
                     </div>
                   </div>
                 );
               })}
             </div>
-          ) : (
-            <div className="py-12 text-center text-slate-400 text-xs">
-              Detailed Day and Week planner grids. Use Month tab view to manage logs.
+          ) : calendarView === "day" ? (
+           <div className="overflow-y-auto h-[700px]">
+
+  {hours.map((hour) => {
+
+   const hourActivities = activities.filter((act) => {
+
+    const sameDay =
+        new Date(act.date).toDateString() === selectedDate.toDateString();
+
+    const sameHour =
+        Number(act.time.split(":")[0]) === hour;
+
+    return sameDay && sameHour;
+
+});
+
+    return (
+
+      <div
+        key={hour}
+        className="flex border-b border-border-crm min-h-20"
+      >
+
+        <div className="w-20 p-3 font-semibold text-slate-500">
+          {hour.toString().padStart(2, "0")}:00
+        </div>
+
+        <div className="flex-1 p-2">
+
+          {hourActivities.map((act) => (
+
+            <div
+              key={act.id}
+              onClick={() => setSelectedActivity(act)}
+              className="bg-blue-100 rounded-lg p-2 mb-2 cursor-pointer"
+            >
+              <div className="font-bold">
+                {act.title}
+              </div>
+
+              <div className="text-[10px]">
+                🕒 {act.time}
+              </div>
+
             </div>
+
+          ))}
+
+        </div>
+
+      </div>
+
+    );
+
+  })}
+
+</div>
+          ) : (
+ <div className="overflow-auto h-[700px]c">
+
+        <div className="grid grid-cols-8 border border-border-crm">
+
+    {/* Header */}
+    <div className="bg-slate-100 border-r border-b border-border-crm p-2 font-bold text-center">
+      Time
+    </div>
+
+    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
+      <div
+        key={day}
+        className="bg-slate-100 border-r border-b border-border-crm p-2 text-center font-bold"
+      >
+        {day}
+      </div>
+    ))}
+
+    {/* Hours */}
+    {hours.map(hour => (
+      <React.Fragment key={hour}>
+
+        {/* Time Column */}
+        <div className="border-r border-b border-border-crm p-2 text-slate-500 font-semibold">
+          {hour.toString().padStart(2, "0")}:00
+        </div>
+
+        {/* Monday */}
+        {[1,2,3,4,5,6,0].map(dayIndex => {
+
+          const dayActivities = activities.filter(act => {
+
+            const d = new Date(act.date);
+
+            return (
+              d.getDay() === dayIndex &&
+              Number(act.time.split(":")[0]) === hour
+            );
+
+          });
+
+          return (
+
+            <div
+              key={dayIndex}
+              className="border-r border-b border-border-crm min-h-20 p-1"
+            >
+
+              {dayActivities.map(act => (
+
+                <div
+                  key={act.id}
+                  onClick={() => setSelectedActivity(act)}
+                  className={`rounded-lg p-2 mb-1 cursor-pointer text-[10px]
+                  ${
+                    act.type === "Meeting"
+                      ? "bg-blue-100"
+                      : act.type === "Call"
+                      ? "bg-green-100"
+                      : act.type === "Email"
+                      ? "bg-purple-100"
+                      : "bg-yellow-100"
+                  }`}
+                >
+
+                  <div className="font-bold">
+                    {act.title}
+                  </div>
+
+                  <div>
+                    🕒 {act.time}
+                  </div>
+
+                </div>
+
+              ))}
+
+            </div>
+
+          );
+
+        })}
+
+      </React.Fragment>
+    ))}
+
+  </div>
+
+    </div>
           )}
         </div>
       </div>
@@ -148,7 +317,13 @@ export default function ActivitiesView({
           <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Pending Actions</h4>
           <div className="space-y-3">
             {activities.filter(a => !a.done).map(act => (
-              <div key={act.id} className="flex items-start gap-2.5 p-1 text-txt-primary">
+       <div
+    key={act.id}
+    onClick={() => setSelectedActivity(act)}
+    className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-100 cursor-pointer transition"
+>
+
+  
                 <input
                   type="checkbox"
                   className="rounded text-primary border-slate-300 focus:ring-0 mt-0.5 cursor-pointer"
@@ -157,7 +332,23 @@ export default function ActivitiesView({
                 />
                 <div className="text-xs">
                   <p className="font-bold">{act.title}</p>
-                  <p className="text-txt-secondary text-[10px]">{act.date} - {act.type}</p>
+                 <p className="text-[10px] text-slate-500">
+
+📅 {new Date(act.date).toLocaleDateString()}
+
+</p>
+
+<p className="text-[10px] text-slate-500">
+
+🕒 {act.time}
+
+</p>
+
+<p className="text-[10px] text-slate-500">
+
+{act.type}
+
+</p>
                 </div>
               </div>
             ))}
@@ -253,7 +444,48 @@ export default function ActivitiesView({
           </div>
         </div>
       )}
+{/* Activity Details Modal */}
 
+{selectedActivity && (
+
+<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+
+    <div className="bg-white rounded-2xl w-[450px] p-6">
+
+        <h2 className="text-lg font-bold">
+            {selectedActivity.title}
+        </h2>
+
+        <div className="mt-5 space-y-3">
+
+            <p><strong>Type:</strong> {selectedActivity.type}</p>
+
+            <p><strong>Date:</strong> {new Date(selectedActivity.date).toLocaleDateString()}</p>
+
+            <p><strong>Time:</strong> {selectedActivity.time}</p>
+
+            <p><strong>Duration:</strong> {selectedActivity.duration} mins</p>
+
+            <p><strong>Salesperson:</strong> {selectedActivity.salesperson}</p>
+
+            <p><strong>Description:</strong></p>
+
+            <p>{selectedActivity.description}</p>
+
+        </div>
+
+        <button
+            onClick={() => setSelectedActivity(null)}
+            className="mt-6 w-full bg-primary text-white rounded-xl py-2"
+        >
+            Close
+        </button>
+
+    </div>
+
+</div>
+
+)}
     </div>
   );
 }

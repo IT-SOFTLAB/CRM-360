@@ -515,7 +515,7 @@
       "salesperson": "John Doe (SA)",
       "leadId": "",
       "opportunityId": "o_2",
-      "done": false
+      "done": true
     },
     {
       "id": "a_2",
@@ -760,6 +760,15 @@
     "logoText": "CRM 360"
   },
   "auditLogs": [
+    {
+      "id": "log_1782713581377_e4qcx",
+      "timestamp": "2026-06-29T06:13:01.377Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_ACTIVITY",
+      "module": "Activities",
+      "details": "Updated activity ID: a_1"
+    },
     {
       "id": "log_1782712506955_cecqa",
       "timestamp": "2026-06-29T05:55:06.956Z",
