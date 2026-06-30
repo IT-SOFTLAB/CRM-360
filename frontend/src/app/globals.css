@@ -179,3 +179,30 @@ body {
   background: linear-gradient(90deg, #334155 25%, #475569 50%, #334155 75%);
   background-size: 200% 100%;
 }
+.bg-card{
+background:white;
+}
+
+.bg-bg-main{
+background:#f8fafc;
+}
+
+.border-border-crm{
+border-color:#e2e8f0;
+}
+
+.text-txt-primary{
+color:#0f172a;
+}
+
+.text-txt-secondary{
+color:#64748b;
+}
+
+.text-primary{
+color:#2563eb;
+}
+
+.text-success{
+color:#059669;
+}

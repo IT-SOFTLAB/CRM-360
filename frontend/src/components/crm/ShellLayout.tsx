@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import "@/app/globals.css";
 import {
   Briefcase,
   ChevronDown,
@@ -20,6 +21,7 @@ import {
   BarChart3,
   Users,
   ClipboardList,
+  Building2,
   Calendar as CalendarIcon,
   Mail,
   FileText,
@@ -114,8 +116,10 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     { id: 'activities', label: 'Activities', icon: CalendarIcon, href: '/activities' },
     { id: 'emails', label: 'Emails', icon: Mail, href: '/emails' },
     { id: 'quotations', label: 'Quotations', icon: FileText, href: '/quotations' },
+     { id: 'customers', label: 'Customers', icon: Building2, href: '/customers'},
     { id: 'referrals', label: 'Referrals', icon: TrendingUp, href: '/referrals' },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon, href: '/settings' }
+    { id: 'settings', label: 'Settings', icon: SettingsIcon, href: '/settings' },
+   
   ];
 
   const handleLogoutClick = () => {

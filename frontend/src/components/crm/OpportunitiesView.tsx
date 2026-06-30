@@ -77,9 +77,15 @@ export default function OpportunitiesView({
       <div className="flex space-x-4 overflow-x-auto pb-4 items-start select-none">
 
         {pipelines.map(stage => {
-          const stageOpps = applyFilters(opportunities.filter(o => o.stageId === stage.id), 'opportunities');
+          const stageOpps = applyFilters(
+            opportunities.filter(
+              o => o.stage?.toLowerCase() === stage.name?.toLowerCase()
+            ),
+            "opportunities"
+          );
           const totalValue = stageOpps.reduce((sum, opp) => sum + opp.dealValue, 0);
-
+          console.log("Pipelines:", pipelines);
+          console.log("Opportunities:", opportunities);
           return (
             <div
               key={stage.id}

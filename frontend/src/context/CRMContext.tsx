@@ -28,6 +28,8 @@ export interface CRMContextType {
   setQuotations: React.Dispatch<React.SetStateAction<any[]>>;
   referrals: any[];
   setReferrals: React.Dispatch<React.SetStateAction<any[]>>;
+  customers: any[];
+  setCustomers: React.Dispatch<React.SetStateAction<any[]>>;
   referralForm: any;
   setReferralForm: React.Dispatch<React.SetStateAction<any>>;
   categories: string[];
@@ -75,9 +77,9 @@ export interface CRMContextType {
   handleUpdateLeadFromView: (leadId: string, leadData: any) => Promise<void>;
   handleDeleteLeadFromView: (leadId: string) => Promise<void>;
   handleConvertLeadFromView: (
-  leadId: string,
-  dealValue: string
-) => Promise<void>;
+    leadId: string,
+    dealValue: string
+  ) => Promise<void>;
   handleMoveOpportunity: (oppId: string, stageId: string) => Promise<void>;
   handleAddStage: (stageName: string) => Promise<void>;
   handleStageReorder: (stageId: string, direction: 'left' | 'right') => Promise<void>;
@@ -107,7 +109,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [searchQuery, setSearchQuery] = useState('');
   const [toasts, setToasts] = useState<any[]>([]);
 
- 
+
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
   const [activeFilters, setActiveFilters] = useState<any>({
     myPipeline: false,
@@ -155,6 +157,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [emails, setEmails] = useState<any[]>([]);
   const [quotations, setQuotations] = useState<any[]>([]);
   const [referrals, setReferrals] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
   const [referralForm, setReferralForm] = useState<any>({
     referrerName: '', referrerCompany: '', referredLeadName: '', referredCompany: '',
     dealValue: '10000', rewardType: 'Credits', rewardValue: '₹1,000 Credits'
@@ -187,7 +190,6 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setToasts(prev => prev.filter(t => t.id !== id));
     }, 4000);
   };
-
   // Helper: Fetch from Express API with fallback
   const apiCall = async (path: string, method = 'GET', body: any = null) => {
     try {
@@ -211,6 +213,7 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const apiEmails = await apiCall('/emails');
     const apiQuotes = await apiCall('/quotations');
     const apiReferrals = await apiCall('/referrals');
+    const apiCustomers = await apiCall('/customers');
     const apiCategories = await apiCall('/categories');
     const apiUsers = await apiCall('/users');
     const apiRefPipelines = await apiCall('/referral-pipelines');
@@ -218,13 +221,32 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const apiLogs = await apiCall('/settings/logs');
 
     if (apiLeads) setLeads(apiLeads);
-    if (apiOpps) setOpportunities(apiOpps);
+    if (apiOpps) {
+
+      const formatted = apiOpps.map((opp: any) => {
+
+        const stageObj = apiPipelines?.find(
+          (p: any) =>
+            p.id === opp.stageId ||
+            p.name === opp.stage
+        );
+
+        return {
+          ...opp,
+          stageId: stageObj?.id,
+          stage: stageObj?.name || opp.stage
+        };
+      });
+
+      setOpportunities(formatted);
+    }
     if (apiPipelines) setPipelines(apiPipelines);
     if (apiRefPipelines) setReferralPipelines(apiRefPipelines);
     if (apiActivities) setActivities(apiActivities);
     if (apiEmails) setEmails(apiEmails);
     if (apiQuotes) setQuotations(apiQuotes);
     if (apiReferrals) setReferrals(apiReferrals);
+    if (apiCustomers) setCustomers(apiCustomers);
     if (apiCategories) setCategories(apiCategories);
     if (apiUsers) setSettingsUsers(apiUsers);
     if (apiBranding) setCompanyBranding(apiBranding);
@@ -398,18 +420,29 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const handleConvertLeadFromView = async (leadId: string, dealValue: string) => {
     const leadObj = leads.find(l => l.id === leadId);
 
-const salesperson = leadObj?.assignedUser || user?.name || 'Unassigned';
+    const salesperson = leadObj?.assignedUser || user?.name || 'Unassigned';
 
-const res = await apiCall(
-  `/leads/${leadId}/convert`,
-  'POST',
-  {
-    dealValue,
-    salesperson
-  }
-);
+    const res = await apiCall(
+      `/opportunities/convert/${leadId}`,
+      "POST",
+      {
+        dealValue,
+        salesperson
+      }
+    );
     if (res) {
-      addToast('success', 'Converted lead to Opportunity!');
+
+      setOpportunities(prev => [
+        res.opportunity,
+        ...prev
+      ]);
+
+      setLeads(prev =>
+        prev.filter(l => l.id !== leadId)
+      );
+
+      addToast("success", "Converted successfully");
+
       loadCRMData();
     } else {
       const leadObj = leads.find(l => l.id === leadId);
@@ -496,10 +529,22 @@ const res = await apiCall(
     const opp = opportunities.find(o => o.id === oppId);
     if (!opp) return;
 
-    const updatedOpps = opportunities.map(o => o.id === oppId ? { ...o, stageId } : o);
+    const stage = pipelines.find(p => p.id === stageId);
+    const updatedOpps = opportunities.map(o =>
+      o.id === oppId
+        ? {
+          ...o,
+          stageId,
+          stage: stage?.name
+        }
+        : o
+    );
     setOpportunities(updatedOpps);
 
-    const res = await apiCall(`/opportunities/${oppId}`, 'PUT', { stageId });
+    const res = await apiCall(`/opportunities/${oppId}`, "PUT", {
+      stageId,
+      stage: stage?.name
+    });
     if (res) {
       addToast('success', `Opportunity moved to stage`);
       loadCRMData();
@@ -535,44 +580,44 @@ const res = await apiCall(
   };
 
   const handleActivityCreate = async (activityForm: any) => {
-  try {
-    await apiCall("/activities", "POST", activityForm);
+    try {
+      await apiCall("/activities", "POST", activityForm);
 
-    await loadCRMData();
+      await loadCRMData();
 
-    addToast("success", "Activity scheduled!");
+      addToast("success", "Activity scheduled!");
 
-    setShowActivityModal(false);
+      setShowActivityModal(false);
 
-  } catch (err) {
+    } catch (err) {
 
-    addToast("error", "Unable to schedule activity.");
+      addToast("error", "Unable to schedule activity.");
 
-  }
-};
+    }
+  };
 
   const toggleActivityDone = async (
-  activityId: string,
-  currentStatus: boolean
-) => {
+    activityId: string,
+    currentStatus: boolean
+  ) => {
 
-  try {
+    try {
 
-    await apiCall(`/activities/${activityId}`, "PUT", {
-      done: !currentStatus
-    });
+      await apiCall(`/activities/${activityId}`, "PUT", {
+        done: !currentStatus
+      });
 
-    await loadCRMData();
+      await loadCRMData();
 
-    addToast("success", "Activity updated");
+      addToast("success", "Activity updated");
 
-  } catch {
+    } catch {
 
-    addToast("error", "Unable to update activity");
+      addToast("error", "Unable to update activity");
 
-  }
+    }
 
-};
+  };
 
   const handleSendEmail = async (replyText: string, emailObject: any) => {
     const payload = {
@@ -917,6 +962,8 @@ const res = await apiCall(
       setQuotations,
       referrals,
       setReferrals,
+      customers,
+      setCustomers,
       referralForm,
       setReferralForm,
       categories,
