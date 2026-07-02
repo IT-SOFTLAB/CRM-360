@@ -31,11 +31,8 @@
   "categories": [
     "Healthcare",
     "Manufacturing",
-    "Education",
-    "Real Estate",
     "E-Commerce",
     "Finance",
-    "Logistics",
     "Hospitality",
     "IT Services"
   ],
@@ -441,6 +438,22 @@
       ],
       "stageId": "p_6",
       "createdDate": "2026-06-29"
+    },
+    {
+      "id": "o_1782978726198",
+      "leadId": "cmr30kyhv0000o0dkt0233efl",
+      "customerName": "ABCD",
+      "company": "abcd",
+      "dealValue": 15000,
+      "expectedClosing": "2026-08-01",
+      "assignedSalesperson": "John Doe (SA)",
+      "priority": "Medium",
+      "tags": [
+        "CSV/Excel Import",
+        "Finance"
+      ],
+      "stageId": "p_1782467758119",
+      "createdDate": "2026-07-02"
     }
   ],
   "activities": [
@@ -742,6 +755,42 @@
     "logoText": "CRM 360"
   },
   "auditLogs": [
+    {
+      "id": "log_1782981302841_v6a9q",
+      "timestamp": "2026-07-02T08:35:02.841Z",
+      "user": "System",
+      "role": "System",
+      "action": "DELETE_CATEGORY",
+      "module": "Settings",
+      "details": "Deleted project category: Logistics"
+    },
+    {
+      "id": "log_1782981296461_ybv33",
+      "timestamp": "2026-07-02T08:34:56.462Z",
+      "user": "System",
+      "role": "System",
+      "action": "DELETE_CATEGORY",
+      "module": "Settings",
+      "details": "Deleted project category: Real Estate"
+    },
+    {
+      "id": "log_1782978726198_aykc9",
+      "timestamp": "2026-07-02T07:52:06.198Z",
+      "user": "System",
+      "role": "System",
+      "action": "CONVERT_LEAD",
+      "module": "Leads",
+      "details": "Converted lead ABCD into Opportunity (Valued at ₹15000)"
+    },
+    {
+      "id": "log_1782978404470_vkmmu",
+      "timestamp": "2026-07-02T07:46:44.470Z",
+      "user": "System",
+      "role": "System",
+      "action": "DELETE_CATEGORY",
+      "module": "Settings",
+      "details": "Deleted project category: Education"
+    },
     {
       "id": "log_1782894797950_5vf2l",
       "timestamp": "2026-07-01T08:33:17.950Z",
