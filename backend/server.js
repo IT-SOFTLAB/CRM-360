@@ -12,7 +12,9 @@ const DB_FILE = path.join(__dirname, 'db.json');
 const leadRoutes = require("./src/routes/leadRoutes.js");
 const activityRoutes = require("./src/routes/activityRoutes.js");
 const authRoutes=require("./src/routes/authRoutes.js");
-
+const referralRoutes = require("./src/routes/referralRoutes.js");
+const pipelineRoutes = require("./src/routes/pipelineRoutes.js");
+const rewardRoutes = require("./src/routes/rewardRoutes.js");
 const emailRoutes=require("./src/routes/emailRoutes.js");
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
@@ -24,6 +26,9 @@ app.use("/api/leads", leadRoutes);
 app.use("/api/activities", activityRoutes);
 app.use("/auth",authRoutes);
 app.use("/api/emails",emailRoutes);
+app.use("/api/referrals", referralRoutes);
+app.use("/api/referral-pipeline", pipelineRoutes);
+app.use("/api/rewards", rewardRoutes);
 
 function readDB() {
   if (!fs.existsSync(DB_FILE)) {
@@ -552,7 +557,7 @@ app.delete('/api/pipelines/:id', (req, res) => {
 // Referral Pipelines Config (CRUD)
 app.get('/api/referral-pipelines', (req, res) => {
   const db = readDB();
-  res.json(db.referralPipelines.sort((a, b) => a.order - b.order));
+  res.json(db.referralPipelines.sort((a, b) => a.sequence - b.sequence));
 });
 
 app.post('/api/referral-pipelines', (req, res) => {

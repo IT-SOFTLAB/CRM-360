@@ -114,7 +114,7 @@
       "category": "Healthcare",
       "serviceType": "Service Based",
       "assignedUser": null,
-      "status": "new",
+      "status": "Proposal Preparation",
       "createdAt": "1970-01-01T00:00:46.199Z",
       "createdDate": "1970-01-01"
     },
@@ -264,7 +264,7 @@
       "category": "IT",
       "serviceType": "product-based",
       "assignedUser": "aabcd",
-      "status": "New",
+      "status": "Won",
       "createdDate": "2026-06-29"
     },
     {
@@ -278,7 +278,7 @@
       "category": "IT",
       "serviceType": "service-based",
       "assignedUser": "xyz",
-      "status": "New",
+      "status": "Won",
       "createdAt": "2026-06-29",
       "createdDate": "2026-06-29"
     }
@@ -296,7 +296,7 @@
         "CSV/Excel Import",
         "IT"
       ],
-      "stageId": "p_1782467758119",
+      "stageId": "p_4",
       "createdDate": "2026-06-26"
     },
     {
@@ -391,7 +391,7 @@
         "Website",
         "Education"
       ],
-      "stageId": "p_4",
+      "stageId": "p_6",
       "createdDate": "2026-06-26"
     },
     {
@@ -423,7 +423,7 @@
         "CSV/Excel Import",
         "IT"
       ],
-      "stageId": "p_1782467758119",
+      "stageId": "p_6",
       "createdDate": "2026-06-29"
     },
     {
@@ -439,7 +439,7 @@
         "CSV/Excel Import",
         "IT"
       ],
-      "stageId": "p_1782467758119",
+      "stageId": "p_6",
       "createdDate": "2026-06-29"
     }
   ],
@@ -615,7 +615,7 @@
       "company": "Stark Industries",
       "opportunityId": "o_2",
       "date": "2026-06-20",
-      "status": "Sent",
+      "status": "Approved",
       "taxRate": 10,
       "discount": 50000,
       "items": [
@@ -691,6 +691,48 @@
       "rewardType": "Discount on Future Projects",
       "rewardValue": "15% Renewal Discount",
       "rewardApproved": true
+    },
+    {
+      "id": "ref_1782802446246",
+      "referrerName": "PQRS",
+      "referrerCompany": "orgPqrs",
+      "referredLeadName": "Pending referral",
+      "referredCompany": "Pending Company Corp",
+      "dealValue": 0,
+      "stage": "rp_1",
+      "dateSubmitted": "2026-06-30",
+      "rewardType": "Credits",
+      "rewardValue": "₹1,000 Credits",
+      "rewardApproved": false,
+      "placeholder": true
+    },
+    {
+      "id": "ref_1782894744338",
+      "referrerName": "xyz",
+      "referrerCompany": "xyzorg",
+      "referredLeadName": "Pending referral",
+      "referredCompany": "Pending Company Corp",
+      "dealValue": 0,
+      "stage": "rp_1",
+      "dateSubmitted": "2026-07-01",
+      "rewardType": "Credits",
+      "rewardValue": "₹1,000 Credits",
+      "rewardApproved": false,
+      "placeholder": true
+    },
+    {
+      "id": "ref_1782894795598",
+      "referrerName": "Trupti",
+      "referrerCompany": "orgTrupti",
+      "referredLeadName": "Pending referral",
+      "referredCompany": "Pending Company Corp",
+      "dealValue": 0,
+      "stage": "rp_1",
+      "dateSubmitted": "2026-07-01",
+      "rewardType": "Credits",
+      "rewardValue": "₹1,000 Credits",
+      "rewardApproved": false,
+      "placeholder": true
     }
   ],
   "companyBranding": {
@@ -700,6 +742,87 @@
     "logoText": "CRM 360"
   },
   "auditLogs": [
+    {
+      "id": "log_1782894797950_5vf2l",
+      "timestamp": "2026-07-01T08:33:17.950Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_OPPORTUNITY",
+      "module": "Opportunities",
+      "details": "Updated opportunity: orgTrupti (Stage: p_6)"
+    },
+    {
+      "id": "log_1782894795599_1fnz8",
+      "timestamp": "2026-07-01T08:33:15.599Z",
+      "user": "System",
+      "role": "System",
+      "action": "REFERRAL_AUTO_ENROLL",
+      "module": "Referral Program",
+      "details": "Auto-enrolled client Trupti in referral program."
+    },
+    {
+      "id": "log_1782894749678_1upf8",
+      "timestamp": "2026-07-01T08:32:29.678Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_OPPORTUNITY",
+      "module": "Opportunities",
+      "details": "Updated opportunity: xyzorg (Stage: p_6)"
+    },
+    {
+      "id": "log_1782894744338_xp9bh",
+      "timestamp": "2026-07-01T08:32:24.338Z",
+      "user": "System",
+      "role": "System",
+      "action": "REFERRAL_AUTO_ENROLL",
+      "module": "Referral Program",
+      "details": "Auto-enrolled client xyz in referral program."
+    },
+    {
+      "id": "log_1782883891401_i2g1s",
+      "timestamp": "2026-07-01T05:31:31.402Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_QUOTATION",
+      "module": "Quotations",
+      "details": "Updated quotation: QT-2026-002 (Status: Approved)"
+    },
+    {
+      "id": "log_1782883870740_nvtvd",
+      "timestamp": "2026-07-01T05:31:10.741Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_OPPORTUNITY",
+      "module": "Opportunities",
+      "details": "Updated opportunity: orgYashika (Stage: p_4)"
+    },
+    {
+      "id": "log_1782802448612_z9yrh",
+      "timestamp": "2026-06-30T06:54:08.612Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_OPPORTUNITY",
+      "module": "Opportunities",
+      "details": "Updated opportunity: orgPqrs (Stage: p_6)"
+    },
+    {
+      "id": "log_1782802446246_fwdlj",
+      "timestamp": "2026-06-30T06:54:06.246Z",
+      "user": "System",
+      "role": "System",
+      "action": "REFERRAL_AUTO_ENROLL",
+      "module": "Referral Program",
+      "details": "Auto-enrolled client PQRS in referral program."
+    },
+    {
+      "id": "log_1782802436280_rsfcg",
+      "timestamp": "2026-06-30T06:53:56.280Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_OPPORTUNITY",
+      "module": "Opportunities",
+      "details": "Updated opportunity: xyzorg (Stage: p_4)"
+    },
     {
       "id": "log_1782730645818_v7tc9",
       "timestamp": "2026-06-29T10:57:25.818Z",

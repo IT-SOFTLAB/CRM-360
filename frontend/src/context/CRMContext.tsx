@@ -63,6 +63,45 @@ export interface CRMContextType {
   setShowReferralModal: React.Dispatch<React.SetStateAction<boolean>>;
   settingsUsers: any[];
   setSettingsUsers: React.Dispatch<React.SetStateAction<any[]>>;
+  referralDashboard: any;
+
+setReferralDashboard: React.Dispatch<
+React.SetStateAction<any>
+>;
+pipelineStats: any[];
+
+setPipelineStats: React.Dispatch<
+React.SetStateAction<any[]>
+>;
+
+referralAnalytics: any;
+
+setReferralAnalytics: React.Dispatch<
+React.SetStateAction<any>
+>;
+
+selectedReferral: any;
+
+setSelectedReferral: React.Dispatch<
+React.SetStateAction<any>
+>;
+
+handleSetFinalStage: (
+    stageId: string
+) => Promise<void>;
+
+loadReferralDetails: (
+    id: string
+) => Promise<void>;
+
+handleRenameReferralStage: (
+    stageId: string,
+    name: string
+) => Promise<void>;
+
+handlePayReward: (
+    rewardId: string
+) => Promise<void>;
 
   // Actions
   apiCall: (path: string, method?: string, body?: any) => Promise<any>;
@@ -88,7 +127,7 @@ export interface CRMContextType {
   handleQuotationCreate: (quoteForm: any) => Promise<void>;
   updateQuoteStatus: (quoteId: string, status: string) => Promise<void>;
   handleReferralCreate: (referralForm: any) => Promise<void>;
-  handleApproveReward: (refId: string) => Promise<void>;
+ handleApproveReward: (rewardId: string) => Promise<void>;
   handleAddCategory: (catName: string) => Promise<void>;
   handleDeleteCategory: (catName: string) => Promise<void>;
   handleBrandingSave: (e: React.FormEvent) => Promise<void>;
@@ -97,7 +136,32 @@ export interface CRMContextType {
   handleSaveCustomFilter: () => void;
   clearAllFilters: () => void;
   toggleTheme: () => void;
+
+  handleDeleteReferral: (id: string) => Promise<void>;
+
+handleMoveReferral: (
+    referralId: string,
+    stageId: string
+) => Promise<void>;
+
+handleAddReferralStage: (
+    stageName: string
+) => Promise<void>;
+
+handleDeleteReferralStage: (
+    stageId: string
+) => Promise<void>;
+
+handleReferralStageReorder: (
+    stageId: string,
+    direction: "left" | "right"
+) => Promise<void>;
+
+getReferralDashboard: () => Promise<any>;
+
 }
+
+
 
 const CRMContext = createContext<CRMContextType | undefined>(undefined);
 
@@ -155,10 +219,25 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [emails, setEmails] = useState<any[]>([]);
   const [quotations, setQuotations] = useState<any[]>([]);
   const [referrals, setReferrals] = useState<any[]>([]);
-  const [referralForm, setReferralForm] = useState<any>({
-    referrerName: '', referrerCompany: '', referredLeadName: '', referredCompany: '',
-    dealValue: '10000', rewardType: 'Credits', rewardValue: '₹1,000 Credits'
-  });
+const [referralDashboard, setReferralDashboard] = useState<any>({
+    totalReferrals: 0,
+    qualifiedLeads: 0,
+    conversions: 0,
+    totalRewardsPaid: 0,
+    pendingRewardAmount: 0
+});
+const [pipelineStats, setPipelineStats] = useState<any[]>([]);
+  const [referralForm, setReferralForm] = useState({
+  referrerId: "",
+  referrerName: "",
+  referrerCompany: "",
+  referredLeadName: "",
+  referredCompany: "",
+  referredEmail: "",
+  referredPhone: "",
+  rewardType: "Cash",
+  rewardValue: 1000
+});
   const [categories, setCategories] = useState<string[]>([]);
   const [serviceTypes] = useState<string[]>(['Service Based', 'Product Based']);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -178,7 +257,10 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Settings states
   const [settingsUsers, setSettingsUsers] = useState<any[]>([]);
-
+const [referralAnalytics,setReferralAnalytics]
+=
+useState(null);
+const [selectedReferral, setSelectedReferral] = useState<any>(null);
   // Notifications
   const addToast = (type: 'success' | 'error' | 'info', message: string) => {
     const id = Date.now();
@@ -211,16 +293,20 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const apiEmails = await apiCall('/emails');
     const apiQuotes = await apiCall('/quotations');
     const apiReferrals = await apiCall('/referrals');
+    const apiReferralDashboard =
+await apiCall("/referrals/dashboard");
     const apiCategories = await apiCall('/categories');
     const apiUsers = await apiCall('/users');
-    const apiRefPipelines = await apiCall('/referral-pipelines');
+    const apiRefPipelines = await apiCall('/referral-pipeline');
     const apiBranding = await apiCall('/settings/branding');
     const apiLogs = await apiCall('/settings/logs');
 
     if (apiLeads) setLeads(apiLeads);
     if (apiOpps) setOpportunities(apiOpps);
     if (apiPipelines) setPipelines(apiPipelines);
-    if (apiRefPipelines) setReferralPipelines(apiRefPipelines);
+    if (apiRefPipelines?.success) {
+    setReferralPipelines(apiRefPipelines.pipeline);
+}
     if (apiActivities) setActivities(apiActivities);
     if (apiEmails) setEmails(apiEmails);
     if (apiQuotes) setQuotations(apiQuotes);
@@ -229,6 +315,12 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (apiUsers) setSettingsUsers(apiUsers);
     if (apiBranding) setCompanyBranding(apiBranding);
     if (apiLogs) setAuditLogs(apiLogs);
+    if(apiReferralDashboard)
+    setReferralDashboard(apiReferralDashboard);
+ await Promise.all([
+    loadPipelineStats(),
+    loadReferralAnalytics()
+]);
 
     // Seed offline state if backend is completely empty or down
     if (!apiLeads && leads.length === 0) {
@@ -250,13 +342,13 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         { id: 'p_6', name: 'Won', order: 6 },
         { id: 'p_7', name: 'Lost', order: 7 }
       ]);
-      setReferralPipelines([
-        { id: 'rp_1', name: 'Referral Submitted', order: 1 },
-        { id: 'rp_2', name: 'Qualified', order: 2 },
-        { id: 'rp_3', name: 'Proposal', order: 3 },
-        { id: 'rp_4', name: 'Won', order: 4 },
-        { id: 'rp_5', name: 'Reward Approved', order: 5 }
-      ]);
+      // setReferralPipelines([
+      //   { id: 'rp_1', name: 'Referral Submitted', order: 1 },
+      //   { id: 'rp_2', name: 'Qualified', order: 2 },
+      //   { id: 'rp_3', name: 'Proposal', order: 3 },
+      //   { id: 'rp_4', name: 'Won', order: 4 },
+      //   { id: 'rp_5', name: 'Reward Approved', order: 5 }
+      // ]);
       setCategories(['Healthcare', 'Manufacturing', 'Education', 'Real Estate', 'E-Commerce', 'Finance', 'Logistics', 'Hospitality', 'IT Services']);
       // setActivities([
       //   { id: 'a_1', title: 'Stark proposal alignment', type: 'Meeting', date: '2026-06-25', time: '14:00', duration: '60', description: 'Align deal parameters.', salesperson: 'John Doe (SA)', done: false, opportunityId: 'o_2' },
@@ -273,9 +365,9 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setQuotations([
         { id: 'q_1', quoteNumber: 'QT-2026-001', clientName: 'Clark Kent', company: 'Daily Planet Publishing', opportunityId: 'o_3', date: '2026-04-25', status: 'Approved', taxRate: 8, discount: 2500, items: [{ description: 'Enterprise License', qty: 50, price: 800, total: 40000 }], subtotal: 40000, taxAmount: 3200, grandTotal: 40700 }
       ]);
-      setReferrals([
-        { id: 'ref_1', referrerName: 'Clark Kent', referrerCompany: 'Daily Planet Publishing', referredLeadName: 'Lois Lane', referredCompany: 'Metropolis Gazette', dealValue: 75000, stage: 'rp_3', dateSubmitted: '2026-06-10', rewardType: 'Credits', rewardValue: '₹1,500 CRM Credits', rewardApproved: false }
-      ]);
+      // setReferrals([
+      //   { id: 'ref_1', referrerName: 'Clark Kent', referrerCompany: 'Daily Planet Publishing', referredLeadName: 'Lois Lane', referredCompany: 'Metropolis Gazette', dealValue: 75000, stage: 'rp_3', dateSubmitted: '2026-06-10', rewardType: 'Credits', rewardValue: '₹1,500 CRM Credits', rewardApproved: false }
+      // ]);
       setAuditLogs([
         { id: 'log_offline_init', timestamp: new Date().toISOString(), user: 'System', role: 'System', action: 'INIT_OFFLINE', module: 'Database', details: 'Express offline. Seeded local mock state.' }
       ]);
@@ -395,6 +487,20 @@ export const CRMProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+const loadReferralDetails = async (id: string) => {
+
+    const res = await apiCall(
+        `/referrals/${id}/details`
+    );
+
+    if (res) {
+
+        setSelectedReferral(res.referral);
+
+    }
+
+};
+
   const handleConvertLeadFromView = async (leadId: string, dealValue: string) => {
     const leadObj = leads.find(l => l.id === leadId);
 
@@ -437,6 +543,31 @@ const res = await apiCall(
       }
     }
   };
+
+  const handleRenameReferralStage = async (
+    stageId: string,
+    name: string
+) => {
+
+    const res = await apiCall(
+        `/referral-pipeline/${stageId}/rename`,
+        "PATCH",
+        { name }
+    );
+
+    if (res) {
+
+        addToast(
+            "success",
+            "Stage renamed successfully"
+        );
+
+        await loadCRMData();
+
+    }
+
+};
+
 
   const handleAddStage = async (stageName: string) => {
     if (user?.role !== 'Super Admin') return addToast('error', 'Only Super Admin can edit pipelines');
@@ -517,19 +648,7 @@ const res = await apiCall(
         }));
       }
 
-      if (stageId === 'p_6') {
-        const already = referrals.some(r => r.referrerName === opp.customerName);
-        if (!already) {
-          const newRef = {
-            id: 'ref_' + Date.now(), referrerName: opp.customerName, referrerCompany: opp.company,
-            referredLeadName: 'Pending referral', referredCompany: 'Pending Company Corp', dealValue: 0,
-            stage: 'rp_1', dateSubmitted: new Date().toISOString().split('T')[0], rewardType: 'Credits',
-            rewardValue: '₹1,000 Credits', rewardApproved: false
-          };
-          setReferrals(prev => [...prev, newRef]);
-          addToast('success', `${opp.customerName} enrolled in Referral Program!`);
-        }
-      }
+     
       addToast('success', 'Opportunity moved (Offline Mode)');
     }
   };
@@ -648,31 +767,125 @@ const res = await apiCall(
   };
 
   const handleReferralCreate = async (referralForm: any) => {
-    const res = await apiCall('/referrals', 'POST', referralForm);
-    if (res) {
-      setReferrals(prev => [...prev, res]);
-      addToast('success', 'Referral submitted!');
-    } else {
-      const mockRef = {
-        id: 'ref_' + Date.now(), dateSubmitted: new Date().toISOString().split('T')[0], stage: 'rp_1', rewardApproved: false, ...referralForm
-      };
-      setReferrals(prev => [...prev, mockRef]);
-      addToast('success', 'Referral submitted (Offline)');
-    }
-    setShowReferralModal(false);
+   const res = await apiCall("/referrals", "POST", referralForm);
+
+if (res) {
+    addToast("success", "Referral Created");
+    await loadCRMData();
+}
+
+setShowReferralModal(false);
   };
 
-  const handleApproveReward = async (refId: string) => {
+  const handleApproveReward = async (rewardId: string) => {
     if (user?.role !== 'Super Admin') return addToast('error', 'Only Super Admin can approve referral rewards');
-    const res = await apiCall(`/referrals/${refId}`, 'PUT', { rewardApproved: true, stage: 'rp_5' });
+   const res = await apiCall(
+    `/rewards/approve/${rewardId}`,
+    "PATCH",
+    {
+        approvedBy: user.name
+    }
+);
     if (res) {
       addToast('success', 'Referral Reward Approved!');
       loadCRMData();
-    } else {
-      setReferrals(prev => prev.map(r => r.id === refId ? { ...r, rewardApproved: true, stage: 'rp_5' } : r));
-      addToast('success', 'Referral Reward Approved (Offline)');
-    }
+    } 
   };
+
+const handleDeleteReferral = async (id: string) => {
+  const res = await apiCall(`/referrals/${id}`, "DELETE");
+
+  if (res) {
+    addToast("success", "Referral deleted");
+    await loadCRMData();
+  }
+};
+
+const handleMoveReferral = async (
+  referralId: string,
+  stageId: string
+) => {
+
+  const res = await apiCall(
+    `/referrals/move/${referralId}`,
+    "PATCH",
+    {
+      stageId
+    }
+  );
+
+  if (res) {
+    addToast("success", "Referral moved");
+    await loadCRMData();
+  }
+
+};
+
+const handleAddReferralStage = async (
+  stageName: string
+) => {
+
+  const res = await apiCall(
+    "/referral-pipeline",
+    "POST",
+    {
+      name: stageName
+    }
+  );
+
+  if (res) {
+    addToast("success", "Pipeline Stage Added");
+    await loadCRMData();
+  }
+
+};
+
+const handleDeleteReferralStage = async (
+  stageId: string
+) => {
+
+  const res = await apiCall(
+    `/referral-pipeline/${stageId}`,
+    "DELETE"
+  );
+
+  if (res) {
+    addToast("success", "Stage Deleted");
+    await loadCRMData();
+  }
+
+};
+
+const handleReferralStageReorder = async (
+    stageId: string,
+    direction: "left" | "right"
+) => {
+
+    const res = await apiCall(
+        `/referral-pipeline/reorder/${stageId}`,
+        "PATCH",
+        {
+            direction
+        }
+    );
+
+    if (res) {
+
+        addToast("success", "Pipeline reordered");
+
+        await loadCRMData();
+
+    }
+
+};
+
+const getReferralDashboard = async () => {
+
+  return await apiCall(
+    "/referrals/dashboard"
+  );
+
+};
 
   const handleAddCategory = async (catName: string) => {
     const res = await apiCall('/categories', 'POST', { category: catName });
@@ -721,6 +934,34 @@ const res = await apiCall(
       addToast('success', 'User deleted (Offline)');
     }
   };
+
+const loadPipelineStats = async () => {
+
+    const res = await apiCall(
+        "/referral-pipeline/stats"
+    );
+
+    if(res){
+
+        setPipelineStats(res.pipeline);
+
+    }
+
+};
+
+const loadReferralAnalytics = async()=>{
+
+    const res = await apiCall(
+        "/referrals/analytics"
+    );
+
+    if(res){
+
+        setReferralAnalytics(res);
+
+    }
+
+}
 
   const applyFilters = (data: any[], type: 'leads' | 'opportunities' | 'emails') => {
     let filtered = [...data];
@@ -852,6 +1093,50 @@ const res = await apiCall(
     setCustomFilterName('');
   };
 
+  const handleSetFinalStage = async (
+    stageId: string
+) => {
+
+    const res = await apiCall(
+        `/referral-pipeline/${stageId}/final`,
+        "PATCH"
+    );
+
+    if (res) {
+
+        addToast(
+            "success",
+            "Final stage updated"
+        );
+
+        await loadCRMData();
+
+    }
+
+};
+
+const handlePayReward = async (
+    rewardId: string
+) => {
+
+    const res = await apiCall(
+        `/rewards/${rewardId}/pay`,
+        "PATCH"
+    );
+
+    if (res) {
+
+        addToast(
+            "success",
+            "Reward paid successfully"
+        );
+
+        await loadCRMData();
+
+    }
+
+};
+
   const clearAllFilters = () => {
     setActiveFilters({
       myPipeline: false,
@@ -980,7 +1265,25 @@ const res = await apiCall(
       applyFilters,
       handleSaveCustomFilter,
       clearAllFilters,
-      toggleTheme
+      toggleTheme,
+handleDeleteReferral,
+handleMoveReferral,
+handleAddReferralStage,
+handleDeleteReferralStage,
+handleReferralStageReorder,
+getReferralDashboard,
+referralDashboard,
+setReferralDashboard,
+pipelineStats,
+setPipelineStats,
+referralAnalytics,
+setReferralAnalytics,
+selectedReferral,
+setSelectedReferral,
+loadReferralDetails,
+handleRenameReferralStage,
+handleSetFinalStage,
+handlePayReward,
     }}>
       {children}
     </CRMContext.Provider>

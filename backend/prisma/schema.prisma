@@ -30,24 +30,113 @@ model Lead {
 }
 
 model Activity {
-  id             String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  title          String
-  type           String
+  title String
+  type  String
 
-  date           DateTime
-  time           String
-  duration       Int
+  date     DateTime
+  time     String
+  duration Int
 
-  description    String?
+  description String?
 
-  salesperson    String?
+  salesperson String?
 
-  leadId         String?
-  opportunityId  String?
+  leadId        String?
+  opportunityId String?
 
-  done           Boolean @default(false)
+  done Boolean @default(false)
 
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ReferralPipeline {
+  id       String  @id @default(cuid())
+  name     String
+  sequence Int
+  color    String?
+  isFinal  Boolean @default(false)
+
+  referrals Referral[]
+
+  createdAt         DateTime          @default(now())
+  referralHistories ReferralHistory[]
+}
+
+model Referral {
+  id String @id @default(cuid())
+
+  referralCode String @unique
+
+  referrerId      String
+  referrerName    String
+  referrerCompany String
+
+  referredLeadName String
+  referredCompany  String
+  referredEmail    String?
+  referredPhone    String?
+
+  rewardType     String
+  rewardValue    Float
+  rewardApproved Boolean @default(false)
+
+  currentStageId String
+  currentStage   ReferralPipeline @relation(fields: [currentStageId], references: [id])
+
+  histories ReferralHistory[]
+  rewards   ReferralReward[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ReferralHistory {
+  id String @id @default(cuid())
+
+  referralId String
+  stageId    String
+
+  changedBy String
+  remarks   String?
+
+  createdAt DateTime @default(now())
+
+  referral Referral         @relation(fields: [referralId], references: [id])
+  pipeline ReferralPipeline @relation(fields: [stageId], references: [id])
+}
+
+model ReferralReward {
+  id String @id @default(cuid())
+
+  referralId String
+
+  amount     Float
+  rewardType String
+
+  approved   Boolean @default(false)
+  approvedBy String?
+
+  paid     Boolean   @default(false)
+  paidDate DateTime?
+
+  referral Referral @relation(fields: [referralId], references: [id])
+}
+
+model Opportunity {
+  id                  String    @id @default(cuid())
+  leadId              String?
+  customerName        String
+  company             String?
+  email               String?
+  phone               String?
+  dealValue           Float
+  stage               String    @default("New")
+  stageId             String?
+  assignedSalesperson String?
+  expectedClosing     DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 }

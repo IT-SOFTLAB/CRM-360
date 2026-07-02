@@ -96,10 +96,7 @@ const [selectedDate, setSelectedDate] = useState(new Date());
 );
 
                 return (
-                  <div key={i}  onClick={() => {
-        setSelectedDate(new Date(formattedDate));
-        setCalendarView("day");
-    }} className="min-h-24 p-2 border-r border-b border-border-crm flex flex-col justify-between">
+                  <div key={i}  className="min-h-24 p-2 border-r border-b border-border-crm flex flex-col justify-between">
                     <span className="font-semibold text-[10px] text-slate-400 select-none">{dayNumber}</span>
                     <div className="space-y-1 mt-1 overflow-y-auto flex-1 max-h-16">
                       {dayActivities.map(act => (
