@@ -13,6 +13,8 @@ export default function LoginPage() {
       setAuthForm={crm.setAuthForm}
       onSubmit={crm.handleAuthSubmit}
       addToast={crm.addToast}
+      setupRequired={crm.setupRequired}
+      onSetupSubmit={crm.handleSetupSubmit}
     />
   );
 }

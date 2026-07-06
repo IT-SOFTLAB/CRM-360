@@ -110,16 +110,17 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const currentTab = pathname === '/' ? 'dashboard' : pathname.replace('/', '');
 
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3, href: '/dashboard' },
-    { id: 'leads', label: 'Leads', icon: Users, href: '/leads' },
-    { id: 'opportunities', label: 'Opportunities', icon: ClipboardList, href: '/opportunities' },
-    { id: 'activities', label: 'Activities', icon: CalendarIcon, href: '/activities' },
-    { id: 'emails', label: 'Emails', icon: Mail, href: '/emails' },
-    { id: 'quotations', label: 'Quotations', icon: FileText, href: '/quotations' },
-     { id: 'customers', label: 'Customers', icon: Building2, href: '/customers'},
-    { id: 'referrals', label: 'Referrals', icon: TrendingUp, href: '/referrals' },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon, href: '/settings' },
-   
+    { id: 'dashboard', label: 'Dashboard', icon: BarChart3, href: '/dashboard', roles: ['SUPER_ADMIN', 'ADMIN', 'USER'] },
+    { id: 'leads', label: 'Leads', icon: Users, href: '/leads', roles: ['ADMIN', 'USER'] },
+    { id: 'opportunities', label: 'Opportunities', icon: ClipboardList, href: '/opportunities', roles: ['ADMIN', 'USER'] },
+    { id: 'tasks', label: 'Tasks', icon: ClipboardList, href: '/tasks', roles: ['SUPER_ADMIN', 'ADMIN', 'USER'] },
+    { id: 'salesteam', label: 'Teams', icon: Users, href: '/salesteam', roles: ['SUPER_ADMIN', 'ADMIN'] },
+    { id: 'activities', label: 'Activities', icon: CalendarIcon, href: '/activities', roles: ['ADMIN', 'USER'] },
+    { id: 'emails', label: 'Emails', icon: Mail, href: '/emails', roles: ['ADMIN', 'USER'] },
+    { id: 'quotations', label: 'Quotations', icon: FileText, href: '/quotations', roles: ['ADMIN', 'USER'] },
+    { id: 'customers', label: 'Customers', icon: Building2, href: '/customers', roles: ['ADMIN', 'USER'] },
+    { id: 'referrals', label: 'Referrals', icon: TrendingUp, href: '/referrals', roles: ['ADMIN', 'USER'] },
+    { id: 'settings', label: 'Settings', icon: SettingsIcon, href: '/settings', roles: ['SUPER_ADMIN', 'ADMIN'] },
   ];
 
   const handleLogoutClick = () => {
@@ -196,8 +197,8 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           <nav className="hidden lg:flex space-x-1">
             {tabs.map(tab => {
               const Icon = tab.icon;
-              // Check role permissions matrix
-              if (tab.id === 'settings' && crm.user?.role === 'User') return null;
+              const userRole = (crm.user?.role || '').toUpperCase().replace(' ', '_');
+              if (tab.roles && !tab.roles.includes(userRole)) return null;
 
               return (
                 <Link
@@ -352,15 +353,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                   <span>Schedule Activity</span>
                 </button>
               )}
-              {currentTab === 'quotations' && (
-                <button
-                  onClick={() => crm.setShowQuoteModal(true)}
-                  className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>New Quotation</span>
-                </button>
-              )}
+           
               {currentTab === 'referrals' && (
                 <button
                   onClick={() => crm.setShowReferralModal(true)}
@@ -832,7 +825,8 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             <nav className="flex-1 overflow-y-auto space-y-1">
               {tabs.map(tab => {
                 const Icon = tab.icon;
-                if (tab.id === 'settings' && crm.user?.role === 'User') return null;
+                const userRole = (crm.user?.role || '').toUpperCase().replace(' ', '_');
+                if (tab.roles && !tab.roles.includes(userRole)) return null;
 
                 return (
                   <Link

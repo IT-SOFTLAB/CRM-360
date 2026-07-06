@@ -17,6 +17,8 @@ export default function SettingsPage() {
       onAddCategory={crm.handleAddCategory}
       onDeleteCategory={crm.handleDeleteCategory}
       onDeleteUser={crm.handleDeleteUser}
+      addToast={crm.addToast}
+      onRefreshUsersList={crm.loadCRMData}
     />
   );
 }

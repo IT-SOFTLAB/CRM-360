@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
 const fs = require('fs');
 const path = require('path');
 require("dotenv").config();
@@ -18,17 +19,26 @@ const opportunityRoutes=require("./src/routes/opportunityRoutes.js");
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const customerRoutes = require("./src/routes/customerRoutes.js");
-
+const quotationRoutes = require("./src/routes/quotationRoutes");
+const salesTeamRoutes = require("./src/routes/salesTeamRoutes.js");
+const taskRoutes = require("./src/routes/taskRoutes.js");
+const userRoutes = require("./src/routes/userRoutes.js");
 
 app.use(cors());
 app.use(bodyParser.json());
+app.use(cookieParser());
 
 app.use("/api/leads", leadRoutes);
 app.use("/api/activities", activityRoutes);
 app.use("/api/opportunities",opportunityRoutes);
 app.use("/api/customers", customerRoutes);
-app.use("/auth",authRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/auth", authRoutes);
+app.use("/api/salesteam", salesTeamRoutes);
+app.use("/api/tasks", taskRoutes);
+app.use("/api/users", userRoutes);
 app.use("/api/emails",emailRoutes);
+app.use("/api/quotations", quotationRoutes);
 
 function readDB() {
   if (!fs.existsSync(DB_FILE)) {
@@ -280,64 +290,9 @@ function seedDatabase() {
 }
 
 
-// Auth routes
-app.post('/api/auth/login', (req, res) => {
-  const { email, password } = req.body;
-  const db = readDB();
-  const user = db.users.find(u => u.email === email && u.password === password);
-  if (!user) {
-    return res.status(401).json({ message: 'Invalid email or password' });
-  }
-  logActivity(db, user, 'LOGIN', 'Authentication', `User logged in from IP.`);
-  writeDB(db);
-  const { password: _, ...userWithoutPassword } = user;
-  res.json({ user: userWithoutPassword });
-});
+// Auth routes are now handled via authRoutes.js mounted at /api/auth
 
-app.post('/api/auth/register', (req, res) => {
-  const { name, email, phone, password, company, role } = req.body;
-  const db = readDB();
-  if (db.users.find(u => u.email === email)) {
-    return res.status(400).json({ message: 'Email already exists' });
-  }
-  const newUser = {
-    id: 'u_' + Date.now(),
-    name,
-    email,
-    phone,
-    password,
-    company,
-    role: role || 'User'
-  };
-  db.users.push(newUser);
-  logActivity(db, newUser, 'REGISTER', 'Authentication', `New user registered with role: ${newUser.role}`);
-  writeDB(db);
-  const { password: _, ...userWithoutPassword } = newUser;
-  res.status(201).json({ user: userWithoutPassword });
-});
-
-// Users management (Super Admin only)
-app.get('/api/users', (req, res) => {
-  const db = readDB();
-  res.json(db.users.map(u => {
-    const { password: _, ...userWithoutPassword } = u;
-    return userWithoutPassword;
-  }));
-});
-
-app.delete('/api/users/:id', (req, res) => {
-  const { id } = req.params;
-  const db = readDB();
-  const index = db.users.findIndex(u => u.id === id);
-  if (index !== -1) {
-    const deletedUser = db.users[index];
-    db.users.splice(index, 1);
-    logActivity(db, null, 'DELETE_USER', 'Settings', `Deleted user: ${deletedUser.name}`);
-    writeDB(db);
-    return res.json({ message: 'User deleted' });
-  }
-  res.status(404).json({ message: 'User not found' });
-});
+// Users management is now handled via userRoutes.js mounted at /api/users
 
 // Project Categories Management
 app.get('/api/categories', (req, res) => {

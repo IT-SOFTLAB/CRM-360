@@ -14,6 +14,7 @@ export default function QuotationsPage() {
       showQuoteModal={crm.showQuoteModal}
       setShowQuoteModal={crm.setShowQuoteModal}
       companyBranding={crm.companyBranding}
+      onUpdateQuotation={crm.handleQuotationUpdate}
     />
   );
 }

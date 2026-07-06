@@ -29,7 +29,6 @@
     }
   ],
   "categories": [
-    "Healthcare",
     "Manufacturing",
     "Education",
     "Real Estate",
@@ -47,7 +46,7 @@
     {
       "id": "p_3",
       "name": "Discussion",
-      "order": 2
+      "order": 4
     },
     {
       "id": "p_4",
@@ -72,7 +71,7 @@
     {
       "id": "p_1782467758119",
       "name": "new",
-      "order": 4
+      "order": 2
     }
   ],
   "referralPipelines": [
@@ -281,6 +280,36 @@
       "status": "New",
       "createdAt": "2026-06-29",
       "createdDate": "2026-06-29"
+    },
+    {
+      "id": "cmr30ojhl0001o0dkm4b0ijgc",
+      "name": "Yash",
+      "contactName": "Yash",
+      "company": "yash technologies",
+      "source": "CSV/Excel Import",
+      "email": "yashtech@gmail.com",
+      "phone": "9764423100",
+      "category": "IT",
+      "serviceType": "service-based",
+      "assignedUser": "sara",
+      "status": "New",
+      "createdAt": "2026-07-02",
+      "createdDate": "2026-07-02"
+    },
+    {
+      "id": "cmr4j57kn0001o0pof2t9tbec",
+      "name": "Yashii",
+      "contactName": "Yashii",
+      "company": "yash technologies",
+      "source": "CSV/Excel Import",
+      "email": "yashiii@gmail.com",
+      "phone": "9764423110",
+      "category": "healthcare",
+      "serviceType": "service-based",
+      "assignedUser": "aaaa",
+      "status": "New",
+      "createdAt": "2026-07-03",
+      "createdDate": "2026-07-03"
     }
   ],
   "opportunities": [
@@ -716,6 +745,24 @@
     "logoText": "CRM 360"
   },
   "auditLogs": [
+    {
+      "id": "log_1783078368036_hadll",
+      "timestamp": "2026-07-03T11:32:48.038Z",
+      "user": "System",
+      "role": "System",
+      "action": "DELETE_CATEGORY",
+      "module": "Settings",
+      "details": "Deleted project category: Healthcare"
+    },
+    {
+      "id": "log_1782814190502_gf31x",
+      "timestamp": "2026-06-30T10:09:50.503Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
     {
       "id": "log_1782712506955_cecqa",
       "timestamp": "2026-06-29T05:55:06.956Z",

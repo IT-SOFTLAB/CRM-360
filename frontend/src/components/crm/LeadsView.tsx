@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { leadService } from '../../services/lead.service';
 import { Trash2, X, Plus, Pencil } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -39,8 +39,8 @@ export default function LeadsView({
   const [showLeadDrawer, setShowLeadDrawer] = useState(false);
   const [convertLeadId, setConvertLeadId] = useState<string | null>(null);
   const [convertForm, setConvertForm] = useState({
-  dealValue: '15000'
-});
+    dealValue: '15000'
+  });
 
   const [leadForm, setLeadForm] = useState({
     contactName: '',
@@ -111,10 +111,7 @@ export default function LeadsView({
       return;
     }
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/leads",
-        leadForm
-      );
+      const response = await leadService.createLead(leadForm);
 
       console.log(response.data);
 
@@ -131,7 +128,7 @@ export default function LeadsView({
         assignedUser: user?.name || ''
       });
 
-   
+
 
     } catch (error) {
       console.error(error);
@@ -139,21 +136,21 @@ export default function LeadsView({
     }
   };
 
- const handleConvertSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleConvertSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (convertLeadId) {
-    onConvertLead(convertLeadId, convertForm.dealValue);
+    if (convertLeadId) {
+      onConvertLead(convertLeadId, convertForm.dealValue);
 
-    setConvertLeadId(null);
-    setShowLeadDrawer(false);
+      setConvertLeadId(null);
+      setShowLeadDrawer(false);
 
-    router.push('/opportunities');
-  }
-};
+      router.push('/opportunities');
+    }
+  };
 
   // Exclude leads that have already been converted to opportunities
-  const unconvertedLeads = leads.filter(l => 
+  const unconvertedLeads = leads.filter(l =>
     !opportunities.some(o => o.leadId === l.id)
   );
 
@@ -231,9 +228,7 @@ export default function LeadsView({
 
                       try {
 
-                        await axios.delete(
-                          `http://localhost:5000/api/leads/${ld.id}`
-                        );
+                        await leadService.deleteLead(ld.id);
 
                         alert("Lead deleted successfully");
 
@@ -309,7 +304,7 @@ export default function LeadsView({
                   />
                   <div className="flex flex-wrap gap-1 mt-2">
                     <span className="bg-blue-50 text-primary border border-blue-100 text-[10px] px-2 py-0.5 rounded font-semibold">{selectedLead.category}</span>
-                   
+
                   </div>
                 </div>
 
@@ -356,7 +351,7 @@ export default function LeadsView({
               </div>
               <div className="border-t border-border-crm pt-4 flex gap-2 shrink-0">
 
-
+            
                 <button
                   onClick={() => setConvertLeadId(selectedLead.id)}
                   className="flex-1 bg-success hover:bg-emerald-600 text-white py-2.5 rounded-xl text-xs font-semibold transition shadow cursor-pointer"
@@ -368,10 +363,7 @@ export default function LeadsView({
 
                     try {
 
-                      await axios.put(
-                        `http://localhost:5000/api/leads/${selectedLead.id}`,
-                        selectedLead
-                      );
+                      await leadService.updateLead(selectedLead.id, selectedLead);
 
                       alert("Lead updated successfully");
 
@@ -413,7 +405,7 @@ export default function LeadsView({
                     onChange={e => setConvertForm({ ...convertForm, dealValue: e.target.value })}
                   />
                 </div>
-                
+
 
                 <div className="flex gap-2 pt-4">
                   <button

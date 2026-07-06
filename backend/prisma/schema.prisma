@@ -8,25 +8,45 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      String   @default("User")
-  createdAt DateTime @default(now())
+  id                String         @id @default(cuid())
+  name              String
+  email             String         @unique
+  password          String
+  role              String         @default("User") // SUPER_ADMIN, ADMIN, USER
+  status            String         @default("Active") // Active, Inactive, Locked
+  isLocked          Boolean        @default(false)
+  invitationToken   String?        @unique
+  invitationExpires DateTime?
+  department        String?
+  salesTeamId       String?
+  salesTeam         SalesTeam?     @relation("TeamMembers", fields: [salesTeamId], references: [id])
+  category          String?
+  createdAt         DateTime       @default(now())
+  
+  // Relations
+  leads             Lead[]
+  opportunities     Opportunity[]
+  customers         Customer[]
+  tasksAssigned     Task[]         @relation("TasksAssigned")
+  tasksCreated      Task[]         @relation("TasksCreated")
+  notifications     Notification[]
+  refreshTokens     RefreshToken[]
+  ledTeams          SalesTeam[]    @relation("TeamLeader")
 }
 
 model Lead {
-  id           String   @id @default(cuid())
-  email        String?
-  phone        String?
-  status       String   @default("New")
-  createdAt    DateTime @default(now())
-  category     String
-  company      String?
-  contactName  String
-  serviceType  String
-  assignedUser String?
+  id             String   @id @default(cuid())
+  email          String?
+  phone          String?
+  status         String   @default("New")
+  createdAt      DateTime @default(now())
+  category       String
+  company        String?
+  contactName    String
+  serviceType    String
+  assignedUser   String? // name string for backwards compatibility
+  assignedUserId String?
+  assignedUserRel User?   @relation(fields: [assignedUserId], references: [id])
 }
 
 model Activity {
@@ -101,32 +121,163 @@ model ReferralReward {
 }
 
 model Opportunity {
-  id                  String    @id @default(cuid())
-  leadId              String?
-  customerName        String
-  company             String?
-  email               String?
-  phone               String?
-  dealValue           Float
-  stage               String    @default("New")
-  stageId             String?
-  assignedSalesperson String?
-  expectedClosing     DateTime?
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
+  id                     String    @id @default(cuid())
+  leadId                 String?
+  customerName           String
+  company                String?
+  email                  String?
+  phone                  String?
+  dealValue              Float
+  stage                  String    @default("New")
+  stageId                String?
+  assignedSalesperson    String?
+  assignedSalespersonId  String?
+  assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
+  expectedClosing        DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 }
 
 model Customer {
-  id                  String   @id @default(cuid())
-  opportunityId       String?
-  customerName        String
-  company             String?
-  email               String?
-  phone               String?
-  dealValue           Float
-  assignedSalesperson String?
-  status              String   @default("Active")
-  joinedAt            DateTime @default(now())
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  opportunityId          String?
+  customerName           String
+  company                String?
+  email                  String?
+  phone                  String?
+  dealValue              Float
+  assignedSalesperson    String?
+  assignedSalespersonId  String?
+  assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
+  status                 String   @default("Active")
+  joinedAt               DateTime @default(now())
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+}
+
+model Quotation {
+  id                String          @id @default(uuid())
+  quotationNumber   String          @unique
+  opportunityId     String
+  customerId        String
+  customerName      String
+  company           String
+  email             String
+  phone             String
+  salesperson       String
+  quotationDate     DateTime
+  expirationDate    DateTime
+  paymentTerms      String
+  currency          String
+  subtotal          Float
+  tax               Float
+  total             Float
+  notes             String?
+  status            String          @default("Draft")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  items             QuotationItem[]
+}
+
+model QuotationItem {
+  id          String    @id @default(uuid())
+  quotationId String
+  product     String
+  description String
+  quantity    Int
+  unitPrice   Float
+  tax         Float
+  discount    Float
+  subtotal    Float
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+}
+
+// New Models for Authentication, Sales Teams, and Task Management
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model SalesTeam {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  leaderId    String?
+  leader      User?    @relation("TeamLeader", fields: [leaderId], references: [id])
+  members     User[]   @relation("TeamMembers")
+  category    String?
+  status      String   @default("Active")
+  createdAt   DateTime @default(now())
+}
+
+model Task {
+  id            String        @id @default(cuid())
+  title         String
+  leadId        String?       @unique
+  assignedToId  String?
+  assignedTo    User?         @relation("TasksAssigned", fields: [assignedToId], references: [id])
+  assignedById  String?
+  assignedBy    User?         @relation("TasksCreated", fields: [assignedById], references: [id])
+  status        String        @default("Pending") // Pending, In Progress, Completed, Cancelled, Overdue
+  priority      String        @default("Normal")  // Low, Medium, High, VIP
+  deadline      DateTime?
+  remarks       String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  comments      TaskComment[]
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  userName  String
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model CompanySettings {
+  id           String   @id @default("global_settings")
+  companyName  String   @default("Global CRM Cloud")
+  logo         String?
+  gst          String?
+  address      String?
+  phone        String?
+  email        String?
+  currency     String   @default("INR")
+  timezone     String   @default("UTC")
+  language     String   @default("English")
+  smtpHost     String?
+  smtpPort     Int?
+  smtpUser     String?
+  smtpPass     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  userEmail String?
+  action    String
+  module    String
+  details   String
+  ipAddress String?
+  createdAt DateTime @default(now())
 }

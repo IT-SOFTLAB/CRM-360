@@ -73,7 +73,6 @@ function getGraphClient(accessToken){
         }
 
     });
-
 }
 
 module.exports={

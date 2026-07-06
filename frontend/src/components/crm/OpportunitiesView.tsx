@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ChevronRight, Trash2, Plus, X, Briefcase, Calendar, DollarSign, User, Mail, Phone, Tag, Clipboard, Info, CheckCircle2 } from 'lucide-react';
+import QuotationForm from "./QuotationForm";
 
 interface OpportunitiesViewProps {
   opportunities: any[];
@@ -17,6 +18,7 @@ interface OpportunitiesViewProps {
   addToast: (type: 'success' | 'error' | 'info', msg: string) => void;
   leads: any[];
 }
+
 
 export default function OpportunitiesView({
   opportunities,
@@ -37,6 +39,8 @@ export default function OpportunitiesView({
   const [newStageName, setNewStageName] = useState('');
   const [draggedOppId, setDraggedOppId] = useState<string | null>(null);
   const [selectedOpp, setSelectedOpp] = useState<any | null>(null);
+  const [showQuotationForm, setShowQuotationForm] = useState(false);
+  const [quotationOpportunity, setQuotationOpportunity] = useState<any>(null);
 
   const handleStageSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -337,8 +341,14 @@ export default function OpportunitiesView({
                   </div>
                 </div>
               </div>
-
+              <br></br>
               {/* Modal Footer */}
+              <button
+                className="w-full mb-3 bg-primary hover:bg-primary-hover text-white py-2.5 rounded-xl font-semibold cursor-pointer"
+                onClick={() => setShowQuotationForm(true)}
+              >
+                New Quotation
+              </button>
               <div className="border-t border-border-crm pt-4 mt-6 flex justify-end">
                 <button
                   onClick={() => setSelectedOpp(null)}
@@ -351,7 +361,15 @@ export default function OpportunitiesView({
           </div>
         );
       })()}
-
+      {
+    showQuotationForm &&
+    selectedOpp && (
+        <QuotationForm
+            opportunity={selectedOpp}
+            onClose={() => setShowQuotationForm(false)}
+        />
+    )
+}
     </div>
   );
 }

@@ -5,7 +5,7 @@ import {
     Trash2,
 } from "lucide-react";
 import { useCRM } from "../../context/CRMContext";
-import axios from "axios";
+import { customerService } from "../../services/customer.service";
 const CustomerView = () => {
     const { customers } = useCRM();
 
@@ -78,11 +78,7 @@ const CustomerView = () => {
 
                                                 try {
 
-                                                    await axios.delete(
-
-                                                        `http://localhost:5000/api/customers/${customer.id}`
-
-                                                    );
+                                                    await customerService.deleteCustomer(customer.id);
 
                                                     alert("Customer deleted");
 
@@ -209,10 +205,7 @@ const CustomerView = () => {
     <button
         onClick={async () => {
             try {
-                await axios.put(
-                    `http://localhost:5000/api/customers/${selectedCustomer.id}`,
-                    selectedCustomer
-                );
+                await customerService.updateCustomer(selectedCustomer.id, selectedCustomer);
 
                 alert("Customer Updated");
                 window.location.reload();
