@@ -1,38 +1,127 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
     X,
     Pencil,
     Trash2,
+    ListFilter,
 } from "lucide-react";
 import { useCRM } from "../../context/CRMContext";
 import { customerService } from "../../services/customer.service";
-const CustomerView = () => {
-    const { customers } = useCRM();
+import api from "../../services/api";
 
+const CustomerView = () => {
+    const { customers, user } = useCRM();
+    const userRole = (user?.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+    const isManager = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
+
+    const [teams, setTeams] = useState<any[]>([]);
+    const [activeFilter, setActiveFilter] = useState<'all' | 'my' | 'team'>('all');
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
     const [showCustomerDrawer, setShowCustomerDrawer] = useState(false);
 
+    // Load Sales Teams to resolve member names
+    useEffect(() => {
+        if (isManager) {
+            api.get('/salesteam')
+                .then(res => setTeams(res.data))
+                .catch(err => console.warn('Failed loading teams in customers', err));
+        }
+    }, [isManager]);
+
+    // Compile team member names dynamically
+    const managedTeamMemberNames = useMemo(() => {
+        if (!isManager || !user) return [];
+        let myTeams = teams;
+        if (userRole === 'ADMIN') {
+            myTeams = teams.filter(t => t.leaderId === user?.id || t.leader?.email === user?.email);
+        }
+        const memberNames = new Set<string>();
+        myTeams.forEach(t => {
+            if (t.leader?.name) memberNames.add(t.leader.name);
+            if (t.members) {
+                t.members.forEach((m: any) => {
+                    if (m.name) memberNames.add(m.name);
+                });
+            }
+        });
+        return Array.from(memberNames);
+    }, [teams, user, userRole, isManager]);
+
+    // Filtered list of customers
+    const filteredCustomers = useMemo(() => {
+        if (!isManager) return customers;
+        if (activeFilter === 'my') {
+            return customers.filter(c => c.assignedSalesperson === user?.name);
+        }
+        if (activeFilter === 'team') {
+            return customers.filter(c => managedTeamMemberNames.includes(c.assignedSalesperson));
+        }
+        return customers;
+    }, [customers, activeFilter, user, isManager, managedTeamMemberNames]);
+
     return (
-        <div>
-            <h2 className="text-xl font-bold text-txt-primary mb-4">Customers</h2>
+        <div className="space-y-6">
+            {/* Manager Filter Header */}
+            {isManager && (
+                <div className="bg-card border border-border-crm rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs shrink-0 text-txt-primary">
+                    <div className="flex items-center space-x-2.5">
+                        <div className="bg-primary/10 p-2 rounded-xl text-primary border border-primary/20">
+                            <ListFilter className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Manager Customer Filters</h4>
+                            <p className="text-[10px] text-txt-secondary mt-0.5">Filter customers list by assigned salesperson or team members</p>
+                        </div>
+                    </div>
 
-            <div className="bg-card border border-border-crm rounded-2xl shadow-xs overflow-hidden">
+                    <div className="flex flex-wrap gap-2">
+                        {[
+                            { id: 'all', label: 'All Customers' },
+                            { id: 'my', label: 'My Customers' },
+                            { id: 'team', label: 'Team Customers' }
+                        ].map(f => (
+                            <button
+                                key={f.id}
+                                onClick={() => setActiveFilter(f.id as any)}
+                                className={`px-3.5 py-2 rounded-xl text-[11px] font-semibold border transition cursor-pointer shadow-xs ${
+                                    activeFilter === f.id
+                                        ? 'bg-primary text-white border-primary/50'
+                                        : 'bg-card text-txt-secondary border-border-crm hover:bg-slate-100 dark:hover:bg-slate-800'
+                                }`}
+                            >
+                                {f.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-bg-main border-b border-border-crm text-sm font-bold text-txt-secondary uppercase tracking-wider select-none">
-                                <th className="px-8 py-5">Customer</th>
-                                <th className="px-8 py-5">Company</th>
-                                <th className="px-8 py-5">Email</th>
-                                <th className="px-8 py-5">Phone</th>
-                                <th className="px-8 py-5">Salesperson</th>
-                                <th className="px-8 py-5">Deal Value</th>
-                                <th className="px-8 py-5 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border-crm text-sm">
-                            {customers.map((customer: any) => (
+            {!isManager && (
+                <div className="bg-card border border-border-crm rounded-2xl p-4 flex items-center space-x-2 text-txt-secondary select-none shadow-xs">
+                    <span className="font-bold text-xs">Viewing Customers Assigned To You ({filteredCustomers.length} customers)</span>
+                </div>
+            )}
+
+            <div>
+                <h2 className="text-xl font-bold text-txt-primary mb-4">Customers</h2>
+
+                <div className="bg-card border border-border-crm rounded-2xl shadow-xs overflow-hidden">
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-bg-main border-b border-border-crm text-sm font-bold text-txt-secondary uppercase tracking-wider select-none">
+                                    <th className="px-8 py-5">Customer</th>
+                                    <th className="px-8 py-5">Company</th>
+                                    <th className="px-8 py-5">Email</th>
+                                    <th className="px-8 py-5">Phone</th>
+                                    <th className="px-8 py-5">Salesperson</th>
+                                    <th className="px-8 py-5">Deal Value</th>
+                                    <th className="px-8 py-5 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-border-crm text-sm">
+                            {filteredCustomers.map((customer: any) => (
                                 <tr
                                     key={customer.id}
                                     onClick={() => { setSelectedCustomer(customer); setShowCustomerDrawer(true); }}
@@ -104,7 +193,7 @@ const CustomerView = () => {
                                     </td>
                                 </tr>
                             ))}
-                            {customers.length === 0 && (
+                            {filteredCustomers.length === 0 && (
                                 <tr>
                                     <td colSpan={7} className="text-center py-12 text-slate-400">
                                         No customers found matching current filter query.
@@ -232,7 +321,8 @@ const CustomerView = () => {
                 }
 
             </div>
-</div>
+        </div>
+    </div>
     );
 };
 

@@ -1,10 +1,15 @@
+const normalizeRole = (role) => {
+  return (role || '').toUpperCase().replace(/[\s_]+/g, '_');
+};
+
 const requireRole = (allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ message: 'User is not authenticated' });
     }
 
-    if (!allowedRoles.includes(req.user.role)) {
+    const userRole = normalizeRole(req.user.role);
+    if (!allowedRoles.includes(userRole)) {
       return res.status(403).json({ message: `Access denied. Requires one of roles: ${allowedRoles.join(', ')}` });
     }
 
@@ -28,7 +33,8 @@ const authorizeOwnership = (modelName, idParamName = 'id') => {
       }
 
       // Admins and Super Admins have bypass permission
-      if (user.role === 'SUPER_ADMIN' || user.role === 'ADMIN') {
+      const userRole = normalizeRole(user.role);
+      if (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') {
         return next();
       }
 

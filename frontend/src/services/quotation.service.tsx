@@ -27,5 +27,14 @@ export const quotationService = {
       console.warn('API error updating quotation, fallback to offline', err);
       return null;
     }
+  },
+  updateQuotationStatus: async (quoteId: string, status: string) => {
+    try {
+      const res = await api.patch(`/quotations/${quoteId}/status`, { status });
+      return res.data;
+    } catch (err) {
+      console.warn('API error updating status, fallback to offline', err);
+      return null;
+    }
   }
 };

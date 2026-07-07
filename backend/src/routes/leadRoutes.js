@@ -15,6 +15,9 @@ const {
   updateLead,
   importLeads
 } = require('../controllers/leadController');
+const authenticateJWT = require('../middlewares/authMiddleware');
+
+router.use(authenticateJWT);
 
 router.post('/', createLead);
 

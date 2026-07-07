@@ -31,24 +31,101 @@ export default function LoginView({
     confirmPassword: ''
   });
 
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
   const handleLocalSetupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (setupData.password !== setupData.confirmPassword) {
-      addToast('error', 'Passwords do not match');
+    setError('');
+
+    // Field validations
+    if (!setupData.companyName.trim()) {
+      setError('Company Name is required.');
       return;
     }
-    if (onSetupSubmit) {
-      await onSetupSubmit({
-        companyName: setupData.companyName,
-        companyEmail: setupData.companyEmail,
-        name: setupData.name,
-        email: setupData.email,
-        password: setupData.password
-      });
+    if (!setupData.companyEmail.trim()) {
+      setError('Company Email is required.');
+      return;
+    }
+    if (!setupData.name.trim()) {
+      setError('Super Admin Name is required.');
+      return;
+    }
+    if (!setupData.email.trim()) {
+      setError('Super Admin Email is required.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(setupData.email) || !emailRegex.test(setupData.companyEmail)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (setupData.password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+    if (setupData.password !== setupData.confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      if (onSetupSubmit) {
+        const ok = await onSetupSubmit({
+          companyName: setupData.companyName,
+          companyEmail: setupData.companyEmail,
+          name: setupData.name,
+          email: setupData.email,
+          password: setupData.password
+        });
+        if (!ok) {
+          setError('Setup execution failed. Please verify database connection.');
+        }
+      }
+    } catch (err: any) {
+      setError(err?.response?.data?.message || 'Initial setup failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLocalLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    // Format validations
+    if (!authForm.email.trim()) {
+      setError('Email address is required.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(authForm.email)) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+    if (!authForm.password) {
+      setError('Password is required.');
+      return;
+    }
+    if (authForm.password.length < 4) {
+      setError('Password must be at least 4 characters long.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await onSubmit(e);
+    } catch (err: any) {
+      const errMsg = err?.response?.data?.message || 'Invalid email or password.';
+      setError(errMsg);
+    } finally {
+      setLoading(false);
     }
   };
 
   const selectQuickAccount = (email: string) => {
+    setError('');
     setAuthForm({ ...authForm, email, password: 'password' });
     addToast('info', `Credential filled for ${email}`);
   };
@@ -74,7 +151,10 @@ export default function LoginView({
             <div className="flex border-b border-border-crm mb-6">
               <button
                 type="button"
-                onClick={() => setAuthMode('login')}
+                onClick={() => {
+                  setError('');
+                  setAuthMode('login');
+                }}
                 className={`flex-1 pb-3 font-bold text-sm transition-colors ${authMode === 'login' ? 'text-primary border-b-2 border-primary' : 'text-txt-secondary'}`}
               >
                 Sign In
@@ -88,6 +168,13 @@ export default function LoginView({
             </div>
           )}
 
+          {/* Validation Alert Box */}
+          {error && (
+            <div className="bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 px-4 py-2.5 rounded-xl text-xs font-semibold mb-4 leading-relaxed transition-all">
+              ⚠️ {error}
+            </div>
+          )}
+
           {isSetup ? (
             /* First time Odoo setup registration form */
             <form onSubmit={handleLocalSetupSubmit} className="space-y-4">
@@ -98,7 +185,10 @@ export default function LoginView({
                   className="w-full border border-border-crm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
                   placeholder="e.g. Acme Corporation"
                   value={setupData.companyName}
-                  onChange={e => setSetupData({ ...setupData, companyName: e.target.value })}
+                  onChange={e => {
+                    setError('');
+                    setSetupData({ ...setupData, companyName: e.target.value });
+                  }}
                 />
               </div>
 
@@ -109,7 +199,10 @@ export default function LoginView({
                   className="w-full border border-border-crm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
                   placeholder="e.g. contact@acme.com"
                   value={setupData.companyEmail}
-                  onChange={e => setSetupData({ ...setupData, companyEmail: e.target.value })}
+                  onChange={e => {
+                    setError('');
+                    setSetupData({ ...setupData, companyEmail: e.target.value });
+                  }}
                 />
               </div>
 
@@ -124,7 +217,10 @@ export default function LoginView({
                   className="w-full border border-border-crm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
                   placeholder="e.g. Administrator"
                   value={setupData.name}
-                  onChange={e => setSetupData({ ...setupData, name: e.target.value })}
+                  onChange={e => {
+                    setError('');
+                    setSetupData({ ...setupData, name: e.target.value });
+                  }}
                 />
               </div>
 
@@ -135,7 +231,10 @@ export default function LoginView({
                   className="w-full border border-border-crm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
                   placeholder="e.g. admin@acme.com"
                   value={setupData.email}
-                  onChange={e => setSetupData({ ...setupData, email: e.target.value })}
+                  onChange={e => {
+                    setError('');
+                    setSetupData({ ...setupData, email: e.target.value });
+                  }}
                 />
               </div>
 
@@ -146,7 +245,10 @@ export default function LoginView({
                   className="w-full border border-border-crm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
                   placeholder="••••••••"
                   value={setupData.password}
-                  onChange={e => setSetupData({ ...setupData, password: e.target.value })}
+                  onChange={e => {
+                    setError('');
+                    setSetupData({ ...setupData, password: e.target.value });
+                  }}
                 />
               </div>
 
@@ -157,20 +259,24 @@ export default function LoginView({
                   className="w-full border border-border-crm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
                   placeholder="••••••••"
                   value={setupData.confirmPassword}
-                  onChange={e => setSetupData({ ...setupData, confirmPassword: e.target.value })}
+                  onChange={e => {
+                    setError('');
+                    setSetupData({ ...setupData, confirmPassword: e.target.value });
+                  }}
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 text-sm font-semibold transition mt-6 cursor-pointer"
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 text-sm font-semibold transition mt-6 cursor-pointer disabled:opacity-50"
               >
-                Initialize CRM Organization
+                {loading ? 'Initializing organization...' : 'Initialize CRM Organization'}
               </button>
             </form>
           ) : (
             /* Normal Login Form */
-            <form onSubmit={onSubmit} className="space-y-4">
+            <form onSubmit={handleLocalLoginSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-txt-secondary mb-1">Email Address</label>
                 <input
@@ -178,7 +284,10 @@ export default function LoginView({
                   className="w-full border border-border-crm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
                   placeholder="name@company.com"
                   value={authForm.email}
-                  onChange={e => setAuthForm({ ...authForm, email: e.target.value })}
+                  onChange={e => {
+                    setError('');
+                    setAuthForm({ ...authForm, email: e.target.value });
+                  }}
                 />
               </div>
 
@@ -189,7 +298,10 @@ export default function LoginView({
                   className="w-full border border-border-crm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
                   placeholder="••••••••"
                   value={authForm.password}
-                  onChange={e => setAuthForm({ ...authForm, password: e.target.value })}
+                  onChange={e => {
+                    setError('');
+                    setAuthForm({ ...authForm, password: e.target.value });
+                  }}
                 />
               </div>
 
@@ -203,48 +315,15 @@ export default function LoginView({
 
               <button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 text-sm font-semibold transition mt-6 cursor-pointer shadow-md"
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 text-sm font-semibold transition mt-6 cursor-pointer shadow-md disabled:opacity-50"
               >
-                Sign In to Dashboard
+                {loading ? 'Signing in...' : 'Sign In to Dashboard'}
               </button>
             </form>
           )}
 
-          {/* Quick Access only shown in normal login mode */}
-          {!isSetup && (
-            <>
-              <div className="relative flex py-5 items-center">
-                <div className="flex-grow border-t border-border-crm"></div>
-                <span className="flex-shrink mx-4 text-txt-secondary text-xs uppercase tracking-wider font-semibold">Demo Quick Access</span>
-                <div className="flex-grow border-t border-border-crm"></div>
-              </div>
 
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => selectQuickAccount('superadmin@crm.com')}
-                  className="bg-bg-main hover:bg-slate-200 dark:hover:bg-slate-700 border border-border-crm text-txt-primary rounded-lg py-2 text-xs font-bold transition cursor-pointer"
-                >
-                  Super Admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => selectQuickAccount('admin@crm.com')}
-                  className="bg-bg-main hover:bg-slate-200 dark:hover:bg-slate-700 border border-border-crm text-txt-primary rounded-lg py-2 text-xs font-bold transition cursor-pointer"
-                >
-                  Admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => selectQuickAccount('user@crm.com')}
-                  className="bg-bg-main hover:bg-slate-200 dark:hover:bg-slate-700 border border-border-crm text-txt-primary rounded-lg py-2 text-xs font-bold transition cursor-pointer"
-                >
-                  Standard User
-                </button>
-              </div>
-              <p className="text-center text-[10px] text-txt-secondary mt-3">All quick login bypasses use password "password"</p>
-            </>
-          )}
         </div>
       </div>
     </div>

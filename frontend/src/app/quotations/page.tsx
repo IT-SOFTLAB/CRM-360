@@ -9,6 +9,7 @@ export default function QuotationsPage() {
     <QuotationsView
       quotations={crm.quotations}
       opportunities={crm.opportunities}
+      user={crm.user}
       onApproveReject={crm.updateQuoteStatus}
       onCreateQuotation={crm.handleQuotationCreate}
       showQuoteModal={crm.showQuoteModal}

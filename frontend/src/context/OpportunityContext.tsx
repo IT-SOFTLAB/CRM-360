@@ -24,6 +24,7 @@ export interface OpportunityContextType {
   handleAddStage: (stageName: string) => Promise<void>;
   handleStageReorder: (stageId: string, direction: 'left' | 'right') => Promise<void>;
   handleStageDelete: (stageId: string) => Promise<void>;
+  handleDeleteOpportunity: (oppId: string) => Promise<void>;
 }
 
 export const OpportunityContext = createContext<OpportunityContextType | undefined>(undefined);
@@ -126,11 +127,7 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const handleAddStage = async (stageName: string) => {
-    const user = authCtx?.user;
-    if (user?.role !== 'Super Admin') {
-      if (toastCtx) toastCtx.addToast('error', 'Only Super Admin can edit pipelines');
-      return;
-    }
+
     const res = await opportunityService.addStage(stageName);
     if (res) {
       setPipelines(prev => [...prev, res].sort((a, b) => a.order - b.order));
@@ -144,11 +141,7 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const handleStageReorder = async (stageId: string, direction: 'left' | 'right') => {
-    const user = authCtx?.user;
-    if (user?.role !== 'Super Admin') {
-      if (toastCtx) toastCtx.addToast('error', 'Only Super Admin can manage pipelines');
-      return;
-    }
+
     const stageIdx = pipelines.findIndex(p => p.id === stageId);
     if (stageIdx === -1) return;
     const targetIdx = direction === 'left' ? stageIdx - 1 : stageIdx + 1;
@@ -171,11 +164,7 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const handleStageDelete = async (stageId: string) => {
-    const user = authCtx?.user;
-    if (user?.role !== 'Super Admin') {
-      if (toastCtx) toastCtx.addToast('error', 'Only Super Admin can manage pipelines');
-      return;
-    }
+
     const res = await opportunityService.deleteStage(stageId);
     if (res) {
       if (toastCtx) toastCtx.addToast('success', 'Stage deleted successfully');
@@ -188,6 +177,16 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setOpportunities(prev => prev.map(o => o.stageId === stageId ? { ...o, stageId: fallback } : o));
         if (toastCtx) toastCtx.addToast('success', `Deleted stage ${stage.name} (Offline)`);
       }
+    }
+  };
+  const handleDeleteOpportunity = async (oppId: string) => {
+    const res = await opportunityService.deleteOpportunity(oppId);
+    if (res) {
+      if (toastCtx) toastCtx.addToast('success', 'Opportunity deleted successfully');
+      await loadOpportunities();
+    } else {
+      setOpportunities(prev => prev.filter(o => o.id !== oppId));
+      if (toastCtx) toastCtx.addToast('success', 'Deleted opportunity (Offline)');
     }
   };
 
@@ -205,7 +204,8 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
       handleMoveOpportunity,
       handleAddStage,
       handleStageReorder,
-      handleStageDelete
+      handleStageDelete,
+      handleDeleteOpportunity
     }}>
       {children}
     </OpportunityContext.Provider>

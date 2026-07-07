@@ -24,7 +24,10 @@ const salesTeamRoutes = require("./src/routes/salesTeamRoutes.js");
 const taskRoutes = require("./src/routes/taskRoutes.js");
 const userRoutes = require("./src/routes/userRoutes.js");
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
 app.use(bodyParser.json());
 app.use(cookieParser());
 

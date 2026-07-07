@@ -60,16 +60,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!toastCtx) return;
 
     if (authMode === 'login') {
-      const res = await authService.login({ email: authForm.email, password: authForm.password });
-      if (res && res.user) {
-        setUser(res.user);
-        localStorage.setItem('crm_user', JSON.stringify(res.user));
-        toastCtx.addToast('success', `Welcome back, ${res.user.name}!`);
-        if (onSuccess) onSuccess();
-      } else {
+      try {
+        const res = await authService.login({ email: authForm.email, password: authForm.password });
+        if (res && res.user) {
+          setUser(res.user);
+          localStorage.setItem('crm_user', JSON.stringify(res.user));
+          toastCtx.addToast('success', `Welcome back, ${res.user.name}!`);
+          if (onSuccess) onSuccess();
+        }
+      } catch (err: any) {
         // Offline / Development fallback
         const match = OFFLINE_USERS.find(u => u.email === authForm.email);
-        if (match) {
+        if (match && authForm.password === 'password') {
           const matchedUser: User = {
             id: match.id,
             name: match.name,
@@ -82,7 +84,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           toastCtx.addToast('success', `Logged in offline as ${matchedUser.name} (${matchedUser.role})`);
           if (onSuccess) onSuccess();
         } else {
-          toastCtx.addToast('error', 'Invalid email or password');
+          const errMsg = err?.response?.data?.message || 'Invalid email or password';
+          toastCtx.addToast('error', errMsg);
+          throw err;
         }
       }
     } else if (authMode === 'register') {
@@ -128,9 +132,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const handleLogout = async () => {
-    await authService.logout();
     setUser(null);
     localStorage.removeItem('crm_user');
+    try {
+      await authService.logout();
+    } catch (err) {
+      console.warn('API error logging out:', err);
+    }
     if (toastCtx) {
       toastCtx.addToast('info', 'Logged out successfully');
     }

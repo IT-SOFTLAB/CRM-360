@@ -11,7 +11,9 @@ const {
   convertLeadToOpportunity,
 
 }=require("../controllers/opportunityController");
+const authenticateJWT = require("../middlewares/authMiddleware");
 
+router.use(authenticateJWT);
 
 router.get("/",getAllOpportunities);
 

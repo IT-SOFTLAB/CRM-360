@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useState } from 'react';
 import { ChevronRight, Trash2, Plus, X, Briefcase, Calendar, DollarSign, User, Mail, Phone, Tag, Clipboard, Info, CheckCircle2 } from 'lucide-react';
 import QuotationForm from "./QuotationForm";
@@ -9,6 +11,7 @@ interface OpportunitiesViewProps {
   searchQuery: string;
   activeFilters: any;
   onMoveOpportunity: (oppId: string, stageId: string) => void;
+  onDeleteOpportunity: (oppId: string) => void;
   onAddStage: (stageName: string) => void;
   onReorderStage: (stageId: string, direction: 'left' | 'right') => void;
   onDeleteStage: (stageId: string) => void;
@@ -19,7 +22,6 @@ interface OpportunitiesViewProps {
   leads: any[];
 }
 
-
 export default function OpportunitiesView({
   opportunities,
   pipelines,
@@ -27,6 +29,7 @@ export default function OpportunitiesView({
   searchQuery,
   activeFilters,
   onMoveOpportunity,
+  onDeleteOpportunity,
   onAddStage,
   onReorderStage,
   onDeleteStage,
@@ -41,6 +44,8 @@ export default function OpportunitiesView({
   const [selectedOpp, setSelectedOpp] = useState<any | null>(null);
   const [showQuotationForm, setShowQuotationForm] = useState(false);
   const [quotationOpportunity, setQuotationOpportunity] = useState<any>(null);
+
+  const userRole = (user?.role || '').toUpperCase().replace(/[\s_]+/g, '_');
 
   const handleStageSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +69,7 @@ export default function OpportunitiesView({
     const opp = opportunities.find(o => o.id === draggedOppId);
     if (!opp) return;
 
-    if (user?.role === 'User' && opp.assignedSalesperson !== user?.name) {
+    if (userRole === 'USER' && opp.assignedSalesperson !== user?.name) {
       addToast('error', 'Access Denied: You can only move opportunities assigned to you');
       setDraggedOppId(null);
       return;
@@ -74,12 +79,27 @@ export default function OpportunitiesView({
     setDraggedOppId(null);
   };
 
+  const handleShiftOpportunity = (oppId: string, direction: 'left' | 'right') => {
+    const opp = opportunities.find(o => o.id === oppId);
+    if (!opp) return;
+
+    if (userRole === 'USER' && opp.assignedSalesperson !== user?.name) {
+      addToast('error', 'Access Denied: You can only move opportunities assigned to you');
+      return;
+    }
+
+    const currentStageIdx = pipelines.findIndex(p => p.id === opp.stageId || p.name?.toLowerCase() === opp.stage?.toLowerCase());
+    if (currentStageIdx === -1) return;
+
+    const targetStageIdx = direction === 'left' ? currentStageIdx - 1 : currentStageIdx + 1;
+    if (targetStageIdx >= 0 && targetStageIdx < pipelines.length) {
+      onMoveOpportunity(oppId, pipelines[targetStageIdx].id);
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-4">
-
-
+    <div className="flex flex-col gap-4 text-xs text-txt-primary">
       <div className="flex space-x-4 overflow-x-auto pb-4 items-start select-none">
-
         {pipelines.map(stage => {
           const stageOpps = applyFilters(
             opportunities.filter(
@@ -88,17 +108,15 @@ export default function OpportunitiesView({
             "opportunities"
           );
           const totalValue = stageOpps.reduce((sum, opp) => sum + opp.dealValue, 0);
-          console.log("Pipelines:", pipelines);
-          console.log("Opportunities:", opportunities);
+
           return (
             <div
               key={stage.id}
               onDragOver={handleDragOver}
               onDrop={() => handleDrop(stage.id)}
-              className="w-72 shrink-0 bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col max-h-160"
+              className="w-72 shrink-0 bg-slate-50 dark:bg-slate-900/20 border border-border-crm rounded-2xl p-4 flex flex-col max-h-160"
             >
-
-              <div className="flex items-center justify-between pb-3 border-b border-slate-200 mb-4">
+              <div className="flex items-center justify-between pb-3 border-b border-border-crm mb-4">
                 <div className="min-w-0">
                   <h4 className="font-bold text-xs text-txt-primary truncate" title={stage.name}>
                     {stage.name}
@@ -106,34 +124,31 @@ export default function OpportunitiesView({
                   <p className="text-[10px] text-txt-secondary mt-0.5">₹{totalValue.toLocaleString()}</p>
                 </div>
 
-                {/* Controls for stage (Super Admin limits) */}
-                {user?.role === 'Super Admin' && (
-                  <div className="flex items-center space-x-1 shrink-0 ml-1">
-                    <button
-                      onClick={() => onReorderStage(stage.id, 'left')}
-                      className="p-1 hover:bg-slate-200 rounded text-slate-500 cursor-pointer"
-                      title="Move Stage Left"
-                    >
-                      <ChevronRight className="w-3 h-3 rotate-180" />
-                    </button>
-                    <button
-                      onClick={() => onReorderStage(stage.id, 'right')}
-                      className="p-1 hover:bg-slate-200 rounded text-slate-500 cursor-pointer"
-                      title="Move Stage Right"
-                    >
-                      <ChevronRight className="w-3 h-3" />
-                    </button>
-                    <button
-                      onClick={() => onDeleteStage(stage.id)}
-                      className="p-1 hover:bg-slate-200 rounded text-rose-500 cursor-pointer"
-                      title="Delete Stage"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
-                  </div>
-                )}
+                {/* Controls for stage (All users) */}
+                <div className="flex items-center space-x-1 shrink-0 ml-1">
+                  <button
+                    onClick={() => onReorderStage(stage.id, 'left')}
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-slate-500 cursor-pointer"
+                    title="Move Stage Left"
+                  >
+                    <ChevronRight className="w-3 h-3 rotate-180" />
+                  </button>
+                  <button
+                    onClick={() => onReorderStage(stage.id, 'right')}
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-slate-500 cursor-pointer"
+                    title="Move Stage Right"
+                  >
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => onDeleteStage(stage.id)}
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-rose-500 cursor-pointer"
+                    title="Delete Stage"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
-
 
               <div className="flex-1 overflow-y-auto space-y-3 min-h-24">
                 {stageOpps.map(opp => (
@@ -146,16 +161,29 @@ export default function OpportunitiesView({
                   >
                     <div className="flex justify-between items-start mb-2">
                       <span className="text-[10px] text-slate-400 font-semibold">{opp.company}</span>
-
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (confirm('Are you sure you want to delete this opportunity?')) {
+                            onDeleteOpportunity(opp.id);
+                          }
+                        }}
+                        className="p-1 text-slate-450 hover:text-rose-500 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                        title="Delete Opportunity"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
 
-                    <h5 className="font-bold text-xs text-txt-primary mb-3 leading-tight">{opp.customerName}</h5>
+                    <h5 className="font-bold text-xs text-txt-primary mb-3 leading-tight truncate">{opp.customerName}</h5>
 
                     <div className="flex items-center justify-between text-xs border-t border-border-crm pt-3">
                       <span className="font-extrabold text-primary">₹{opp.dealValue.toLocaleString()}</span>
-                      <div className="flex items-center space-x-1">
-                        <span className="w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-500 uppercase select-none">
-                          {opp.assignedSalesperson.substr(0, 2)}
+                      <div className="flex items-center space-x-2">
+
+                        
+                        <span className="w-5 h-5 bg-slate-100 dark:bg-slate-850 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-500 uppercase select-none">
+                          {opp.assignedSalesperson ? opp.assignedSalesperson.substr(0, 2) : 'UN'}
                         </span>
                       </div>
                     </div>
@@ -170,9 +198,7 @@ export default function OpportunitiesView({
             </div>
           );
         })}
-
       </div>
-
 
       {showStageModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
@@ -210,7 +236,6 @@ export default function OpportunitiesView({
 
       {/* Centered Opportunity Detail Modal styled like a Lead Card */}
       {selectedOpp && (() => {
-        // Find associated lead in leads list or construct from opportunity
         const associatedLead = leads.find(l =>
           l.id === selectedOpp.leadId ||
           ((l.contactName === selectedOpp.customerName || l.name === selectedOpp.customerName) && l.company === selectedOpp.company)
@@ -221,14 +246,13 @@ export default function OpportunitiesView({
           phone: selectedOpp.phone || 'xxxxxxxxxx',
           category: selectedOpp.tags?.[1] || 'IT Services',
           serviceType: selectedOpp.tags?.[0] || 'Service Based',
-          assignedUser: selectedOpp.assignedSalesperson || 'Kyle Reese',
+          assignedUser: selectedOpp.assignedSalesperson || 'Unassigned',
           status: pipelines.find(p => p.id === selectedOpp.stageId)?.name || 'New',
           createdAt:
             selectedOpp.createdDate ||
             (selectedOpp.createdAt
               ? selectedOpp.createdAt.split('T')[0]
               : new Date().toISOString().split('T')[0]),
-
         };
 
         const contactName = associatedLead.contactName || associatedLead.name || 'Unknown';
@@ -249,127 +273,122 @@ export default function OpportunitiesView({
             onClick={() => setSelectedOpp(null)}
           >
             <div
-              className="relative w-full max-w-md bg-card shadow-2xl border border-border-crm rounded-3xl p-6 flex flex-col z-10 text-txt-primary animate-in fade-in zoom-in-95 duration-200"
+              className="relative w-full max-w-sm bg-card shadow-2xl border border-border-crm rounded-2xl p-5 flex flex-col z-10 text-txt-primary animate-in fade-in zoom-in-95 duration-200"
               onClick={e => e.stopPropagation()}
             >
               {/* Modal Header */}
-              <div className="flex justify-between items-center pb-4 border-b border-border-crm shrink-0 mb-6">
-                <h3 className="font-extrabold text-sm tracking-tight text-txt-primary flex items-center gap-2">
-                  <Briefcase className="w-4.5 h-4.5 text-primary" /> Opportunity Detailed Profile
+              <div className="flex justify-between items-center pb-3.5 border-b border-border-crm shrink-0 mb-4">
+                <h3 className="font-extrabold text-xs tracking-tight text-txt-primary flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-primary" /> Opportunity Profile
                 </h3>
                 <button
                   onClick={() => setSelectedOpp(null)}
                   className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-slate-400 hover:text-txt-primary transition-colors"
                 >
-                  <X className="w-4.5 h-4.5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
-              {/* Modal Body (Styled exactly like the Lead detailed timeline card in LeadsView) */}
-              <div className="space-y-6 flex-1 overflow-y-auto">
-                {/* Header profile details */}
-                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-150 dark:border-border-crm rounded-xl p-4 space-y-2">
+              {/* Modal Body */}
+              <div className="space-y-4 flex-1 overflow-y-auto">
+                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-150 dark:border-border-crm rounded-xl p-3 space-y-1.5">
                   <div className="space-y-1">
-                    <p className="text-slate-400 font-semibold uppercase text-[10px]">Contact Name</p>
+                    <p className="text-slate-400 font-semibold uppercase text-[9px]">Contact Name</p>
                     <input
                       type="text"
                       value={contactName}
                       readOnly
-                      className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-3 py-2 font-bold text-xs focus:outline-none"
+                      className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 font-bold text-xs focus:outline-none"
                     />
                   </div>
                   <div className="space-y-1">
-                    <p className="text-slate-400 font-semibold uppercase text-[10px]">Company</p>
+                    <p className="text-slate-400 font-semibold uppercase text-[9px]">Company</p>
                     <input
                       type="text"
                       value={company}
                       readOnly
-                      className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-3 py-2 text-xs focus:outline-none"
+                      className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
                     />
                   </div>
-                  <div className="flex flex-wrap gap-1.5 mt-3">
-                    <span className="bg-blue-50 dark:bg-blue-950/40 text-primary border border-blue-100 dark:border-blue-900 text-[10px] px-2.5 py-0.5 rounded font-semibold">
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    <span className="bg-blue-50 dark:bg-blue-950/40 text-primary border border-blue-100 dark:border-blue-900 text-[9px] px-2 py-0.5 rounded font-semibold">
                       {category}
                     </span>
-                    <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[10px] px-2.5 py-0.5 rounded font-semibold">
+                    <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[9px] px-2 py-0.5 rounded font-semibold">
                       {associatedLead.source || 'Opportunity'}
                     </span>
                   </div>
                 </div>
 
-
-                <div className="grid grid-cols-2 gap-4 text-xs">
+                <div className="grid grid-cols-2 gap-3 text-xs">
                   <div className="col-span-2 sm:col-span-1">
-                    <p className="text-slate-400 font-semibold uppercase text-[10px] mb-1">Email</p>
+                    <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">Email</p>
                     <input
                       type="email"
                       value={email}
                       readOnly
-                      className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-3 py-2 focus:outline-none"
+                      className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 focus:outline-none"
                     />
                   </div>
                   <div className="col-span-2 sm:col-span-1">
-                    <p className="text-slate-400 font-semibold uppercase text-[10px] mb-1">Phone</p>
+                    <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">Phone</p>
                     <input
                       type="text"
                       value={phone}
                       readOnly
-                      className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-3 py-2 focus:outline-none"
+                      className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 focus:outline-none"
                     />
                   </div>
                   <div>
-                    <p className="text-slate-400 font-semibold uppercase text-[10px] mb-1">Assigned Representative</p>
-                    <p className="font-bold text-txt-primary mt-0.5 text-xs">{assignedUser}</p>
+                    <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Assigned Rep</p>
+                    <p className="font-bold text-txt-primary text-xs">{assignedUser}</p>
                   </div>
                   <div>
-                    <p className="text-slate-400 font-semibold uppercase text-[10px] mb-1">Service Type</p>
-                    <p className="font-bold text-txt-primary mt-0.5 text-xs">{serviceType}</p>
+                    <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Service Type</p>
+                    <p className="font-bold text-txt-primary text-xs">{serviceType}</p>
                   </div>
                   <div>
-                    <p className="text-slate-400 font-semibold uppercase text-[10px] mb-1">Lead Sync Status</p>
-                    <p className="font-bold text-txt-primary mt-0.5 text-xs flex items-center gap-1">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
+                    <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Lead Sync</p>
+                    <p className="font-bold text-txt-primary text-xs flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-success shrink-0" />
                       {status}
                     </p>
                   </div>
                   <div>
-                    <p className="text-slate-400 font-semibold uppercase text-[10px] mb-1">Created At</p>
-                    <p className="font-bold text-txt-primary mt-0.5 text-xs flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Created At</p>
+                    <p className="font-bold text-txt-primary text-xs flex items-center gap-1">
+                      <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
                       {createdAt}
                     </p>
                   </div>
                 </div>
               </div>
-              <br></br>
-              {/* Modal Footer */}
-              <button
-                className="w-full mb-3 bg-primary hover:bg-primary-hover text-white py-2.5 rounded-xl font-semibold cursor-pointer"
-                onClick={() => setShowQuotationForm(true)}
-              >
-                New Quotation
-              </button>
-              <div className="border-t border-border-crm pt-4 mt-6 flex justify-end">
+
+              <div className="border-t border-border-crm pt-3.5 mt-5 flex gap-2 justify-end">
                 <button
                   onClick={() => setSelectedOpp(null)}
-                  className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-6 py-2.5 rounded-xl shadow transition cursor-pointer"
+                  className="px-4 py-2 border border-border-crm hover:bg-slate-50 dark:hover:bg-slate-800 text-txt-secondary text-[11px] font-semibold rounded-xl transition cursor-pointer"
                 >
-                  Close Details
+                  Close
+                </button>
+                <button
+                  className="bg-primary hover:bg-primary-hover text-white text-[11px] font-semibold px-4 py-2 rounded-xl shadow transition cursor-pointer"
+                  onClick={() => setShowQuotationForm(true)}
+                >
+                  New Quotation
                 </button>
               </div>
             </div>
           </div>
         );
       })()}
-      {
-    showQuotationForm &&
-    selectedOpp && (
+
+      {showQuotationForm && selectedOpp && (
         <QuotationForm
-            opportunity={selectedOpp}
-            onClose={() => setShowQuotationForm(false)}
+          opportunity={selectedOpp}
+          onClose={() => setShowQuotationForm(false)}
         />
-    )
-}
+      )}
     </div>
   );
 }

@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
-import { Calendar as CalendarIcon, Check, Plus, X } from 'lucide-react';
+"use client";
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { Calendar as CalendarIcon, Check, Plus, X, Phone, Mail, Clock, AlertTriangle, Users, ListFilter } from 'lucide-react';
+import api from '@/services/api';
 
 interface ActivitiesViewProps {
   activities: any[];
@@ -19,15 +22,92 @@ export default function ActivitiesView({
   setShowActivityModal
 }: ActivitiesViewProps) {
   const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month'>('month');
+  const [teams, setTeams] = useState<any[]>([]);
+  const [activeFilter, setActiveFilter] = useState<'my' | 'team' | 'all' | 'overdue' | 'today'>('all');
+  
   const [activityForm, setActivityForm] = useState({
     title: '', type: 'Meeting', date: '', time: '10:00', duration: '30',
     description: '', salesperson: '', leadId: '', opportunityId: ''
   });
 
-const [selectedActivity, setSelectedActivity] = useState<any>(null);
-const hours = Array.from({ length: 24 }, (_, i) => i);
+  const [selectedActivity, setSelectedActivity] = useState<any>(null);
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
-const [selectedDate, setSelectedDate] = useState(new Date());
+  const userRole = (user?.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+  const isManager = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
+
+  // Load Sales Teams to filter Team Activities
+  useEffect(() => {
+    if (isManager) {
+      api.get('/salesteam')
+        .then(res => setTeams(res.data))
+        .catch(err => console.warn('Failed loading teams in activities', err));
+    }
+  }, [isManager]);
+
+  // Set default active filter for Sales Executives
+  useEffect(() => {
+    if (!isManager) {
+      setActiveFilter('my');
+    }
+  }, [isManager]);
+
+  // Compile team member names dynamically
+  const managedTeamMemberNames = useMemo(() => {
+    if (!isManager) return [user?.name];
+    
+    let myTeams = teams;
+    if (userRole === 'ADMIN') {
+      // Filter teams where this Admin is the leader
+      myTeams = teams.filter(t => t.leaderId === user?.id || t.leader?.email === user?.email);
+    }
+    
+    const names = new Set<string>();
+    if (user?.name) names.add(user.name);
+    
+    myTeams.forEach(t => {
+      if (t.leader?.name) names.add(t.leader.name);
+      (t.members || []).forEach((m: any) => {
+        if (m.name) names.add(m.name);
+      });
+    });
+    
+    return Array.from(names);
+  }, [teams, user, userRole, isManager]);
+
+  // Dynamically Filtered Activities based on role and active tab
+  const filteredActivities = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return activities.filter(a => {
+      // Standard Sales Executive is strictly locked to their own activities
+      if (!isManager) {
+        return a.salesperson === user?.name;
+      }
+
+      // CRM Manager / Super Admin filter options
+      if (activeFilter === 'my') {
+        return a.salesperson === user?.name;
+      }
+      if (activeFilter === 'team') {
+        return managedTeamMemberNames.includes(a.salesperson);
+      }
+      if (activeFilter === 'overdue') {
+        const actDate = new Date(a.date);
+        actDate.setHours(0, 0, 0, 0);
+        return !a.done && actDate.getTime() < today.getTime();
+      }
+      if (activeFilter === 'today') {
+        const actDate = new Date(a.date);
+        actDate.setHours(0, 0, 0, 0);
+        return actDate.getTime() === today.getTime();
+      }
+      return true; // 'all'
+    });
+  }, [activities, activeFilter, user, isManager, managedTeamMemberNames]);
+
   const handleActivitySubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onScheduleActivity({
@@ -40,334 +120,399 @@ const [selectedDate, setSelectedDate] = useState(new Date());
     });
   };
 
+  // Dynamic calendar Helper values
+  const year = selectedDate.getFullYear();
+  const month = selectedDate.getMonth();
+  const totalDays = new Date(year, month + 1, 0).getDate();
+  const startDayIndex = new Date(year, month, 1).getDay();
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June", 
+    "July", "August", "September", "October", "November", "December"
+  ];
+  const currentMonthLabel = `${monthNames[month]} ${year}`;
+
+  // Get dates of the current week (from Monday to Sunday)
+  const currentWeekDates = useMemo(() => {
+    const dates = [];
+    const currentDay = selectedDate.getDay();
+    // Sun=0, Mon=1, Tue=2, etc.
+    const distance = currentDay === 0 ? -6 : 1 - currentDay;
+    const monday = new Date(selectedDate);
+    monday.setDate(selectedDate.getDate() + distance);
+    monday.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      dates.push(d);
+    }
+    return dates;
+  }, [selectedDate]);
+
+  // Dynamic Navigation Title Label
+  const currentViewLabel = useMemo(() => {
+    if (calendarView === 'month') {
+      return currentMonthLabel;
+    }
+    if (calendarView === 'week') {
+      const start = currentWeekDates[0];
+      const end = currentWeekDates[6];
+      return `${start.getDate()} ${monthNames[start.getMonth()]} - ${end.getDate()} ${monthNames[end.getMonth()]} ${year}`;
+    }
+    // Day view
+    return `${selectedDate.getDate()} ${monthNames[month]} ${year}`;
+  }, [calendarView, selectedDate, currentMonthLabel, currentWeekDates, monthNames, month, year]);
+
+  // Navigate Previous
+  const handleNavigatePrev = () => {
+    if (calendarView === 'month') {
+      setSelectedDate(new Date(year, month - 1, 1));
+    } else if (calendarView === 'week') {
+      setSelectedDate(new Date(selectedDate.getTime() - 7 * 24 * 60 * 60 * 1000));
+    } else {
+      setSelectedDate(new Date(selectedDate.getTime() - 24 * 60 * 60 * 1000));
+    }
+  };
+
+  // Navigate Next
+  const handleNavigateNext = () => {
+    if (calendarView === 'month') {
+      setSelectedDate(new Date(year, month + 1, 1));
+    } else if (calendarView === 'week') {
+      setSelectedDate(new Date(selectedDate.getTime() + 7 * 24 * 60 * 60 * 1000));
+    } else {
+      setSelectedDate(new Date(selectedDate.getTime() + 24 * 60 * 60 * 1000));
+    }
+  };
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 text-xs">
-      
-      {/* Calendar Controls & Lists */}
-      <div className="lg:col-span-3 bg-card border border-border-crm rounded-2xl p-6 flex flex-col">
-        <div className="flex items-center justify-between pb-4 border-b border-border-crm mb-6 shrink-0">
-          <h3 className="font-bold text-sm tracking-tight text-txt-primary">Calendar Timeline Activities</h3>
-          <div className="flex border border-border-crm rounded-xl overflow-hidden text-xs font-semibold">
-            <button
-              onClick={() => setCalendarView('day')}
-              className={`px-3 py-1.5 transition cursor-pointer ${calendarView === 'day' ? 'bg-primary text-white' : 'hover:bg-slate-100 text-txt-secondary bg-white'}`}
-            >
-              Day
-            </button>
-            <button
-              onClick={() => setCalendarView('week')}
-              className={`px-3 py-1.5 border-x border-border-crm transition cursor-pointer ${calendarView === 'week' ? 'bg-primary text-white' : 'hover:bg-slate-100 text-txt-secondary bg-white'}`}
-            >
-              Week
-            </button>
-            <button
-              onClick={() => setCalendarView('month')}
-              className={`px-3 py-1.5 transition cursor-pointer ${calendarView === 'month' ? 'bg-primary text-white' : 'hover:bg-slate-100 text-txt-secondary bg-white'}`}
-            >
-              Month
-            </button>
-          </div>
-        </div>
-
-        {/* Simulated Month Grid layout */}
-        <div className="flex-1 overflow-y-auto">
-          {calendarView === 'month' ? (
-            <div className="grid grid-cols-7 border-t border-l border-border-crm text-xs">
-              {/* Day headers */}
-              {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
-                <div key={d} className="bg-bg-main p-2 border-r border-b border-border-crm font-bold text-center text-txt-secondary select-none">
-                  {d}
-                </div>
-              )
-              )}
-              
-
-              {/* Empty slots for spacing */}
-              {Array.from({ length: 1 }).map((_, i) => (
-                <div key={i}  className="min-h-24 p-1 border-r border-b border-border-crm bg-slate-50"></div>
-              ))}
-
-              {/* Day cells containing activities */}
-              {Array.from({ length: 30 }).map((_, i) => {
-                const dayNumber = i + 1;
-                const formattedDate = `2026-06-${dayNumber < 10 ? '0' + dayNumber : dayNumber}`;
-                const dayActivities = activities.filter(
-  a => new Date(a.date).toISOString().split("T")[0] === formattedDate
-);
-
-                return (
-                  <div key={i}  onClick={() => {
-        setSelectedDate(new Date(formattedDate));
-        setCalendarView("day");
-    }} className="min-h-24 p-2 border-r border-b border-border-crm flex flex-col justify-between">
-                    <span className="font-semibold text-[10px] text-slate-400 select-none">{dayNumber}</span>
-                    <div className="space-y-1 mt-1 overflow-y-auto flex-1 max-h-16">
-                      {dayActivities.map(act => (
-                        <div
-    key={act.id}
-    
-    onClick={() => setSelectedActivity(act)}
-    className={`rounded-lg px-2 py-1 mb-1 shadow-sm cursor-pointer transition hover:scale-[1.02]
-      ${
-        act.done
-          ? "bg-green-100 border border-green-300"
-          : act.type === "Meeting"
-          ? "bg-blue-100 border border-blue-300"
-          : act.type === "Call"
-          ? "bg-emerald-100 border border-emerald-300"
-          : act.type === "Email"
-          ? "bg-purple-100 border border-purple-300"
-          : "bg-amber-100 border border-amber-300"
-      }`}
-  >
-    <div className="text-[9px] font-bold">
-      🕒 {act.time}
-    </div>
-
-    <div className="text-[10px] font-semibold truncate">
-      {act.title}
-    </div>
-  </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
+    <div className="space-y-6 text-xs text-txt-primary">
+      {/* Activity Filter Header - only shown for Managers */}
+      {isManager && (
+        <div className="bg-card border border-border-crm rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm shrink-0">
+          <div className="flex items-center space-x-2.5">
+            <div className="bg-primary/10 p-2 rounded-xl text-primary border border-primary/20">
+              <ListFilter className="w-5 h-5" />
             </div>
-          ) : calendarView === "day" ? (
-           <div className="overflow-y-auto h-[700px]">
-
-  {hours.map((hour) => {
-
-   const hourActivities = activities.filter((act) => {
-
-    const sameDay =
-        new Date(act.date).toDateString() === selectedDate.toDateString();
-
-    const sameHour =
-        Number(act.time.split(":")[0]) === hour;
-
-    return sameDay && sameHour;
-
-});
-
-    return (
-
-      <div
-        key={hour}
-        className="flex border-b border-border-crm min-h-20"
-      >
-
-        <div className="w-20 p-3 font-semibold text-slate-500">
-          {hour.toString().padStart(2, "0")}:00
-        </div>
-
-        <div className="flex-1 p-2">
-
-          {hourActivities.map((act) => (
-
-            <div
-              key={act.id}
-              onClick={() => setSelectedActivity(act)}
-              className="bg-blue-100 rounded-lg p-2 mb-2 cursor-pointer"
-            >
-              <div className="font-bold">
-                {act.title}
-              </div>
-
-              <div className="text-[10px]">
-                🕒 {act.time}
-              </div>
-
-            </div>
-
-          ))}
-
-        </div>
-
-      </div>
-
-    );
-
-  })}
-
-</div>
-          ) : (
- <div className="overflow-auto h-[700px]c">
-
-        <div className="grid grid-cols-8 border border-border-crm">
-
-    {/* Header */}
-    <div className="bg-slate-100 border-r border-b border-border-crm p-2 font-bold text-center">
-      Time
-    </div>
-
-    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(day => (
-      <div
-        key={day}
-        className="bg-slate-100 border-r border-b border-border-crm p-2 text-center font-bold"
-      >
-        {day}
-      </div>
-    ))}
-
-    {/* Hours */}
-    {hours.map(hour => (
-      <React.Fragment key={hour}>
-
-        {/* Time Column */}
-        <div className="border-r border-b border-border-crm p-2 text-slate-500 font-semibold">
-          {hour.toString().padStart(2, "0")}:00
-        </div>
-
-        {/* Monday */}
-        {[1,2,3,4,5,6,0].map(dayIndex => {
-
-          const dayActivities = activities.filter(act => {
-
-            const d = new Date(act.date);
-
-            return (
-              d.getDay() === dayIndex &&
-              Number(act.time.split(":")[0]) === hour
-            );
-
-          });
-
-          return (
-
-            <div
-              key={dayIndex}
-              className="border-r border-b border-border-crm min-h-20 p-1"
-            >
-
-              {dayActivities.map(act => (
-
-                <div
-                  key={act.id}
-                  onClick={() => setSelectedActivity(act)}
-                  className={`rounded-lg p-2 mb-1 cursor-pointer text-[10px]
-                  ${
-                    act.type === "Meeting"
-                      ? "bg-blue-100"
-                      : act.type === "Call"
-                      ? "bg-green-100"
-                      : act.type === "Email"
-                      ? "bg-purple-100"
-                      : "bg-yellow-100"
-                  }`}
-                >
-
-                  <div className="font-bold">
-                    {act.title}
-                  </div>
-
-                  <div>
-                    🕒 {act.time}
-                  </div>
-
-                </div>
-
-              ))}
-
-            </div>
-
-          );
-
-        })}
-
-      </React.Fragment>
-    ))}
-
-  </div>
-
-    </div>
-          )}
-        </div>
-      </div>
-
-      {/* Right Activity Stats / Reminders */}
-      <div className="space-y-6">
-        
-        {/* Scheduling Modal Trigger card */}
-        <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4">
-          <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Activity Status Dashboard</h4>
-          <div className="space-y-3 text-xs text-txt-primary">
-            <div className="flex justify-between">
-              <span>Total Meetings</span>
-              <span className="font-bold text-primary">{activities.filter(a => a.type === 'Meeting').length}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Total Calls</span>
-              <span className="font-bold text-success">{activities.filter(a => a.type === 'Call').length}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Awaiting Completion</span>
-              <span className="font-bold text-warning">{activities.filter(a => !a.done).length}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Completed Logs</span>
-              <span className="font-bold text-success">{activities.filter(a => a.done).length}</span>
+            <div>
+              <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Manager Activity Filters</h4>
+              <p className="text-[10px] text-txt-secondary mt-0.5">Toggle workspaces to verify workload across teams and individual members</p>
             </div>
           </div>
-        </div>
 
-        {/* Checklist */}
-        <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4">
-          <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Pending Actions</h4>
-          <div className="space-y-3">
-            {activities.filter(a => !a.done).map(act => (
-       <div
-    key={act.id}
-    onClick={() => setSelectedActivity(act)}
-    className="flex items-start gap-2.5 p-2 rounded-lg hover:bg-slate-100 cursor-pointer transition"
->
-
-  
-                <input
-                  type="checkbox"
-                  className="rounded text-primary border-slate-300 focus:ring-0 mt-0.5 cursor-pointer"
-                  checked={act.done}
-                  onChange={() => onToggleActivityDone(act.id, act.done)}
-                />
-                <div className="text-xs">
-                  <p className="font-bold">{act.title}</p>
-                 <p className="text-[10px] text-slate-500">
-
-📅 {new Date(act.date).toLocaleDateString()}
-
-</p>
-
-<p className="text-[10px] text-slate-500">
-
-🕒 {act.time}
-
-</p>
-
-<p className="text-[10px] text-slate-500">
-
-{act.type}
-
-</p>
-                </div>
-              </div>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { id: 'all', label: 'All Activities' },
+              { id: 'my', label: 'My Activities' },
+              { id: 'team', label: 'Team Activities' },
+              { id: 'today', label: 'Today\'s Activities' },
+              { id: 'overdue', label: 'Overdue Activities' }
+            ].map(f => (
+              <button
+                key={f.id}
+                onClick={() => setActiveFilter(f.id as any)}
+                className={`px-3.5 py-2 rounded-xl text-[11px] font-semibold border transition cursor-pointer shadow-sm ${
+                  activeFilter === f.id
+                    ? 'bg-primary text-white border-primary/50'
+                    : 'bg-card text-txt-secondary border-border-crm hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                {f.label}
+              </button>
             ))}
           </div>
         </div>
+      )}
 
+      {!isManager && (
+        <div className="bg-card border border-border-crm rounded-2xl p-4 flex items-center space-x-2 text-txt-secondary select-none shadow-sm">
+          <Clock className="w-4 h-4 text-emerald-500" />
+          <span className="font-bold text-xs">Viewing Activities Assigned To You ({filteredActivities.length} logs)</span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        {/* Calendar Controls & Lists */}
+        <div className="lg:col-span-3 bg-card border border-border-crm rounded-2xl p-6 flex flex-col shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-border-crm mb-6 shrink-0 gap-3">
+            <div className="flex items-center space-x-4">
+              <h3 className="font-bold text-sm tracking-tight text-txt-primary">Calendar Timeline</h3>
+              <div className="flex items-center space-x-2 border border-border-crm rounded-xl px-3 py-1.5 bg-bg-main shadow-xs">
+                <button
+                  onClick={handleNavigatePrev}
+                  className="hover:text-primary font-extrabold text-xs cursor-pointer px-1 text-txt-secondary"
+                  title="Previous"
+                >
+                  &lt;
+                </button>
+                <span className="text-[11px] font-bold text-txt-primary min-w-[120px] text-center select-none">
+                  {currentViewLabel}
+                </span>
+                <button
+                  onClick={handleNavigateNext}
+                  className="hover:text-primary font-extrabold text-xs cursor-pointer px-1 text-txt-secondary"
+                  title="Next"
+                >
+                  &gt;
+                </button>
+              </div>
+            </div>
+
+            <div className="flex border border-border-crm rounded-xl overflow-hidden text-xs font-semibold self-start sm:self-auto">
+              <button
+                onClick={() => setCalendarView('day')}
+                className={`px-3 py-1.5 transition cursor-pointer ${calendarView === 'day' ? 'bg-primary text-white' : 'hover:bg-slate-100 text-txt-secondary bg-white dark:bg-slate-700'}`}
+              >
+                Day
+              </button>
+              <button
+                onClick={() => setCalendarView('week')}
+                className={`px-3 py-1.5 border-x border-border-crm transition cursor-pointer ${calendarView === 'week' ? 'bg-primary text-white' : 'hover:bg-slate-100 text-txt-secondary bg-white dark:bg-slate-700'}`}
+              >
+                Week
+              </button>
+              <button
+                onClick={() => setCalendarView('month')}
+                className={`px-3 py-1.5 transition cursor-pointer ${calendarView === 'month' ? 'bg-primary text-white' : 'hover:bg-slate-100 text-txt-secondary bg-white dark:bg-slate-700'}`}
+              >
+                Month
+              </button>
+            </div>
+          </div>
+
+          {/* Simulated Month Grid layout */}
+          <div className="flex-1 overflow-y-auto">
+            {calendarView === 'month' ? (
+              <div className="grid grid-cols-7 border-t border-l border-border-crm text-xs">
+                {/* Day headers */}
+                {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
+                  <div key={d} className="bg-bg-main p-2 border-r border-b border-border-crm font-bold text-center text-txt-secondary select-none">
+                    {d}
+                  </div>
+                ))}
+                
+                {/* Empty slots for start index offset spacing - White/Card background to avoid grey boxes */}
+                {Array.from({ length: startDayIndex }).map((_, i) => (
+                  <div key={`empty-${i}`} className="min-h-24 p-1 border-r border-b border-border-crm bg-card dark:bg-slate-900/10"></div>
+                ))}
+
+                {/* Day cells containing activities */}
+                {Array.from({ length: totalDays }).map((_, i) => {
+                  const dayNumber = i + 1;
+                  
+                  const dayActivities = filteredActivities.filter(a => {
+                    const actDate = new Date(a.date);
+                    return actDate.getFullYear() === year && 
+                           actDate.getMonth() === month && 
+                           actDate.getDate() === dayNumber;
+                  });
+
+                  return (
+                    <div 
+                      key={i} 
+                      onClick={() => {
+                        setSelectedDate(new Date(year, month, dayNumber));
+                        setCalendarView("day");
+                      }} 
+                      className="min-h-24 p-2 border-r border-b border-border-crm flex flex-col justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition bg-card"
+                    >
+                      <span className="font-semibold text-[10px] text-slate-400 select-none">{dayNumber}</span>
+                      <div className="space-y-1 mt-1 overflow-y-auto flex-1 max-h-16">
+                        {dayActivities.map(act => (
+                          <div
+                            key={act.id}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedActivity(act);
+                            }}
+                            className={`rounded-lg px-2 py-1 mb-1 shadow-sm cursor-pointer transition hover:scale-[1.02] ${
+                              act.done
+                                ? "bg-green-150 border border-green-300 dark:bg-green-950/40 text-emerald-800 dark:text-emerald-300"
+                                : act.type === "Meeting"
+                                ? "bg-blue-100 border border-blue-300 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300"
+                                : act.type === "Call"
+                                ? "bg-emerald-100 border border-emerald-300 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300"
+                                : act.type === "Email"
+                                ? "bg-purple-100 border border-purple-300 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300"
+                                : "bg-amber-100 border border-amber-300 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300"
+                            }`}
+                          >
+                            <div className="text-[8px] font-bold">🕒 {act.time}</div>
+                            <div className="text-[9px] font-semibold truncate">{act.title}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : calendarView === "day" ? (
+              <div className="overflow-y-auto h-[600px] divide-y divide-border-crm border-t border-border-crm">
+                {hours.map((hour) => {
+                  const hourActivities = filteredActivities.filter((act) => {
+                    const sameDay = new Date(act.date).toDateString() === selectedDate.toDateString();
+                    const sameHour = Number(act.time.split(":")[0]) === hour;
+                    return sameDay && sameHour;
+                  });
+
+                  return (
+                    <div key={hour} className="flex min-h-20 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                      <div className="w-20 p-4 font-semibold text-slate-500 border-r border-border-crm bg-bg-main">
+                        {hour.toString().padStart(2, "0")}:00
+                      </div>
+                      <div className="flex-1 p-3 space-y-2">
+                        {hourActivities.map((act) => (
+                          <div
+                            key={act.id}
+                            onClick={() => setSelectedActivity(act)}
+                            className="bg-blue-600/10 hover:bg-blue-600/20 border border-blue-500/20 rounded-xl p-3 cursor-pointer transition shadow-xs"
+                          >
+                            <div className="font-bold text-txt-primary">{act.title}</div>
+                            <div className="text-[10px] text-txt-secondary mt-1">🕒 {act.time} | Salesperson: {act.salesperson}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* Dynamic Weekly Grid Layout */
+              <div className="overflow-auto h-[600px]">
+                <div className="grid grid-cols-8 border border-border-crm">
+                  <div className="bg-bg-main border-r border-b border-border-crm p-3 font-bold text-center">Time</div>
+                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dayName, idx) => {
+                    const d = currentWeekDates[idx];
+                    return (
+                      <div key={dayName} className="bg-bg-main border-r border-b border-border-crm p-3 text-center font-bold text-txt-primary">
+                        {dayName} ({d.getDate()})
+                      </div>
+                    );
+                  })}
+
+                  {hours.map(hour => (
+                    <React.Fragment key={hour}>
+                      <div className="border-r border-b border-border-crm p-2 text-slate-500 font-semibold bg-bg-main">
+                        {hour.toString().padStart(2, "0")}:00
+                      </div>
+
+                      {[0, 1, 2, 3, 4, 5, 6].map(dayIndex => {
+                        const cellDate = currentWeekDates[dayIndex];
+                        const dayActivities = filteredActivities.filter(act => {
+                          const actDate = new Date(act.date);
+                          const actHour = Number(act.time.split(":")[0]);
+                          return actDate.getFullYear() === cellDate.getFullYear() &&
+                                 actDate.getMonth() === cellDate.getMonth() &&
+                                 actDate.getDate() === cellDate.getDate() &&
+                                 actHour === hour;
+                        });
+
+                        return (
+                          <div key={dayIndex} className="border-r border-b border-border-crm min-h-20 p-1 bg-card">
+                            {dayActivities.map(act => (
+                              <div
+                                key={act.id}
+                                onClick={() => setSelectedActivity(act)}
+                                className={`rounded-lg p-2 mb-1 cursor-pointer text-[9px] border shadow-xs ${
+                                  act.type === "Meeting"
+                                    ? "bg-blue-100 border-blue-300 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300"
+                                    : act.type === "Call"
+                                    ? "bg-emerald-100 border-emerald-300 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300"
+                                    : act.type === "Email"
+                                    ? "bg-purple-100 border-purple-300 dark:bg-purple-950/40 text-purple-800 dark:text-purple-300"
+                                    : "bg-amber-100 border-amber-300 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300"
+                                }`}
+                              >
+                                <div className="font-bold truncate">{act.title}</div>
+                                <div>🕒 {act.time}</div>
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Activity Stats / Reminders */}
+        <div className="space-y-6">
+          
+          {/* Scheduling Modal Trigger card */}
+          <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4 shadow-sm">
+            <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Activity Stats</h4>
+            <div className="space-y-3 text-xs text-txt-primary">
+              <div className="flex justify-between">
+                <span>Meetings Scheduled</span>
+                <span className="font-bold text-primary">{filteredActivities.filter(a => a.type === 'Meeting').length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Calls Logged</span>
+                <span className="font-bold text-success">{filteredActivities.filter(a => a.type === 'Call').length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Pending Tasks</span>
+                <span className="font-bold text-warning">{filteredActivities.filter(a => !a.done).length}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Completed Actions</span>
+                <span className="font-bold text-success">{filteredActivities.filter(a => a.done).length}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Checklist */}
+          <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4 shadow-sm">
+            <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Pending Actions</h4>
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+              {filteredActivities.filter(a => !a.done).map(act => (
+                <div
+                  key={act.id}
+                  onClick={() => setSelectedActivity(act)}
+                  className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition border border-transparent hover:border-border-crm"
+                >
+                  <input
+                    type="checkbox"
+                    className="rounded text-primary border-slate-355 focus:ring-0 mt-0.5 cursor-pointer"
+                    checked={act.done}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      onToggleActivityDone(act.id, act.done);
+                    }}
+                  />
+                  <div className="text-xs space-y-0.5">
+                    <p className="font-bold text-txt-primary truncate max-w-[150px]">{act.title}</p>
+                    <p className="text-[10px] text-txt-secondary">📅 {new Date(act.date).toLocaleDateString()}</p>
+                    <p className="text-[10px] text-txt-secondary">🕒 {act.time} ({act.type})</p>
+                    <p className="text-[10px] text-primary font-semibold">Assignee: {act.salesperson}</p>
+                  </div>
+                </div>
+              ))}
+              {filteredActivities.filter(a => !a.done).length === 0 && (
+                <p className="text-xs text-txt-secondary italic text-center py-4">No pending actions</p>
+              )}
+            </div>
+          </div>
+
+        </div>
       </div>
 
       {/* Create Activity Modal */}
       {showActivityModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
           <div className="bg-card border border-border-crm rounded-2xl shadow-2xl p-6 max-w-sm w-full text-txt-primary">
-            <h4 className="font-bold text-sm tracking-tight mb-4">Schedule Activity Log</h4>
+            <h4 className="font-bold text-sm tracking-tight mb-4 text-txt-primary">Schedule Activity Log</h4>
             <form onSubmit={handleActivitySubmit} className="space-y-3 text-xs">
               <div>
                 <label className="block text-slate-400 font-semibold mb-1">Title</label>
                 <input
                   type="text" required
-                  className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none bg-white"
+                  className="w-full border border-border-crm bg-card rounded-xl px-3 py-2 text-txt-primary focus:outline-none"
                   value={activityForm.title}
                   onChange={e => setActivityForm({ ...activityForm, title: e.target.value })}
                   placeholder="e.g. Call client for feedback"
@@ -377,7 +522,7 @@ const [selectedDate, setSelectedDate] = useState(new Date());
                 <div>
                   <label className="block text-slate-400 font-semibold mb-1">Type</label>
                   <select
-                    className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none bg-white"
+                    className="w-full border border-border-crm bg-card rounded-xl px-3 py-2 text-txt-primary focus:outline-none"
                     value={activityForm.type}
                     onChange={e => setActivityForm({ ...activityForm, type: e.target.value })}
                   >
@@ -392,7 +537,7 @@ const [selectedDate, setSelectedDate] = useState(new Date());
                   <label className="block text-slate-400 font-semibold mb-1">Duration (mins)</label>
                   <input
                     type="number" required
-                    className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none bg-white"
+                    className="w-full border border-border-crm bg-card rounded-xl px-3 py-2 text-txt-primary focus:outline-none"
                     value={activityForm.duration}
                     onChange={e => setActivityForm({ ...activityForm, duration: e.target.value })}
                   />
@@ -403,7 +548,7 @@ const [selectedDate, setSelectedDate] = useState(new Date());
                   <label className="block text-slate-400 font-semibold mb-1">Date</label>
                   <input
                     type="date" required
-                    className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none bg-white"
+                    className="w-full border border-border-crm bg-card rounded-xl px-3 py-2 text-txt-primary focus:outline-none"
                     value={activityForm.date}
                     onChange={e => setActivityForm({ ...activityForm, date: e.target.value })}
                   />
@@ -412,7 +557,7 @@ const [selectedDate, setSelectedDate] = useState(new Date());
                   <label className="block text-slate-400 font-semibold mb-1">Time</label>
                   <input
                     type="time" required
-                    className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none bg-white"
+                    className="w-full border border-border-crm bg-card rounded-xl px-3 py-2 text-txt-primary focus:outline-none"
                     value={activityForm.time}
                     onChange={e => setActivityForm({ ...activityForm, time: e.target.value })}
                   />
@@ -421,7 +566,7 @@ const [selectedDate, setSelectedDate] = useState(new Date());
               <div>
                 <label className="block text-slate-400 font-semibold mb-1">Description</label>
                 <textarea
-                  className="w-full border border-border-crm bg-bg-main rounded-xl p-2 text-txt-primary focus:outline-none h-16 resize-none bg-white"
+                  className="w-full border border-border-crm bg-card rounded-xl p-2 text-txt-primary focus:outline-none h-16 resize-none"
                   value={activityForm.description}
                   onChange={e => setActivityForm({ ...activityForm, description: e.target.value })}
                 />
@@ -429,13 +574,13 @@ const [selectedDate, setSelectedDate] = useState(new Date());
               <div className="flex gap-2 pt-4">
                 <button
                   type="button" onClick={() => setShowActivityModal(false)}
-                  className="flex-1 border border-border-crm hover:bg-slate-50 rounded-xl py-2 font-semibold text-txt-primary cursor-pointer"
+                  className="flex-1 border border-border-crm hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl py-2 font-semibold text-txt-primary cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-primary hover:bg-primary-hover text-white rounded-xl py-2 font-semibold shadow cursor-pointer"
+                  className="flex-1 bg-primary hover:bg-primary/95 text-white rounded-xl py-2 font-semibold shadow cursor-pointer"
                 >
                   Save Activity
                 </button>
@@ -444,48 +589,56 @@ const [selectedDate, setSelectedDate] = useState(new Date());
           </div>
         </div>
       )}
-{/* Activity Details Modal */}
 
-{selectedActivity && (
+      {/* Activity Details Modal */}
+      {selectedActivity && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border-crm rounded-2xl w-full max-w-sm p-6 shadow-2xl space-y-4 text-txt-primary">
+            <div className="flex justify-between items-start">
+              <h2 className="text-sm font-bold text-txt-primary">
+                {selectedActivity.title}
+              </h2>
+              <button onClick={() => setSelectedActivity(null)} className="text-txt-secondary hover:text-txt-primary cursor-pointer">
+                <X className="w-4.5 h-4.5" />
+              </button>
+            </div>
 
-<div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="space-y-2.5 text-xs">
+              <div className="flex justify-between border-b border-border-crm pb-2">
+                <span className="text-txt-secondary">Type</span>
+                <span className="font-semibold text-txt-primary">{selectedActivity.type}</span>
+              </div>
+              <div className="flex justify-between border-b border-border-crm pb-2">
+                <span className="text-txt-secondary">Date</span>
+                <span className="font-semibold text-txt-primary">{new Date(selectedActivity.date).toLocaleDateString()}</span>
+              </div>
+              <div className="flex justify-between border-b border-border-crm pb-2">
+                <span className="text-txt-secondary">Time</span>
+                <span className="font-semibold text-txt-primary">{selectedActivity.time}</span>
+              </div>
+              <div className="flex justify-between border-b border-border-crm pb-2">
+                <span className="text-txt-secondary">Duration</span>
+                <span className="font-semibold text-txt-primary">{selectedActivity.duration} mins</span>
+              </div>
+              <div className="flex justify-between border-b border-border-crm pb-2">
+                <span className="text-txt-secondary">Salesperson</span>
+                <span className="font-semibold text-primary">{selectedActivity.salesperson}</span>
+              </div>
+              <div className="space-y-1 pt-1">
+                <span className="text-txt-secondary block font-semibold">Description</span>
+                <p className="text-txt-primary bg-bg-main border border-border-crm p-3 rounded-xl leading-relaxed whitespace-pre-wrap">{selectedActivity.description || 'No description provided'}</p>
+              </div>
+            </div>
 
-    <div className="bg-white rounded-2xl w-[450px] p-6">
-
-        <h2 className="text-lg font-bold">
-            {selectedActivity.title}
-        </h2>
-
-        <div className="mt-5 space-y-3">
-
-            <p><strong>Type:</strong> {selectedActivity.type}</p>
-
-            <p><strong>Date:</strong> {new Date(selectedActivity.date).toLocaleDateString()}</p>
-
-            <p><strong>Time:</strong> {selectedActivity.time}</p>
-
-            <p><strong>Duration:</strong> {selectedActivity.duration} mins</p>
-
-            <p><strong>Salesperson:</strong> {selectedActivity.salesperson}</p>
-
-            <p><strong>Description:</strong></p>
-
-            <p>{selectedActivity.description}</p>
-
+            <button
+              onClick={() => setSelectedActivity(null)}
+              className="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-350 dark:hover:bg-slate-650 text-txt-primary rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
+            >
+              Close
+            </button>
+          </div>
         </div>
-
-        <button
-            onClick={() => setSelectedActivity(null)}
-            className="mt-6 w-full bg-primary text-white rounded-xl py-2"
-        >
-            Close
-        </button>
-
-    </div>
-
-</div>
-
-)}
+      )}
     </div>
   );
 }

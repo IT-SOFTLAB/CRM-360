@@ -31,7 +31,7 @@ exports.createTeam = async (req, res) => {
     const fullTeam = await prisma.salesTeam.findUnique({
       where: { id: team.id },
       include: {
-        leader: { select: { id: name, name: true, email: true } },
+        leader: { select: { id: true, name: true, email: true } },
         members: { select: { id: true, name: true, email: true, role: true } }
       }
     });

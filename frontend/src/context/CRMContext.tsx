@@ -95,6 +95,7 @@ export interface CRMContextType {
   handleDeleteLeadFromView: (leadId: string) => Promise<void>;
   handleConvertLeadFromView: (leadId: string, dealValue: string) => Promise<void>;
   handleMoveOpportunity: (oppId: string, stageId: string) => Promise<void>;
+  handleDeleteOpportunity: (oppId: string) => Promise<void>;
   handleAddStage: (stageName: string) => Promise<void>;
   handleStageReorder: (stageId: string, direction: 'left' | 'right') => Promise<void>;
   handleStageDelete: (stageId: string) => Promise<void>;
@@ -298,10 +299,11 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       handleUpdateLeadFromView: leadsCtx.handleUpdateLeadFromView,
       handleDeleteLeadFromView: leadsCtx.handleDeleteLeadFromView,
       handleConvertLeadFromView,
-      handleMoveOpportunity: oppCtx.handleMoveOpportunity,
-      handleAddStage: oppCtx.handleAddStage,
-      handleStageReorder: oppCtx.handleStageReorder,
-      handleStageDelete: oppCtx.handleStageDelete,
+  handleMoveOpportunity: oppCtx.handleMoveOpportunity,
+  handleDeleteOpportunity: oppCtx.handleDeleteOpportunity,
+  handleAddStage: oppCtx.handleAddStage,
+  handleStageReorder: oppCtx.handleStageReorder,
+  handleStageDelete: oppCtx.handleStageDelete,
       handleActivityCreate: activityCtx.handleActivityCreate,
       toggleActivityDone: activityCtx.toggleActivityDone,
       handleSendEmail: emailCtx.handleSendEmail,

@@ -1,8 +1,12 @@
+// Quotations Routes - secure endpoints
 const express = require("express");
 
 const router = express.Router();
 
 const quotationController = require("../controllers/quotationController");
+const authenticateJWT = require("../middlewares/authMiddleware");
+
+router.use(authenticateJWT);
 
 // Create Quotation
 router.post("/", quotationController.createQuotation);

@@ -297,15 +297,18 @@ exports.changePassword = async (req, res) => {
 
 exports.inviteUser = async (req, res) => {
   try {
-    const { name, email, role, department, salesTeamId, category } = req.body;
+    const { name, email, role, department, salesTeamId, category, password } = req.body;
     const inviter = req.user;
 
-    if (!name || !email || !role) {
-      return res.status(400).json({ message: 'Name, email, and role are required' });
+    if (!name || !email || !role || !password) {
+      return res.status(400).json({ message: 'Name, email, role, and password are required' });
     }
 
 
-    if (inviter.role === 'ADMIN' && role === 'ADMIN') {
+    const inviterRole = (inviter.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+    const targetRole = (role || '').toUpperCase().replace(/[\s_]+/g, '_');
+
+    if (inviterRole === 'ADMIN' && targetRole === 'ADMIN') {
       return res.status(403).json({ message: 'Admins cannot create other Admin accounts' });
     }
 
@@ -315,9 +318,7 @@ exports.inviteUser = async (req, res) => {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
-    const invitationToken = crypto.randomUUID();
-    const invitationExpires = new Date();
-    invitationExpires.setHours(invitationExpires.getHours() + 24); 
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await prisma.user.create({
       data: {
@@ -327,23 +328,19 @@ exports.inviteUser = async (req, res) => {
         department,
         salesTeamId: salesTeamId || null,
         category,
-        password: '', 
-        status: 'Inactive',
-        invitationToken,
-        invitationExpires
+        password: hashedPassword, 
+        status: 'Active',
+        invitationToken: null,
+        invitationExpires: null
       }
     });
 
-    const inviteLink = `http://localhost:3000/accept-invitation?token=${invitationToken}`;
-    console.log('Manual Invitation link for dev fallbacks:', inviteLink);
-
     res.status(201).json({
-      message: 'Invitation generated successfully',
-      user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
-      inviteLink 
+      message: 'User created successfully',
+      user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role }
     });
   } catch (err) {
-    console.error('Invite user error:', err);
+    console.error('Create user error:', err);
     res.status(500).json({ message: err.message });
   }
 };

@@ -10,7 +10,16 @@ GET ALL CUSTOMERS
 
 exports.getCustomers = async (req, res) => {
   try {
+    const user = req.user;
+    const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+
+    let whereClause = {};
+    if (userRole === 'USER') {
+      whereClause = { assignedSalesperson: user.name };
+    }
+
     const customers = await prisma.customer.findMany({
+      where: whereClause,
       orderBy: {
         createdAt: "desc"
       }

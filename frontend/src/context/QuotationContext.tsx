@@ -70,34 +70,18 @@ export const QuotationProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const handleQuotationUpdate = async (id: string, data: any) => {
-    const subtotal = data.items.reduce(
-      (sum: number, item: any) => sum + Number(item.qty) * Number(item.price),
-      0
-    );
-    const taxAmount = subtotal * Number(data.taxRate) / 100;
-    const grandTotal = subtotal + taxAmount - Number(data.discount);
-
-    const payload = {
-      clientName: data.clientName,
-      company: data.company,
-      taxRate: Number(data.taxRate),
-      discount: Number(data.discount),
-      opportunityId: data.opportunityId,
-      items: data.items,
-      subtotal,
-      taxAmount,
-      grandTotal
-    };
-
-    const res = await quotationService.updateQuotation(id, payload);
+    const res = await quotationService.updateQuotation(id, data);
     if (res) {
       await loadQuotations();
-      if (toastCtx) toastCtx.addToast("success", "Quotation Updated");
+      if (toastCtx) toastCtx.addToast("success", "Quotation Updated Successfully");
+    } else {
+      setQuotations(prev => prev.map(q => q.id === id ? { ...q, ...data } : q));
+      if (toastCtx) toastCtx.addToast("success", "Quotation Updated (Offline)");
     }
   };
 
   const updateQuoteStatus = async (quoteId: string, status: string) => {
-    const res = await quotationService.updateQuotation(quoteId, { status });
+    const res = await quotationService.updateQuotationStatus(quoteId, status);
     if (res) {
       if (toastCtx) toastCtx.addToast('success', `Quotation status updated to ${status}`);
       await loadQuotations();
