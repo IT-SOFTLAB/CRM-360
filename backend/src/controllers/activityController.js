@@ -60,15 +60,19 @@ exports.createActivity = async (req, res) => {
 exports.getActivities = async (req, res) => {
 
     try {
+        const user = req.user;
+        const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+
+        let whereClause = {};
+        if (userRole === 'USER') {
+            whereClause = { salesperson: user.name };
+        }
 
         const activities = await prisma.activity.findMany({
-
+            where: whereClause,
             orderBy: {
-
                 date: "asc"
-
             }
-
         });
 
         res.json(activities);

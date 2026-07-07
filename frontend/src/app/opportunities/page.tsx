@@ -13,6 +13,7 @@ export default function OpportunitiesPage() {
       searchQuery={crm.searchQuery}
       activeFilters={crm.activeFilters}
       onMoveOpportunity={crm.handleMoveOpportunity}
+      onDeleteOpportunity={crm.handleDeleteOpportunity}
       onAddStage={crm.handleAddStage}
       onReorderStage={crm.handleStageReorder}
       onDeleteStage={crm.handleStageDelete}

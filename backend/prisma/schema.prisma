@@ -12,41 +12,39 @@ model User {
   name              String
   email             String         @unique
   password          String
-  role              String         @default("User") // SUPER_ADMIN, ADMIN, USER
-  status            String         @default("Active") // Active, Inactive, Locked
-  isLocked          Boolean        @default(false)
-  invitationToken   String?        @unique
-  invitationExpires DateTime?
-  department        String?
-  salesTeamId       String?
-  salesTeam         SalesTeam?     @relation("TeamMembers", fields: [salesTeamId], references: [id])
-  category          String?
+  role              String         @default("User")
   createdAt         DateTime       @default(now())
-  
-  // Relations
-  leads             Lead[]
-  opportunities     Opportunity[]
+  category          String?
+  department        String?
+  invitationExpires DateTime?
+  invitationToken   String?        @unique
+  isLocked          Boolean        @default(false)
+  salesTeamId       String?
+  status            String         @default("Active")
   customers         Customer[]
-  tasksAssigned     Task[]         @relation("TasksAssigned")
-  tasksCreated      Task[]         @relation("TasksCreated")
+  leads             Lead[]
   notifications     Notification[]
+  opportunities     Opportunity[]
   refreshTokens     RefreshToken[]
   ledTeams          SalesTeam[]    @relation("TeamLeader")
+  tasksCreated      Task[]         @relation("TasksCreated")
+  tasksAssigned     Task[]         @relation("TasksAssigned")
+  salesTeam         SalesTeam?     @relation("TeamMembers", fields: [salesTeamId], references: [id])
 }
 
 model Lead {
-  id             String   @id @default(cuid())
-  email          String?
-  phone          String?
-  status         String   @default("New")
-  createdAt      DateTime @default(now())
-  category       String
-  company        String?
-  contactName    String
-  serviceType    String
-  assignedUser   String? // name string for backwards compatibility
-  assignedUserId String?
-  assignedUserRel User?   @relation(fields: [assignedUserId], references: [id])
+  id              String   @id @default(cuid())
+  email           String?
+  phone           String?
+  status          String   @default("New")
+  createdAt       DateTime @default(now())
+  category        String
+  company         String?
+  contactName     String
+  serviceType     String
+  assignedUser    String?
+  assignedUserId  String?
+  assignedUserRel User?    @relation(fields: [assignedUserId], references: [id])
 }
 
 model Activity {
@@ -131,11 +129,11 @@ model Opportunity {
   stage                  String    @default("New")
   stageId                String?
   assignedSalesperson    String?
-  assignedSalespersonId  String?
-  assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
   expectedClosing        DateTime?
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
+  assignedSalespersonId  String?
+  assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
 }
 
 model Customer {
@@ -147,36 +145,36 @@ model Customer {
   phone                  String?
   dealValue              Float
   assignedSalesperson    String?
-  assignedSalespersonId  String?
-  assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
   status                 String   @default("Active")
   joinedAt               DateTime @default(now())
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
+  assignedSalespersonId  String?
+  assignedSalespersonRel User?    @relation(fields: [assignedSalespersonId], references: [id])
 }
 
 model Quotation {
-  id                String          @id @default(uuid())
-  quotationNumber   String          @unique
-  opportunityId     String
-  customerId        String
-  customerName      String
-  company           String
-  email             String
-  phone             String
-  salesperson       String
-  quotationDate     DateTime
-  expirationDate    DateTime
-  paymentTerms      String
-  currency          String
-  subtotal          Float
-  tax               Float
-  total             Float
-  notes             String?
-  status            String          @default("Draft")
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  items             QuotationItem[]
+  id              String          @id @default(uuid())
+  quotationNumber String          @unique
+  opportunityId   String
+  customerId      String
+  customerName    String
+  company         String
+  email           String
+  phone           String
+  salesperson     String
+  quotationDate   DateTime
+  expirationDate  DateTime
+  paymentTerms    String
+  currency        String
+  subtotal        Float
+  tax             Float
+  total           Float
+  notes           String?
+  status          String          @default("Draft")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  items           QuotationItem[]
 }
 
 model QuotationItem {
@@ -192,15 +190,13 @@ model QuotationItem {
   quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 }
 
-// New Models for Authentication, Sales Teams, and Task Management
-
 model RefreshToken {
   id        String   @id @default(cuid())
   token     String   @unique
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SalesTeam {
@@ -208,67 +204,67 @@ model SalesTeam {
   name        String
   description String?
   leaderId    String?
-  leader      User?    @relation("TeamLeader", fields: [leaderId], references: [id])
-  members     User[]   @relation("TeamMembers")
   category    String?
   status      String   @default("Active")
   createdAt   DateTime @default(now())
+  leader      User?    @relation("TeamLeader", fields: [leaderId], references: [id])
+  members     User[]   @relation("TeamMembers")
 }
 
 model Task {
-  id            String        @id @default(cuid())
-  title         String
-  leadId        String?       @unique
-  assignedToId  String?
-  assignedTo    User?         @relation("TasksAssigned", fields: [assignedToId], references: [id])
-  assignedById  String?
-  assignedBy    User?         @relation("TasksCreated", fields: [assignedById], references: [id])
-  status        String        @default("Pending") // Pending, In Progress, Completed, Cancelled, Overdue
-  priority      String        @default("Normal")  // Low, Medium, High, VIP
-  deadline      DateTime?
-  remarks       String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  comments      TaskComment[]
+  id           String        @id @default(cuid())
+  title        String
+  leadId       String?       @unique
+  assignedToId String?
+  assignedById String?
+  status       String        @default("Pending")
+  priority     String        @default("Normal")
+  deadline     DateTime?
+  remarks      String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  assignedBy   User?         @relation("TasksCreated", fields: [assignedById], references: [id])
+  assignedTo   User?         @relation("TasksAssigned", fields: [assignedToId], references: [id])
+  comments     TaskComment[]
 }
 
 model TaskComment {
   id        String   @id @default(cuid())
   taskId    String
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   userId    String
   userName  String
   content   String
   createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 model CompanySettings {
-  id           String   @id @default("global_settings")
-  companyName  String   @default("Global CRM Cloud")
-  logo         String?
-  gst          String?
-  address      String?
-  phone        String?
-  email        String?
-  currency     String   @default("INR")
-  timezone     String   @default("UTC")
-  language     String   @default("English")
-  smtpHost     String?
-  smtpPort     Int?
-  smtpUser     String?
-  smtpPass     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default("global_settings")
+  companyName String   @default("Global CRM Cloud")
+  logo        String?
+  gst         String?
+  address     String?
+  phone       String?
+  email       String?
+  currency    String   @default("INR")
+  timezone    String   @default("UTC")
+  language    String   @default("English")
+  smtpHost    String?
+  smtpPort    Int?
+  smtpUser    String?
+  smtpPass    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model Notification {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String
   message   String
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model AuditLog {

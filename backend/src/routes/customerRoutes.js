@@ -3,6 +3,9 @@ const express = require("express");
 const router = express.Router();
 
 const customerController = require("../controllers/customerController");
+const authenticateJWT = require("../middlewares/authMiddleware");
+
+router.use(authenticateJWT);
 
 router.get("/", customerController.getCustomers);
 

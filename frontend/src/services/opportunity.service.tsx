@@ -63,5 +63,14 @@ export const opportunityService = {
       console.warn('API error deleting stage, fallback to offline', err);
       return null;
     }
+  },
+  deleteOpportunity: async (oppId: string) => {
+    try {
+      const res = await api.delete(`/opportunities/${oppId}`);
+      return res.data;
+    } catch (err) {
+      console.warn('API error deleting opportunity, fallback to offline', err);
+      return null;
+    }
   }
 };

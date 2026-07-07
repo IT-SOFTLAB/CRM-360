@@ -27,7 +27,7 @@ export const authService = {
       return res.data;
     } catch (err) {
       console.warn('API error during login', err);
-      return null;
+      throw err;
     }
   },
 

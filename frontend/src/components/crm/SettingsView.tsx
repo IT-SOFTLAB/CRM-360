@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, X, Trash2, Plus, Mail, ShieldAlert, Link as LinkIcon, Copy } from 'lucide-react';
+import { Check, X, Trash2, Plus } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 
 interface SettingsViewProps {
@@ -38,9 +38,9 @@ export default function SettingsView({
     email: '',
     role: 'USER',
     department: '',
-    category: ''
+    category: '',
+    password: ''
   });
-  const [createdInviteLink, setCreatedInviteLink] = useState('');
   const [inviteLoading, setInviteLoading] = useState(false);
 
   const handleAddCategorySubmit = (e: React.FormEvent) => {
@@ -54,27 +54,24 @@ export default function SettingsView({
   const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setInviteLoading(true);
-    setCreatedInviteLink('');
     try {
-      const res = await authService.inviteUser(inviteForm);
-      if (res && res.inviteLink) {
-        setCreatedInviteLink(res.inviteLink);
-        addToast('success', `Invitation generated for ${inviteForm.email}`);
-        if (onRefreshUsersList) onRefreshUsersList();
-      } else {
-        addToast('success', `User invited successfully!`);
-        setShowInviteModal(false);
-      }
+      await authService.inviteUser(inviteForm);
+      addToast('success', `User ${inviteForm.name} created successfully!`);
+      setShowInviteModal(false);
+      setInviteForm({
+        name: '',
+        email: '',
+        role: 'USER',
+        department: '',
+        category: '',
+        password: ''
+      });
+      if (onRefreshUsersList) onRefreshUsersList();
     } catch (err: any) {
-      addToast('error', err?.response?.data?.message || 'Failed to send invitation');
+      addToast('error', err?.response?.data?.message || 'Failed to create user');
     } finally {
       setInviteLoading(false);
     }
-  };
-
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(createdInviteLink);
-    addToast('success', 'Invitation link copied to clipboard!');
   };
 
   const userRole = (user?.role || '').toUpperCase().replace(' ', '_');
@@ -161,7 +158,6 @@ export default function SettingsView({
             <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400">User Accounts Management</h4>
             <button
               onClick={() => {
-                setCreatedInviteLink('');
                 setShowInviteModal(true);
               }}
               className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-1.5 text-[10px] font-semibold transition flex items-center space-x-1 cursor-pointer"
@@ -270,119 +266,92 @@ export default function SettingsView({
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
             <div className="bg-slate-700/30 px-6 py-4 border-b border-slate-700 flex justify-between items-center">
-              <h3 className="font-bold text-slate-100 text-sm">Send Odoo Invitation Link</h3>
+              <h3 className="font-bold text-slate-100 text-sm">Create User Account</h3>
               <button onClick={() => setShowInviteModal(false)} className="text-slate-400 hover:text-slate-200 cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {createdInviteLink ? (
-              <div className="p-6 space-y-4">
-                <div className="bg-emerald-950/40 border border-emerald-500/20 rounded-xl p-4 space-y-2">
-                  <div className="flex items-center space-x-2 text-emerald-400 font-semibold">
-                    <Check className="w-4 h-4" />
-                    <span>Invitation Code Generated!</span>
-                  </div>
-                  <p className="text-slate-300 text-[11px] leading-relaxed">
-                    The user has been registered in the database as Inactive. Since emails require production SMTP configuration, copy and send this activation link directly to them:
-                  </p>
-                </div>
+            <form onSubmit={handleInviteSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">User Full Name</label>
+                <input
+                  type="text" required
+                  className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
+                  placeholder="e.g. Rahul Sharma"
+                  value={inviteForm.name}
+                  onChange={e => setInviteForm({ ...inviteForm, name: e.target.value })}
+                />
+              </div>
 
-                <div className="flex items-center bg-slate-750 border border-slate-650 rounded-xl px-3 py-2.5 gap-2">
-                  <LinkIcon className="w-4 h-4 text-slate-400 shrink-0" />
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Email Address</label>
+                <input
+                  type="email" required
+                  className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
+                  placeholder="e.g. rahul@company.com"
+                  value={inviteForm.email}
+                  onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Create Password</label>
+                <input
+                  type="password" required
+                  className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
+                  placeholder="e.g. ••••••••"
+                  value={inviteForm.password}
+                  onChange={e => setInviteForm({ ...inviteForm, password: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1">Access Role Scope</label>
+                <select
+                  className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
+                  value={inviteForm.role}
+                  onChange={e => setInviteForm({ ...inviteForm, role: e.target.value })}
+                >
+                  {userRole === 'SUPER_ADMIN' && <option value="ADMIN">CRM Manager (Admin)</option>}
+                  <option value="USER">Sales Executive (User)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Department</label>
                   <input
                     type="text"
-                    readOnly
-                    className="bg-transparent text-slate-200 border-none outline-none text-xs flex-1"
-                    value={createdInviteLink}
-                  />
-                  <button
-                    onClick={handleCopyLink}
-                    className="p-1.5 hover:bg-slate-700 text-blue-400 rounded transition cursor-pointer"
-                    title="Copy to clipboard"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
-                </div>
-
-                <button
-                  onClick={() => setShowInviteModal(false)}
-                  className="w-full bg-slate-700 hover:bg-slate-650 text-slate-100 rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
-                >
-                  Close
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleInviteSubmit} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">User Full Name</label>
-                  <input
-                    type="text" required
                     className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
-                    placeholder="e.g. Rahul Sharma"
-                    value={inviteForm.name}
-                    onChange={e => setInviteForm({ ...inviteForm, name: e.target.value })}
+                    placeholder="e.g. North Region"
+                    value={inviteForm.department}
+                    onChange={e => setInviteForm({ ...inviteForm, department: e.target.value })}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Email Address</label>
-                  <input
-                    type="email" required
-                    className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
-                    placeholder="e.g. rahul@company.com"
-                    value={inviteForm.email}
-                    onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Access Role Scope</label>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1">Default Category</label>
                   <select
                     className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
-                    value={inviteForm.role}
-                    onChange={e => setInviteForm({ ...inviteForm, role: e.target.value })}
+                    value={inviteForm.category}
+                    onChange={e => setInviteForm({ ...inviteForm, category: e.target.value })}
                   >
-                    {userRole === 'SUPER_ADMIN' && <option value="ADMIN">CRM Manager (Admin)</option>}
-                    <option value="USER">Sales Executive (User)</option>
+                    <option value="">Select Category...</option>
+                    {categories.map((c: string) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                   </select>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Department</label>
-                    <input
-                      type="text"
-                      className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
-                      placeholder="e.g. North Region"
-                      value={inviteForm.department}
-                      onChange={e => setInviteForm({ ...inviteForm, department: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-1">Default Category</label>
-                    <select
-                      className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
-                      value={inviteForm.category}
-                      onChange={e => setInviteForm({ ...inviteForm, category: e.target.value })}
-                    >
-                      <option value="">Select Category...</option>
-                      {categories.map((c: string) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={inviteLoading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-2.5 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
-                >
-                  {inviteLoading ? 'Sending invitation link...' : 'Create & Generate Invitation'}
-                </button>
-              </form>
-            )}
+              <button
+                type="submit"
+                disabled={inviteLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-2.5 text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+              >
+                {inviteLoading ? 'Creating User Account...' : 'Create Account'}
+              </button>
+            </form>
           </div>
         </div>
       )}

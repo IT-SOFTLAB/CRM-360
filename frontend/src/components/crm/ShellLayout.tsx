@@ -31,6 +31,7 @@ import {
   Menu
 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
+import api from '@/services/api';
 
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -75,14 +76,15 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     crm.addToast('info', 'Uploading CSV leads...');
 
     try {
-      const response = await fetch('http://localhost:5000/api/leads/import', {
-        method: 'POST',
-        body: formData,
+      const response = await api.post('/leads/import', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
-      const data = await response.json();
+      const data = response.data;
 
-      if (response.ok && data.success) {
+      if (data.success) {
         crm.addToast('success', data.message || 'Leads imported successfully!');
         await crm.loadCRMData();
       } else {
@@ -123,9 +125,9 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     { id: 'settings', label: 'Settings', icon: SettingsIcon, href: '/settings', roles: ['SUPER_ADMIN', 'ADMIN'] },
   ];
 
-  const handleLogoutClick = () => {
-    crm.handleLogout();
+  const handleLogoutClick = async () => {
     setShowProfileMenu(false);
+    await crm.handleLogout();
     router.push('/login');
   };
 
@@ -174,51 +176,102 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       <header className="bg-card  shadow-sm border-b border-border-crm shrink-0 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
           
-          {/* Logo & Platform Title */}
-          <div className="flex items-center space-x-4">
-            {/* Hamburger button visible only below lg breakpoint */}
-            <button
-              onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="lg:hidden p-2 rounded-xl text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary transition cursor-pointer"
-              title="Open Navigation Menu"
-            >
-              <Menu className="w-4.5 h-4.5" />
-            </button>
-
-            <div className="bg-primary p-2 rounded-xl text-white">
-              <Briefcase className="w-5 h-5" />
-            </div>
-            <span className="font-bold text-lg tracking-tight select-none text-txt-primary">
-              {crm.companyBranding.logoText}
-            </span>
-          </div>
-          
-          {/* Module Links - Horizontal Navigation */}
-          <nav className="hidden lg:flex space-x-1">
-            {tabs.map(tab => {
-              const Icon = tab.icon;
-              const userRole = (crm.user?.role || '').toUpperCase().replace(' ', '_');
-              if (tab.roles && !tab.roles.includes(userRole)) return null;
-
-              return (
-                <Link
-                  key={tab.id}
-                  href={tab.href}
-                  className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
-                    currentTab === tab.id
-                      ? 'bg-primary text-white'
-                      : 'text-txt-secondary hover:bg-slate-200 blue:hover:bg-slate-800 '
-                  }`}
+          {/* Conditional layout check based on role */}
+          {((crm.user?.role || '').toUpperCase().replace(/[\s_]+/g, '_') === 'SUPER_ADMIN') ? (
+            <>
+              {/* Logo & Platform Title (Left-aligned) */}
+              <div className="flex items-center space-x-4 shrink-0">
+                {/* Hamburger button visible only below xl breakpoint */}
+                <button
+                  onClick={() => setShowMobileMenu(!showMobileMenu)}
+                  className="xl:hidden p-2 rounded-xl text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary transition cursor-pointer"
+                  title="Open Navigation Menu"
                 >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>{tab.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
+                  <Menu className="w-4.5 h-4.5" />
+                </button>
+
+                <div className="bg-primary p-2 rounded-xl text-white">
+                  <Briefcase className="w-5 h-5" />
+                </div>
+                <span className="font-bold text-lg tracking-tight select-none text-txt-primary">
+                  {crm.companyBranding.logoText}
+                </span>
+              </div>
+
+              {/* Module Links - Centered for Super Admin */}
+              <nav className="hidden xl:flex space-x-1 justify-center flex-1">
+                {tabs.map(tab => {
+                  const Icon = tab.icon;
+                  const userRole = (crm.user?.role || '').toUpperCase().replace(' ', '_');
+                  if (tab.roles && !tab.roles.includes(userRole)) return null;
+
+                  return (
+                    <Link
+                      key={tab.id}
+                      href={tab.href}
+                      className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition shrink-0 ${
+                        currentTab === tab.id
+                          ? 'bg-primary text-white'
+                          : 'text-txt-secondary hover:bg-slate-200 blue:hover:bg-slate-800 '
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{tab.label}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </>
+          ) : (
+            /* Left Side: Logo & Navigation Tabs Grouped for Admin/User (Left-aligned & Scrollable) */
+            <div className="flex items-center space-x-6 flex-1 min-w-0">
+              {/* Logo & Platform Title */}
+              <div className="flex items-center space-x-4 shrink-0">
+                {/* Hamburger button visible only below xl breakpoint */}
+                <button
+                  onClick={() => setShowMobileMenu(!showMobileMenu)}
+                  className="xl:hidden p-2 rounded-xl text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary transition cursor-pointer"
+                  title="Open Navigation Menu"
+                >
+                  <Menu className="w-4.5 h-4.5" />
+                </button>
+
+                <div className="bg-primary p-2 rounded-xl text-white">
+                  <Briefcase className="w-5 h-5" />
+                </div>
+                <span className="font-bold text-lg tracking-tight select-none text-txt-primary">
+                  {crm.companyBranding.logoText}
+                </span>
+              </div>
+              
+              {/* Module Links - Horizontal Navigation */}
+              <nav className="hidden xl:flex space-x-1 overflow-x-auto">
+                {tabs.map(tab => {
+                  const Icon = tab.icon;
+                  const userRole = (crm.user?.role || '').toUpperCase().replace(' ', '_');
+                  if (tab.roles && !tab.roles.includes(userRole)) return null;
+
+                  return (
+                    <Link
+                      key={tab.id}
+                      href={tab.href}
+                      className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition shrink-0 ${
+                        currentTab === tab.id
+                          ? 'bg-primary text-white'
+                          : 'text-txt-secondary hover:bg-slate-200 blue:hover:bg-slate-800 '
+                      }`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                      <span>{tab.label}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          )}
 
           {/* Right Accessories */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 shrink-0">
             
             {/* Dark Mode toggle */}
             <button
@@ -255,30 +308,6 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                     <p className="text-txt-secondary">{crm.user?.email || ''}</p>
                     <p className="text-txt-secondary leading-none mt-0.5 text-[10px]">{crm.user?.company || 'Company'}</p>
                   </div>
-                  <div className="px-4 py-2 border-b border-border-crm text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                    Switch Test Role:
-                  </div>
-                  <button
-                    onClick={() => { crm.setUser({ ...crm.user, role: 'Super Admin' }); crm.addToast('info', 'Switched context to Super Admin'); }}
-                    className="w-full text-left px-4 py-2 text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex justify-between items-center cursor-pointer"
-                  >
-                    <span>Super Admin</span>
-                    {crm.user?.role === 'Super Admin' && <Check className="w-3.5 h-3.5 text-success" />}
-                  </button>
-                  <button
-                    onClick={() => { crm.setUser({ ...crm.user, role: 'Admin' }); crm.addToast('info', 'Switched context to Admin'); }}
-                    className="w-full text-left px-4 py-2 text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex justify-between items-center cursor-pointer"
-                  >
-                    <span>Admin</span>
-                    {crm.user?.role === 'Admin' && <Check className="w-3.5 h-3.5 text-success" />}
-                  </button>
-                  <button
-                    onClick={() => { crm.setUser({ ...crm.user, role: 'User' }); crm.addToast('info', 'Switched context to User'); }}
-                    className="w-full text-left px-4 py-2 text-xs hover:bg-slate-100 dark:hover:bg-slate-800 flex justify-between items-center cursor-pointer"
-                  >
-                    <span>User</span>
-                    {crm.user?.role === 'User' && <Check className="w-3.5 h-3.5 text-success" />}
-                  </button>
                   <div className="border-t border-border-crm mt-1"></div>
                   <button
                     onClick={handleLogoutClick}
@@ -335,7 +364,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                 </>
               )}
               
-              {currentTab === 'opportunities' && crm.user?.role === 'Super Admin' && (
+              {currentTab === 'opportunities' && (
                 <button
                   onClick={() => crm.setShowStageModal(true)}
                   className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
@@ -796,7 +825,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
 
       {/* Mobile Drawer Menu */}
       {showMobileMenu && (
-        <div className="fixed inset-0 z-50 flex lg:hidden">
+        <div className="fixed inset-0 z-50 flex xl:hidden">
           {/* Overlay backdrop */}
           <div 
             onClick={() => setShowMobileMenu(false)} 

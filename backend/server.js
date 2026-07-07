@@ -23,8 +23,7 @@ const quotationRoutes = require("./src/routes/quotationRoutes");
 const salesTeamRoutes = require("./src/routes/salesTeamRoutes.js");
 const taskRoutes = require("./src/routes/taskRoutes.js");
 const userRoutes = require("./src/routes/userRoutes.js");
-const referralRoutes = require("./src/routes/referral.routes.js");
-const pipelineRoutes = require("./src/routes/pipeline.routes.js");
+
 app.use(cors());
 app.use(bodyParser.json());
 app.use(cookieParser());

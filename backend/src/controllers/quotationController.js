@@ -99,9 +99,16 @@ exports.createQuotation = async (req, res) => {
 exports.getAllQuotations = async (req, res) => {
 
   try {
+    const user = req.user;
+    const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+
+    let whereClause = {};
+    if (userRole === 'USER') {
+      whereClause = { salesperson: user.name };
+    }
 
     const quotations = await prisma.quotation.findMany({
-
+      where: whereClause,
       include: {
 
         items: true

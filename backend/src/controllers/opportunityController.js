@@ -8,8 +8,21 @@ GET ALL
 
 exports.getAllOpportunities = async (req, res) => {
     try {
+        const user = req.user;
+        const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+
+        let whereClause = {};
+        if (userRole === 'USER') {
+            whereClause = {
+                OR: [
+                    { assignedSalespersonId: user.id },
+                    { assignedSalesperson: user.name }
+                ]
+            };
+        }
 
         const opportunities = await prisma.opportunity.findMany({
+            where: whereClause,
             orderBy: {
                 createdAt: "desc"
             }

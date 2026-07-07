@@ -2,7 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useCRM } from '@/context/CRMContext';
-import { Users, Plus, Shield, ShieldCheck, Mail, Briefcase, Trash2, Edit2, X } from 'lucide-react';
+import { 
+  Users, Plus, Shield, Trash2, X, BarChart3, 
+  TrendingUp, CheckCircle, AlertCircle, FileText, 
+  Calendar, Phone, Mail, Award, Briefcase, ListCollapse 
+} from 'lucide-react';
 import api from '@/services/api';
 
 export default function SalesTeamView() {
@@ -11,6 +15,8 @@ export default function SalesTeamView() {
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedTeam, setSelectedTeam] = useState<any | null>(null);
+  const [activeTab, setActiveTab] = useState<'performance' | 'leads' | 'activities'>('performance');
 
   // Form State
   const [teamForm, setTeamForm] = useState({
@@ -35,6 +41,9 @@ export default function SalesTeamView() {
 
   useEffect(() => {
     loadTeams();
+    if (crm.loadCRMData) {
+      crm.loadCRMData();
+    }
   }, []);
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
@@ -56,11 +65,13 @@ export default function SalesTeamView() {
     }
   };
 
-  const handleDeleteTeam = async (id: string) => {
+  const handleDeleteTeam = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Avoid triggering selectedTeam modal
     if (!confirm('Are you sure you want to delete this sales team?')) return;
     try {
       await api.delete(`/salesteam/${id}`);
       crm.addToast('success', 'Sales team deleted');
+      if (selectedTeam?.id === id) setSelectedTeam(null);
       loadTeams();
     } catch (err) {
       crm.addToast('error', 'Failed to delete sales team');
@@ -76,6 +87,79 @@ export default function SalesTeamView() {
     });
   };
 
+  // Helper to compile team metrics in real-time
+  const compileTeamMetrics = (team: any) => {
+    if (!team) return null;
+    
+    // Get IDs of all members and the leader
+    const memberIds = (team.members || []).map((m: any) => m.id);
+    if (team.leaderId) memberIds.push(team.leaderId);
+
+    // Filter Leads
+    const teamLeads = crm.leads.filter((l: any) => memberIds.includes(l.assignedUserId));
+    
+    // Filter Opportunities
+    const teamOpps = crm.opportunities.filter((o: any) => memberIds.includes(o.assignedSalespersonId));
+    
+    // Metrics calculations
+    const totalLeadsCount = teamLeads.length + teamOpps.length;
+    const wonOpps = teamOpps.filter((o: any) => (o.stageId || '').toLowerCase() === 'won' || (o.stageId || '').toLowerCase() === 'stage_won');
+    const lostOpps = teamOpps.filter((o: any) => (o.stageId || '').toLowerCase() === 'lost' || (o.stageId || '').toLowerCase() === 'stage_lost');
+    const openOpps = teamOpps.filter((o: any) => !['won', 'stage_won', 'lost', 'stage_lost'].includes((o.stageId || '').toLowerCase()));
+    
+    const wonCount = wonOpps.length;
+    const lostCount = lostOpps.length;
+    const openLeadsCount = teamLeads.length + openOpps.length;
+    
+    const totalRevenue = wonOpps.reduce((sum: number, o: any) => sum + (parseFloat(o.dealValue) || 0), 0);
+    
+    // Conversion Rate = Won / (Won + Lost)
+    const conversionRate = totalLeadsCount > 0 
+      ? Math.round((wonCount / totalLeadsCount) * 100) 
+      : 0;
+
+    // Pipeline stages breakdown
+    const stageCounts: Record<string, number> = {};
+    teamOpps.forEach((o: any) => {
+      const stageName = o.stageName || o.stageId || 'Open';
+      stageCounts[stageName] = (stageCounts[stageName] || 0) + 1;
+    });
+
+    // Individual member stats
+    const membersPerformance = (team.members || []).map((m: any) => {
+      const uLeads = crm.leads.filter((l: any) => l.assignedUserId === m.id);
+      const uOpps = crm.opportunities.filter((o: any) => o.assignedSalespersonId === m.id);
+      const uWon = uOpps.filter((o: any) => (o.stageId || '').toLowerCase() === 'won' || (o.stageId || '').toLowerCase() === 'stage_won');
+      const uRevenue = uWon.reduce((sum: number, o: any) => sum + (parseFloat(o.dealValue) || 0), 0);
+      return {
+        name: m.name,
+        role: m.role || 'Sales Executive',
+        leads: uLeads.length + uOpps.length,
+        won: uWon.length,
+        revenue: uRevenue
+      };
+    });
+
+    // Activities logged on team leads
+    const allLeadIds = [...teamLeads.map((l: any) => l.id), ...teamOpps.map((o: any) => o.id)];
+    const teamActivities = crm.activities.filter((act: any) => allLeadIds.includes(act.leadId));
+
+    return {
+      totalLeads: totalLeadsCount,
+      won: wonCount,
+      lost: lostCount,
+      open: openLeadsCount,
+      conversionRate,
+      revenue: totalRevenue,
+      stageCounts,
+      membersPerformance,
+      leadsList: [...teamLeads, ...teamOpps],
+      activities: teamActivities
+    };
+  };
+
+  const metrics = selectedTeam ? compileTeamMetrics(selectedTeam) : null;
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-6 text-txt-primary">
       {/* Header */}
@@ -85,8 +169,8 @@ export default function SalesTeamView() {
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-txt-primary font-inter">Sales Teams Management</h1>
-            <p className="text-xs text-txt-secondary mt-0.5">Odoo CRM Style Sales Teams grouping and Lead Categories distribution</p>
+            <h1 className="text-2xl font-bold tracking-tight text-txt-primary font-inter">Sales Teams</h1>
+            <p className="text-xs text-txt-secondary mt-0.5">Click any team to view complete performance, pipeline, and member analytics</p>
           </div>
         </div>
 
@@ -115,12 +199,16 @@ export default function SalesTeamView() {
           {teams.map(team => (
             <div
               key={team.id}
-              className="bg-card border border-border-crm rounded-2xl p-6 transition flex flex-col justify-between hover:border-indigo-500/40 relative overflow-hidden"
+              onClick={() => {
+                setSelectedTeam(team);
+                setActiveTab('performance');
+              }}
+              className="bg-card border border-border-crm rounded-2xl p-6 transition flex flex-col justify-between hover:border-indigo-500/40 relative overflow-hidden cursor-pointer shadow-sm hover:shadow-md hover:-translate-y-0.5 duration-200"
             >
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-bold text-txt-primary text-base">{team.name}</h3>
+                    <h3 className="font-bold text-txt-primary text-base group-hover:text-indigo-600">{team.name}</h3>
                     {team.category && (
                       <span className="bg-indigo-900/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded mt-1.5 inline-block">
                         Category: {team.category}
@@ -128,14 +216,14 @@ export default function SalesTeamView() {
                     )}
                   </div>
                   <button
-                    onClick={() => handleDeleteTeam(team.id)}
-                    className="text-txt-secondary hover:text-rose-500 transition p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
+                    onClick={(e) => handleDeleteTeam(e, team.id)}
+                    className="text-txt-secondary hover:text-rose-500 transition p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
 
-                <p className="text-xs text-txt-secondary leading-relaxed">{team.description || 'No description provided'}</p>
+                <p className="text-xs text-txt-secondary leading-relaxed line-clamp-2">{team.description || 'No description provided'}</p>
 
                 {/* Team Leader */}
                 <div className="border-t border-border-crm pt-4 flex items-center space-x-3 text-xs">
@@ -166,6 +254,233 @@ export default function SalesTeamView() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* TEAM DETAIL DASHBOARD MODAL */}
+      {selectedTeam && metrics && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-card border border-border-crm rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] text-txt-primary">
+            
+            {/* Modal Header */}
+            <div className="bg-bg-main px-6 py-4 border-b border-border-crm flex justify-between items-center shrink-0">
+              <div>
+                <h3 className="font-bold text-txt-primary text-base">{selectedTeam.name} Performance Dashboard</h3>
+                <p className="text-[10px] text-txt-secondary mt-0.5">Leader: {selectedTeam.leader?.name || 'None'} | Category: {selectedTeam.category || 'None'}</p>
+              </div>
+              <button onClick={() => setSelectedTeam(null)} className="text-txt-secondary hover:text-txt-primary cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Tab Links */}
+            <div className="flex border-b border-border-crm bg-bg-main shrink-0 px-6">
+              <button
+                onClick={() => setActiveTab('performance')}
+                className={`py-3 px-4 font-bold text-xs border-b-2 transition-colors ${activeTab === 'performance' ? 'border-primary text-primary' : 'border-transparent text-txt-secondary hover:text-txt-primary'}`}
+              >
+                Performance & Workload
+              </button>
+              <button
+                onClick={() => setActiveTab('leads')}
+                className={`py-3 px-4 font-bold text-xs border-b-2 transition-colors ${activeTab === 'leads' ? 'border-primary text-primary' : 'border-transparent text-txt-secondary hover:text-txt-primary'}`}
+              >
+                Team Leads & Pipeline
+              </button>
+              <button
+                onClick={() => setActiveTab('activities')}
+                className={`py-3 px-4 font-bold text-xs border-b-2 transition-colors ${activeTab === 'activities' ? 'border-primary text-primary' : 'border-transparent text-txt-secondary hover:text-txt-primary'}`}
+              >
+                Team Activities
+              </button>
+            </div>
+
+            {/* Tab Contents */}
+            <div className="p-6 overflow-y-auto flex-1 space-y-6">
+              
+              {activeTab === 'performance' && (
+                <>
+                  {/* Top Key Metrics Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-bg-main border border-border-crm p-4 rounded-xl flex items-center space-x-3">
+                      <div className="bg-blue-600/10 p-2 rounded-lg text-blue-600 dark:text-blue-400">
+                        <Briefcase className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-txt-secondary block font-semibold uppercase">Total Leads</span>
+                        <span className="text-lg font-extrabold text-txt-primary">{metrics.totalLeads}</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-bg-main border border-border-crm p-4 rounded-xl flex items-center space-x-3">
+                      <div className="bg-emerald-500/10 p-2 rounded-lg text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-txt-secondary block font-semibold uppercase">Deals Won</span>
+                        <span className="text-lg font-extrabold text-txt-primary">{metrics.won}</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-bg-main border border-border-crm p-4 rounded-xl flex items-center space-x-3">
+                      <div className="bg-indigo-600/10 p-2 rounded-lg text-indigo-600 dark:text-indigo-400">
+                        <TrendingUp className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-txt-secondary block font-semibold uppercase">Win Rate</span>
+                        <span className="text-lg font-extrabold text-txt-primary">{metrics.conversionRate}%</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-bg-main border border-border-crm p-4 rounded-xl flex items-center space-x-3">
+                      <div className="bg-amber-500/10 p-2 rounded-lg text-amber-600 dark:text-amber-400">
+                        <Award className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-txt-secondary block font-semibold uppercase">Total Revenue</span>
+                        <span className="text-sm font-extrabold text-txt-primary">₹{(metrics.revenue || 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Individual Member Performance Table */}
+                  <div className="bg-card border border-border-crm rounded-xl p-5 space-y-3">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary flex items-center gap-1.5">
+                      <Users className="w-4 h-4 text-primary" />
+                      <span>Member Workload & Performance</span>
+                    </h4>
+                    
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-border-crm text-[10px] text-txt-secondary font-bold uppercase">
+                            <th className="py-2.5">Salesperson Name</th>
+                            <th className="py-2.5">Assigned Leads</th>
+                            <th className="py-2.5">Won Opportunities</th>
+                            <th className="py-2.5 text-right">Closed Revenue</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border-crm text-txt-primary">
+                          {metrics.membersPerformance.map((item: any, idx: number) => (
+                            <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                              <td className="py-3 font-bold">{item.name}</td>
+                              <td className="py-3 font-semibold text-blue-500">{item.leads}</td>
+                              <td className="py-3 font-semibold text-emerald-500">{item.won}</td>
+                              <td className="py-3 text-right font-extrabold text-txt-primary">₹{item.revenue.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                          {metrics.membersPerformance.length === 0 && (
+                            <tr>
+                              <td colSpan={4} className="text-center py-6 text-txt-secondary italic">No members assigned to this team.</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {activeTab === 'leads' && (
+                <div className="space-y-6">
+                  {/* Pipeline Stage Summary counts */}
+                  <div className="bg-bg-main border border-border-crm p-5 rounded-xl space-y-2">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary flex items-center gap-1.5">
+                      <BarChart3 className="w-4 h-4 text-primary" />
+                      <span>Team Pipeline Breakdown</span>
+                    </h4>
+                    <div className="flex flex-wrap gap-2.5 pt-2">
+                      {Object.keys(metrics.stageCounts).length === 0 ? (
+                        <p className="text-xs text-txt-secondary italic">No opportunities in the pipeline stages yet.</p>
+                      ) : (
+                        Object.entries(metrics.stageCounts).map(([stage, count], idx) => (
+                          <div key={idx} className="bg-card border border-border-crm rounded-xl px-4 py-2 text-xs flex items-center space-x-2">
+                            <span className="font-bold text-txt-primary">{stage}:</span>
+                            <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded font-extrabold">{count}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Leads List */}
+                  <div className="bg-card border border-border-crm rounded-xl p-5 space-y-3">
+                    <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary flex items-center gap-1.5">
+                      <ListCollapse className="w-4 h-4 text-primary" />
+                      <span>Team Lead Allocation</span>
+                    </h4>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b border-border-crm text-[10px] text-txt-secondary font-bold uppercase">
+                            <th className="py-2.5">Lead Title</th>
+                            <th className="py-2.5">Contact Name</th>
+                            <th className="py-2.5">Pipeline Stage</th>
+                            <th className="py-2.5">Assigned To</th>
+                            <th className="py-2.5 text-right">Value</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border-crm text-txt-primary">
+                          {metrics.leadsList.map((lead: any) => (
+                            <tr key={lead.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                              <td className="py-3 font-bold text-blue-600 dark:text-blue-400">{lead.title || lead.company || 'Unnamed Lead'}</td>
+                              <td className="py-3 text-txt-secondary">{lead.name || lead.contactName || 'N/A'}</td>
+                              <td className="py-3">
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                                  (lead.stageId || '').toLowerCase() === 'won' ? 'bg-emerald-950 text-emerald-400' : 'bg-slate-700 text-slate-300'
+                                }`}>
+                                  {lead.stageName || lead.stageId || 'New'}
+                                </span>
+                              </td>
+                              <td className="py-3 font-semibold">{lead.assignedUser || 'Unassigned'}</td>
+                              <td className="py-3 text-right font-extrabold text-txt-primary">₹{(parseFloat(lead.dealValue) || 0).toLocaleString()}</td>
+                            </tr>
+                          ))}
+                          {metrics.leadsList.length === 0 && (
+                            <tr>
+                              <td colSpan={5} className="text-center py-6 text-txt-secondary italic">No active leads associated with this team.</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'activities' && (
+                <div className="bg-card border border-border-crm rounded-xl p-5 space-y-4">
+                  <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary flex items-center gap-1.5">
+                    <Calendar className="w-4 h-4 text-primary" />
+                    <span>Recent logged activities</span>
+                  </h4>
+
+                  <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2 divide-y divide-border-crm">
+                    {metrics.activities.map((act: any) => (
+                      <div key={act.id} className="pt-3 first:pt-0 space-y-1 text-xs">
+                        <div className="flex justify-between items-start font-bold">
+                          <span className="text-blue-500 dark:text-blue-400 flex items-center gap-1">
+                            {act.type === 'Call' && <Phone className="w-3.5 h-3.5" />}
+                            {act.type === 'Email' && <Mail className="w-3.5 h-3.5" />}
+                            {act.type === 'Meeting' && <Calendar className="w-3.5 h-3.5" />}
+                            <span>{act.type} Call log</span>
+                          </span>
+                          <span className="text-txt-secondary font-medium text-[10px]">{new Date(act.date).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-txt-primary font-medium">{act.summary}</p>
+                        {act.notes && <p className="text-[11px] text-txt-secondary bg-bg-main p-2.5 rounded-lg border border-border-crm">{act.notes}</p>}
+                      </div>
+                    ))}
+                    {metrics.activities.length === 0 && (
+                      <div className="text-center py-10 text-txt-secondary italic">No recent activities logged on this team's leads.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
         </div>
       )}
 

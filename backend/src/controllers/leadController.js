@@ -5,6 +5,11 @@ const createLead = async (req, res) => {
   try {
     const now = new Date();
     const localDateZeroTime = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    const user = req.user;
+
+    const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+    const assignedUserId = userRole === 'USER' ? user.id : req.body.assignedUserId;
+    const assignedUser = userRole === 'USER' ? user.name : req.body.assignedUser;
 
     const lead = await prisma.lead.create({
       data: {
@@ -14,7 +19,8 @@ const createLead = async (req, res) => {
         phone: req.body.phone,
         category: req.body.category,
         serviceType: req.body.serviceType,
-        assignedUser: req.body.assignedUser,
+        assignedUser: assignedUser || null,
+        assignedUserId: assignedUserId || null,
         createdAt: localDateZeroTime
       }
     });
@@ -30,7 +36,21 @@ const createLead = async (req, res) => {
 
 const getAllLeads = async (req, res) => {
   try {
+    const user = req.user;
+    const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+
+    let whereClause = {};
+    if (userRole === 'USER') {
+      whereClause = {
+        OR: [
+          { assignedUserId: user.id },
+          { assignedUser: user.name }
+        ]
+      };
+    }
+
     const leads = await prisma.lead.findMany({
+      where: whereClause,
       orderBy: {
         createdAt: "desc"
       }

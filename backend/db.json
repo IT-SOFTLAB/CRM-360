@@ -54,24 +54,19 @@
       "order": 5
     },
     {
-      "id": "p_5",
-      "name": "Negotiation",
-      "order": 6
-    },
-    {
       "id": "p_6",
       "name": "Won",
       "order": 7
     },
     {
-      "id": "p_7",
-      "name": "Lost",
-      "order": 8
-    },
-    {
       "id": "p_1782467758119",
       "name": "new",
       "order": 2
+    },
+    {
+      "id": "p_1783332195651",
+      "name": "Lost",
+      "order": 8
     }
   ],
   "referralPipelines": [
@@ -310,6 +305,36 @@
       "status": "New",
       "createdAt": "2026-07-03",
       "createdDate": "2026-07-03"
+    },
+    {
+      "id": "cmr912gu70007o0zctoy2qkv4",
+      "name": "Yashii",
+      "contactName": "Yashii",
+      "company": "yash technologies",
+      "source": "CSV/Excel Import",
+      "email": "yashiii@gmail.com",
+      "phone": "9764423110",
+      "category": "healthcare",
+      "serviceType": "service-based",
+      "assignedUser": "aaaa",
+      "status": "New",
+      "createdAt": "2026-07-06",
+      "createdDate": "2026-07-06"
+    },
+    {
+      "id": "cmr914ead0002o0ogevsxe311",
+      "name": "Yashii",
+      "contactName": "Yashii",
+      "company": "yash technologies",
+      "source": "CSV/Excel Import",
+      "email": "yashiii@gmail.com",
+      "phone": "9764423110",
+      "category": "healthcare",
+      "serviceType": "service-based",
+      "assignedUser": "aaaa",
+      "status": "New",
+      "createdAt": "2026-07-06",
+      "createdDate": "2026-07-06"
     }
   ],
   "opportunities": [
@@ -745,6 +770,105 @@
     "logoText": "CRM 360"
   },
   "auditLogs": [
+    {
+      "id": "log_1783332876517_wp01d",
+      "timestamp": "2026-07-06T10:14:36.517Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783332873286_gomtz",
+      "timestamp": "2026-07-06T10:14:33.287Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783332195652_zccd8",
+      "timestamp": "2026-07-06T10:03:15.652Z",
+      "user": "System",
+      "role": "System",
+      "action": "CREATE_PIPELINE",
+      "module": "Settings",
+      "details": "Created sales pipeline stage: Lost"
+    },
+    {
+      "id": "log_1783332031038_lrdnj",
+      "timestamp": "2026-07-06T10:00:31.039Z",
+      "user": "System",
+      "role": "System",
+      "action": "DELETE_PIPELINE",
+      "module": "Settings",
+      "details": "Deleted pipeline stage: Lost"
+    },
+    {
+      "id": "log_1783331992003_ab1vt",
+      "timestamp": "2026-07-06T09:59:52.003Z",
+      "user": "System",
+      "role": "System",
+      "action": "DELETE_PIPELINE",
+      "module": "Settings",
+      "details": "Deleted pipeline stage: Negotiation"
+    },
+    {
+      "id": "log_1783331988965_kh6bc",
+      "timestamp": "2026-07-06T09:59:48.965Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783331986968_ksrxq",
+      "timestamp": "2026-07-06T09:59:46.968Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783331984828_yc2l4",
+      "timestamp": "2026-07-06T09:59:44.828Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783331982070_88p7q",
+      "timestamp": "2026-07-06T09:59:42.070Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783331978095_4t5wj",
+      "timestamp": "2026-07-06T09:59:38.095Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783331974481_vhgsv",
+      "timestamp": "2026-07-06T09:59:34.481Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
     {
       "id": "log_1783078368036_hadll",
       "timestamp": "2026-07-03T11:32:48.038Z",

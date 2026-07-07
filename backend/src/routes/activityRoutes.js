@@ -3,6 +3,9 @@ const express = require("express");
 const router = express.Router();
 
 const activityController = require("../controllers/activityController");
+const authenticateJWT = require("../middlewares/authMiddleware");
+
+router.use(authenticateJWT);
 
 
 router.post("/", activityController.createActivity);

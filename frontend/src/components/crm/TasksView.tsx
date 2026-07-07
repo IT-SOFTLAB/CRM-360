@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTasks } from '@/hooks/useTasks';
 import { useCRM } from '@/context/CRMContext';
+import api from '@/services/api';
 import { 
   ClipboardList, CheckCircle2, Play, AlertTriangle, 
   X, Clock, Plus, MessageSquare, Calendar, User, 
@@ -63,6 +64,18 @@ export default function TasksView() {
     const ok = await tasksCtx.handleAddTaskComment(tasksCtx.selectedTask.id, newComment);
     if (ok) {
       setNewComment('');
+    }
+  };
+
+  const handleDeleteTask = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+    try {
+      await api.delete(`/tasks/${id}`);
+      crm.addToast('success', 'Task deleted successfully');
+      setShowDetailModal(false);
+      tasksCtx.loadTasks();
+    } catch (err: any) {
+      crm.addToast('error', err?.response?.data?.message || 'Failed to delete task');
     }
   };
 
@@ -174,7 +187,19 @@ export default function TasksView() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   {getPriorityBadge(t.priority)}
-                  {getStatusBadge(t.status)}
+                  <div className="flex items-center space-x-1.5">
+                    {getStatusBadge(t.status)}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteTask(t.id);
+                      }}
+                      className="opacity-0 group-hover:opacity-100 text-txt-secondary hover:text-rose-500 p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer"
+                      title="Delete Task"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
                 
                 <h3 className="font-bold text-txt-primary group-hover:text-blue-500 dark:group-hover:text-blue-400 transition text-sm">{t.title}</h3>
@@ -391,6 +416,25 @@ export default function TasksView() {
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Modal Footer / Delete Action */}
+            <div className="bg-bg-main px-6 py-4 border-t border-border-crm flex justify-between items-center shrink-0">
+              <button
+                type="button"
+                onClick={() => handleDeleteTask(tasksCtx.selectedTask.id)}
+                className="bg-rose-600/10 hover:bg-rose-600 text-rose-600 hover:text-white rounded-xl px-4 py-2 text-xs font-semibold transition flex items-center space-x-1.5 cursor-pointer border border-rose-500/20"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Task</span>
+              </button>
+              
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-350 dark:hover:bg-slate-650 text-txt-primary rounded-xl px-4 py-2 text-xs font-semibold transition cursor-pointer"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>
