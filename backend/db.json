@@ -46,17 +46,17 @@
     {
       "id": "p_3",
       "name": "Discussion",
-      "order": 4
+      "order": 5
     },
     {
       "id": "p_4",
       "name": "Proposal Preparation",
-      "order": 5
+      "order": 7
     },
     {
       "id": "p_6",
       "name": "Won",
-      "order": 7
+      "order": 8
     },
     {
       "id": "p_1782467758119",
@@ -66,7 +66,7 @@
     {
       "id": "p_1783332195651",
       "name": "Lost",
-      "order": 8
+      "order": 9
     }
   ],
   "referralPipelines": [
@@ -770,6 +770,114 @@
     "logoText": "CRM 360"
   },
   "auditLogs": [
+    {
+      "id": "log_1783407492346_ul5e3",
+      "timestamp": "2026-07-07T06:58:12.346Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783407480961_fk65j",
+      "timestamp": "2026-07-07T06:58:00.961Z",
+      "user": "System",
+      "role": "System",
+      "action": "DELETE_PIPELINE",
+      "module": "Settings",
+      "details": "Deleted pipeline stage: qualified"
+    },
+    {
+      "id": "log_1783407465276_qbqvu",
+      "timestamp": "2026-07-07T06:57:45.276Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783407453556_98c5y",
+      "timestamp": "2026-07-07T06:57:33.556Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783407444130_1jdv4",
+      "timestamp": "2026-07-07T06:57:24.130Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783407415348_t43o9",
+      "timestamp": "2026-07-07T06:56:55.348Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783407382021_v35u8",
+      "timestamp": "2026-07-07T06:56:22.021Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783407358370_1yxlb",
+      "timestamp": "2026-07-07T06:55:58.371Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783407356080_3xlj3",
+      "timestamp": "2026-07-07T06:55:56.080Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783407354257_wa77r",
+      "timestamp": "2026-07-07T06:55:54.257Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783407352360_vt5fn",
+      "timestamp": "2026-07-07T06:55:52.360Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1783407346934_7a0i5",
+      "timestamp": "2026-07-07T06:55:46.934Z",
+      "user": "System",
+      "role": "System",
+      "action": "CREATE_PIPELINE",
+      "module": "Settings",
+      "details": "Created sales pipeline stage: qualified"
+    },
     {
       "id": "log_1783332876517_wp01d",
       "timestamp": "2026-07-06T10:14:36.517Z",

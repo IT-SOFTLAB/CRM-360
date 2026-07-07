@@ -7,7 +7,7 @@ import React, {
 } from "react";
 
 import { pipelineService } from "../services/pipeline.service";
-import { ReferralPipeline } from "../types/pipeline";
+import { ReferralPipeline } from "../types/referralPipeline";
 import { ToastContext } from "./ToastContext";
 
 export interface PipelineContextType {
@@ -41,7 +41,7 @@ export const PipelineProvider = ({
 
 setStages(data ?? []);
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       toastCtx?.addToast("error", "Unable to load stages");
     }
   };
@@ -52,7 +52,7 @@ setStages(data ?? []);
       await loadStages();
       toastCtx?.addToast("success", "Stage created");
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       toastCtx?.addToast("error", "Unable to create stage");
     }
   };
@@ -63,7 +63,7 @@ setStages(data ?? []);
       await loadStages();
       toastCtx?.addToast("success", "Stage deleted");
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       toastCtx?.addToast("error", "Unable to delete stage");
     }
   };
@@ -75,7 +75,7 @@ setStages(data ?? []);
       await pipelineService.reorderStages(stages);
       await loadStages();
     } catch (err) {
-      console.error(err);
+      console.warn(err);
       toastCtx?.addToast("error", "Unable to reorder stages");
     }
   };

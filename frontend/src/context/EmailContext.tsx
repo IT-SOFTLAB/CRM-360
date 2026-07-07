@@ -5,7 +5,6 @@ import { Email } from '../types/email';
 import { emailService } from '../services/email.service';
 import { ToastContext } from './ToastContext';
 import { AuthContext } from './AuthContext';
-import { OFFLINE_EMAILS } from '../utils/constants';
 
 export interface EmailContextType {
   emails: Email[];
@@ -27,7 +26,7 @@ export const EmailProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (apiEmails) {
       setEmails(apiEmails);
     } else if (emails.length === 0) {
-      setEmails(OFFLINE_EMAILS);
+      setEmails([]);
     }
   };
 
@@ -51,16 +50,7 @@ export const EmailProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (toastCtx) toastCtx.addToast('success', 'Reply sent via Outlook!');
       await loadEmails();
     } else {
-      const mockEmail = {
-        id: 'e_' + Date.now(),
-        date: new Date().toISOString(),
-        read: true,
-        replied: true,
-        bounced: false,
-        ...payload
-      };
-      setEmails(prev => [mockEmail, ...prev]);
-      if (toastCtx) toastCtx.addToast('success', 'Reply sent (Offline Simulated)');
+      if (toastCtx) toastCtx.addToast('error', 'Failed to send email');
     }
   };
 

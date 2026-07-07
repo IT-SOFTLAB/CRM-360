@@ -8,7 +8,7 @@ export const pipelineService = {
       const res = await api.get("/referral-pipeline");
       return res.data;
     } catch (err) {
-      console.error("Failed to load pipeline", err);
+      console.warn("Failed to load pipeline", err);
       return [];
     }
   },
@@ -19,7 +19,7 @@ export const pipelineService = {
       const res = await api.post("/referral-pipeline", stage);
       return res.data;
     } catch (err) {
-      console.error("Failed to create stage", err);
+      console.warn("Failed to create stage", err);
       return null;
     }
   },
@@ -30,7 +30,7 @@ export const pipelineService = {
       const res = await api.delete(`/referral-pipeline/${id}`);
       return res.data;
     } catch (err) {
-      console.error("Failed to delete stage", err);
+      console.warn("Failed to delete stage", err);
       return null;
     }
   },
@@ -41,7 +41,7 @@ export const pipelineService = {
       const res = await api.put("/referral-pipeline/reorder", stages);
       return res.data;
     } catch (err) {
-      console.error("Failed to reorder stages", err);
+      console.warn("Failed to reorder stages", err);
       return null;
     }
   }

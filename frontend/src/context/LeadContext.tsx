@@ -4,7 +4,6 @@ import React, { createContext, useState, useContext } from 'react';
 import { Lead } from '../types/lead';
 import { leadService } from '../services/lead.service';
 import { ToastContext } from './ToastContext';
-import { OFFLINE_LEADS } from '../utils/constants';
 
 export interface LeadContextType {
   leads: Lead[];
@@ -29,7 +28,7 @@ export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (apiLeads) {
       setLeads(apiLeads);
     } else if (leads.length === 0) {
-      setLeads(OFFLINE_LEADS);
+      setLeads([]);
     }
   };
 
@@ -39,22 +38,20 @@ export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLeads(prev => [...prev, res]);
       if (toastCtx) toastCtx.addToast('success', `Lead for ${res.name} created!`);
     } else {
-      const mockLead = {
-        id: 'l_' + Date.now(),
-        createdDate: new Date().toISOString().split('T')[0],
-        status: 'New',
-        ...leadForm
-      };
-      setLeads(prev => [...prev, mockLead]);
-      if (toastCtx) toastCtx.addToast('success', `Lead for ${mockLead.name} created (Offline Mode)`);
+      if (toastCtx) toastCtx.addToast('error', 'Failed to create lead');
     }
     setShowLeadCreateModal(false);
     await loadLeads();
   };
 
   const handleUpdateLeadFromView = async (leadId: string, leadData: any) => {
-    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...leadData } : l));
-    await leadService.updateLead(leadId, leadData);
+    const res = await leadService.updateLead(leadId, leadData);
+    if (res) {
+      if (toastCtx) toastCtx.addToast('success', 'Lead updated');
+      await loadLeads();
+    } else {
+      if (toastCtx) toastCtx.addToast('error', 'Failed to update lead');
+    }
   };
 
   const handleDeleteLeadFromView = async (leadId: string) => {
@@ -63,8 +60,7 @@ export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (toastCtx) toastCtx.addToast('success', 'Lead deleted');
       await loadLeads();
     } else {
-      setLeads(prev => prev.filter(l => l.id !== leadId));
-      if (toastCtx) toastCtx.addToast('success', 'Lead deleted (Offline)');
+      if (toastCtx) toastCtx.addToast('error', 'Failed to delete lead');
     }
   };
 

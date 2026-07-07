@@ -9,7 +9,7 @@ export const referralService = {
       const res = await api.get("/referrals");
       return res.data;
     } catch (err) {
-      console.error("Failed to fetch referrals", err);
+      console.warn("Failed to fetch referrals", err);
       return [];
     }
   },
@@ -22,7 +22,7 @@ export const referralService = {
       const res = await api.get(`/referrals/${id}`);
       return res.data;
     } catch (err) {
-      console.error("Failed to fetch referral", err);
+      console.warn("Failed to fetch referral", err);
       return null;
     }
   },
@@ -35,7 +35,7 @@ export const referralService = {
       const res = await api.post("/referrals", data);
       return res.data;
     } catch (err) {
-      console.error("Failed to create referral", err);
+      console.warn("Failed to create referral", err);
       return null;
     }
   },
@@ -48,7 +48,7 @@ export const referralService = {
       const res = await api.put(`/referrals/${id}`, data);
       return res.data;
     } catch (err) {
-      console.error("Failed to update referral", err);
+      console.warn("Failed to update referral", err);
       return null;
     }
   },
@@ -61,7 +61,7 @@ export const referralService = {
       const res = await api.delete(`/referrals/${id}`);
       return res.data;
     } catch (err) {
-      console.error("Failed to delete referral", err);
+      console.warn("Failed to delete referral", err);
       return null;
     }
   },
@@ -75,7 +75,7 @@ export const referralService = {
       const res = await api.put(`/referrals/${id}/approve`);
       return res.data;
     } catch (err) {
-      console.error("Failed to approve reward", err);
+      console.warn("Failed to approve reward", err);
       return null;
     }
   },
@@ -95,7 +95,7 @@ export const referralService = {
 
       return res.data;
     } catch (err) {
-      console.error("Failed to move referral", err);
+      console.warn("Failed to move referral", err);
       return null;
     }
   },
@@ -108,7 +108,7 @@ export const referralService = {
       const res = await api.get("/referrals/dashboard");
       return res.data;
     } catch (err) {
-      console.error("Failed to fetch dashboard", err);
+      console.warn("Failed to fetch dashboard", err);
       return null;
     }
   },

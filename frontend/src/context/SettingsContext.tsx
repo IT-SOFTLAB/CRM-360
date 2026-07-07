@@ -4,7 +4,7 @@ import React, { createContext, useState, useContext } from 'react';
 import { settingsService } from '../services/settings.service';
 import { ToastContext } from './ToastContext';
 import { AuthContext } from './AuthContext';
-import { DEFAULT_COMPANY_BRANDING, OFFLINE_CATEGORIES, SERVICE_TYPES } from '../utils/constants';
+import { DEFAULT_COMPANY_BRANDING, SERVICE_TYPES } from '../utils/constants';
 
 export interface SettingsContextType {
   categories: string[];
@@ -42,24 +42,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const apiLogs = await settingsService.getAuditLogs();
 
     if (apiCategories) setCategories(apiCategories);
-    else if (categories.length === 0) setCategories(OFFLINE_CATEGORIES);
+    else if (categories.length === 0) setCategories([]);
 
     if (apiUsers) setSettingsUsers(apiUsers);
     if (apiBranding) setCompanyBranding(apiBranding);
     if (apiLogs) setAuditLogs(apiLogs);
-    else if (auditLogs.length === 0) {
-      setAuditLogs([
-        {
-          id: 'log_offline_init',
-          timestamp: new Date().toISOString(),
-          user: 'System',
-          role: 'System',
-          action: 'INIT_OFFLINE',
-          module: 'Database',
-          details: 'Express offline. Seeded local mock state.'
-        }
-      ]);
-    }
+    else if (auditLogs.length === 0) setAuditLogs([]);
   };
 
   const handleAddCategory = async (catName: string) => {

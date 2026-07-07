@@ -108,6 +108,13 @@ export default function ReferralCard({
             )}
           </div>
 
+          {/* Creator salesperson */}
+          {referral.createdBy && (
+            <div className="text-[10px] bg-bg-main border border-border-crm/45 text-txt-secondary px-2.5 py-1.5 rounded-lg mb-3 flex items-center gap-1 font-semibold select-none">
+              <span className="text-slate-400 font-bold uppercase tracking-wider text-[8px]">By:</span> {referral.createdBy}
+            </div>
+          )}
+
           {/* Stage Dropdown */}
 
           <div

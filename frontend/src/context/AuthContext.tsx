@@ -4,7 +4,7 @@ import React, { createContext, useState, useEffect, useContext } from 'react';
 import { User, AuthForm } from '../types/user';
 import { authService } from '../services/auth.service';
 import { ToastContext } from './ToastContext';
-import { DEFAULT_AUTH_FORM, OFFLINE_USERS } from '../utils/constants';
+import { DEFAULT_AUTH_FORM } from '../utils/constants';
 
 export interface AuthContextType {
   mounted: boolean;
@@ -69,25 +69,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (onSuccess) onSuccess();
         }
       } catch (err: any) {
-        // Offline / Development fallback
-        const match = OFFLINE_USERS.find(u => u.email === authForm.email);
-        if (match && authForm.password === 'password') {
-          const matchedUser: User = {
-            id: match.id,
-            name: match.name,
-            email: match.email,
-            role: match.role,
-            company: match.company
-          };
-          setUser(matchedUser);
-          localStorage.setItem('crm_user', JSON.stringify(matchedUser));
-          toastCtx.addToast('success', `Logged in offline as ${matchedUser.name} (${matchedUser.role})`);
-          if (onSuccess) onSuccess();
-        } else {
-          const errMsg = err?.response?.data?.message || 'Invalid email or password';
-          toastCtx.addToast('error', errMsg);
-          throw err;
-        }
+        const errMsg = err?.response?.data?.message || 'Invalid email or password';
+        toastCtx.addToast('error', errMsg);
+        throw err;
       }
     } else if (authMode === 'register') {
       // Normal register is disabled in production CRM but we support fallback register for development
@@ -134,6 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleLogout = async () => {
     setUser(null);
     localStorage.removeItem('crm_user');
+    setAuthForm(DEFAULT_AUTH_FORM);
     try {
       await authService.logout();
     } catch (err) {

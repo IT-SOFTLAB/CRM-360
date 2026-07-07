@@ -4,7 +4,6 @@ import React, { createContext, useState, useContext } from 'react';
 import { Quotation } from '../types/quotation';
 import { quotationService } from '../services/quotation.service';
 import { ToastContext } from './ToastContext';
-import { OFFLINE_QUOTATIONS } from '../utils/constants';
 
 export interface QuotationContextType {
   quotations: Quotation[];
@@ -29,15 +28,11 @@ export const QuotationProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (apiQuotes) {
       setQuotations(apiQuotes);
     } else if (quotations.length === 0) {
-      setQuotations(OFFLINE_QUOTATIONS);
+      setQuotations([]);
     }
   };
 
   const handleQuotationCreate = async (quoteForm: any) => {
-    const subtotal = quoteForm.items.reduce((sum: number, item: any) => sum + (Number(item.qty) * Number(item.price)), 0);
-    const taxAmount = Math.round(subtotal * (Number(quoteForm.taxRate) / 100));
-    const grandTotal = subtotal + taxAmount - Number(quoteForm.discount);
-
     const payload = {
       customerName: quoteForm.customerName,
       company: quoteForm.company,
@@ -52,19 +47,7 @@ export const QuotationProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setQuotations(prev => [...prev, res]);
       if (toastCtx) toastCtx.addToast('success', 'Quotation draft created');
     } else {
-      const mockQuote = {
-        id: 'q_' + Date.now(),
-        quoteNumber: `QT-2026-0${quotations.length + 1}`,
-        date: new Date().toISOString().split('T')[0],
-        status: 'Draft',
-        subtotal,
-        taxAmount,
-        grandTotal,
-        clientName: quoteForm.customerName || quoteForm.clientName || '',
-        ...payload
-      };
-      setQuotations(prev => [...prev, mockQuote]);
-      if (toastCtx) toastCtx.addToast('success', 'Quotation draft created (Offline)');
+      if (toastCtx) toastCtx.addToast('error', 'Failed to create quotation');
     }
     setShowQuoteModal(false);
   };
@@ -75,8 +58,7 @@ export const QuotationProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       await loadQuotations();
       if (toastCtx) toastCtx.addToast("success", "Quotation Updated Successfully");
     } else {
-      setQuotations(prev => prev.map(q => q.id === id ? { ...q, ...data } : q));
-      if (toastCtx) toastCtx.addToast("success", "Quotation Updated (Offline)");
+      if (toastCtx) toastCtx.addToast("error", "Failed to update quotation");
     }
   };
 
@@ -86,8 +68,7 @@ export const QuotationProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       if (toastCtx) toastCtx.addToast('success', `Quotation status updated to ${status}`);
       await loadQuotations();
     } else {
-      setQuotations(prev => prev.map(q => q.id === quoteId ? { ...q, status } : q));
-      if (toastCtx) toastCtx.addToast('success', `Quotation status updated (Offline)`);
+      if (toastCtx) toastCtx.addToast('error', `Failed to update quotation status`);
     }
   };
 

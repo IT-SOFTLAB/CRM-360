@@ -23,8 +23,13 @@ const quotationRoutes = require("./src/routes/quotationRoutes");
 const salesTeamRoutes = require("./src/routes/salesTeamRoutes.js");
 const taskRoutes = require("./src/routes/taskRoutes.js");
 const userRoutes = require("./src/routes/userRoutes.js");
+const referralRoutes = require("./src/routes/referral.routes.js");
+const pipelineRoutes = require("./src/routes/pipeline.routes.js");
 
-app.use(cors());
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  credentials: true
+}));
 app.use(bodyParser.json());
 app.use(cookieParser());
 

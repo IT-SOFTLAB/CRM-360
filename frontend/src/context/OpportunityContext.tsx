@@ -8,7 +8,6 @@ import { ToastContext } from './ToastContext';
 import { AuthContext } from './AuthContext';
 import { ReferralContext } from './ReferralContext';
 import { LeadContext } from './LeadContext';
-import { OFFLINE_OPPORTUNITIES, OFFLINE_PIPELINES, OFFLINE_REFERRAL_PIPELINES } from '../utils/constants';
 
 export interface OpportunityContextType {
   opportunities: Opportunity[];
@@ -46,14 +45,14 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const apiRefPipelines = await opportunityService.getReferralPipelines();
 
     if (apiPipelines) setPipelines(apiPipelines);
-    else if (pipelines.length === 0) setPipelines(OFFLINE_PIPELINES);
+    else if (pipelines.length === 0) setPipelines([]);
 
     if (apiRefPipelines) setReferralPipelines(apiRefPipelines);
-    else if (referralPipelines.length === 0) setReferralPipelines(OFFLINE_REFERRAL_PIPELINES);
+    else if (referralPipelines.length === 0) setReferralPipelines([]);
 
     if (apiOpps) {
       const formatted = apiOpps.map((opp: any) => {
-        const stageObj = (apiPipelines || pipelines || OFFLINE_PIPELINES)?.find(
+        const stageObj = (apiPipelines || pipelines)?.find(
           (p: any) => p.id === opp.stageId || p.name === opp.stage
         );
         return {
@@ -64,7 +63,7 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
       });
       setOpportunities(formatted);
     } else if (opportunities.length === 0) {
-      setOpportunities(OFFLINE_OPPORTUNITIES);
+      setOpportunities([]);
     }
   };
 

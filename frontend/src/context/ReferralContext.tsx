@@ -66,11 +66,8 @@ setReferrals(data ?? []);
 await loadDashboard();
 
   } catch (err) {
-
-    console.error(err);
-
+    console.warn(err);
     toastCtx?.addToast("error", "Unable to load referrals");
-
   }
 };
 
@@ -89,11 +86,8 @@ const loadDashboard = async () => {
         }
 
     }
-
     catch(err){
-
-        console.error(err);
-
+        console.warn(err);
     }
 
 };
@@ -115,14 +109,11 @@ const handleReferralCreate = async (form: any) => {
 
     
   } catch (err) {
-
-    console.error(err);
-
+    console.warn(err);
     toastCtx?.addToast(
       "error",
       "Unable to create referral."
     );
-
   }
 
 };
@@ -140,14 +131,11 @@ const handleReferralCreate = async (form: any) => {
     );
 
   } catch (err) {
-
-    console.error(err);
-
+    console.warn(err);
     toastCtx?.addToast(
       "error",
       "Unable to approve reward."
     );
-
   }
 
 };
@@ -165,14 +153,11 @@ const handleDeleteReferral = async (id: string) => {
     );
 
   } catch (err) {
-
-    console.error(err);
-
+    console.warn(err);
     toastCtx?.addToast(
       "error",
       "Unable to delete referral."
     );
-
   }
 
 };
@@ -191,14 +176,11 @@ const handleMoveReferral = async (
 
 await loadReferrals();
   } catch (err) {
-
-    console.error(err);
-
+    console.warn(err);
     toastCtx?.addToast(
       "error",
       "Unable to move referral"
     );
-
   }
 
 };
