@@ -105,20 +105,17 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (stageId === 'p_6' && referralCtx) {
         const already = referralCtx.referrals.some(r => r.referrerName === opp.customerName);
         if (!already) {
-          const newRef = {
-            id: 'ref_' + Date.now(),
-            referrerName: opp.customerName,
-            referrerCompany: opp.company,
-            referredLeadName: 'Pending referral',
-            referredCompany: 'Pending Company Corp',
-            dealValue: 0,
-            stage: 'rp_1',
-            dateSubmitted: new Date().toISOString().split('T')[0],
-            rewardType: 'Credits',
-            rewardValue: '₹1,000 Credits',
-            rewardApproved: false
-          };
-          referralCtx.setReferrals(prev => [...prev, newRef]);
+         await referralCtx.handleReferralCreate({
+  referrerId: opp.id,
+  referrerName: opp.customerName,
+  referrerCompany: opp.company,
+  referredLeadName: "Pending Referral",
+  referredCompany: "Pending Company",
+  referredEmail: "",
+  referredPhone: "",
+  rewardType: "Credits",
+  rewardValue: 1000,
+});
           if (toastCtx) toastCtx.addToast('success', `${opp.customerName} enrolled in Referral Program!`);
         }
       }
