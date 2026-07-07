@@ -31,13 +31,19 @@ export const DEFAULT_AUTH_FORM = {
 };
 
 export const DEFAULT_REFERRAL_FORM = {
-  referrerName: '',
-  referrerCompany: '',
-  referredLeadName: '',
-  referredCompany: '',
-  dealValue: '10000',
-  rewardType: 'Credits',
-  rewardValue: '₹1,000 Credits'
+  referrerId: "",
+  referrerName: "",
+  referrerCompany: "",
+
+  referredLeadName: "",
+  referredCompany: "",
+  referredEmail: "",
+  referredPhone: "",
+
+  rewardType: "Cash",
+  rewardValue: "",
+
+  currentStageId: "",
 };
 
 export const DEFAULT_COMPANY_BRANDING = {

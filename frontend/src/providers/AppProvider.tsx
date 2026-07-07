@@ -13,6 +13,7 @@ import { ActivityProvider } from '../context/ActivityContext';
 import { QuotationProvider } from '../context/QuotationContext';
 import { EmailProvider } from '../context/EmailContext';
 import { TaskProvider } from '../context/TaskContext';
+import {PipelineProvider} from '../context/PipelineContext';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
@@ -20,6 +21,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       <ThemeProvider>
         <AuthProvider>
           <SettingsProvider>
+            <PipelineProvider>
             <ReferralProvider>
               <LeadProvider>
                 <OpportunityProvider>
@@ -37,6 +39,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 </OpportunityProvider>
               </LeadProvider>
             </ReferralProvider>
+            </PipelineProvider>
           </SettingsProvider>
         </AuthProvider>
       </ThemeProvider>

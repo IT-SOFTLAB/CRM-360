@@ -62,11 +62,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (authMode === 'login') {
       const res = await authService.login({ email: authForm.email, password: authForm.password });
       if (res && res.user) {
-        setUser(res.user);
-        localStorage.setItem('crm_user', JSON.stringify(res.user));
-        toastCtx.addToast('success', `Welcome back, ${res.user.name}!`);
-        if (onSuccess) onSuccess();
-      } else {
+
+  setUser(res.user);
+
+  localStorage.setItem(
+    "crm_user",
+    JSON.stringify(res.user)
+  );
+
+  // Save JWT tokens
+  localStorage.setItem(
+    "jwtToken",
+    res.accessToken
+  );
+
+  localStorage.setItem(
+    "refreshToken",
+    res.refreshToken
+  );
+
+  toastCtx.addToast(
+    "success",
+    `Welcome back, ${res.user.name}!`
+  );
+
+  if (onSuccess) onSuccess();
+
+} else {
         // Offline / Development fallback
         const match = OFFLINE_USERS.find(u => u.email === authForm.email);
         if (match) {
@@ -102,6 +124,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (res && res.user) {
         setUser(res.user);
         localStorage.setItem('crm_user', JSON.stringify(res.user));
+        localStorage.setItem("jwtToken", res.accessToken);
+localStorage.setItem("refreshToken", res.refreshToken);
         toastCtx.addToast('success', `Account created successfully! Welcome, ${res.user.name}`);
         if (onSuccess) onSuccess();
       } else {
@@ -130,7 +154,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleLogout = async () => {
     await authService.logout();
     setUser(null);
-    localStorage.removeItem('crm_user');
+   localStorage.removeItem("crm_user");
+localStorage.removeItem("jwtToken");
+localStorage.removeItem("refreshToken");
     if (toastCtx) {
       toastCtx.addToast('info', 'Logged out successfully');
     }

@@ -23,7 +23,8 @@ const quotationRoutes = require("./src/routes/quotationRoutes");
 const salesTeamRoutes = require("./src/routes/salesTeamRoutes.js");
 const taskRoutes = require("./src/routes/taskRoutes.js");
 const userRoutes = require("./src/routes/userRoutes.js");
-
+const referralRoutes = require("./src/routes/referral.routes.js");
+const pipelineRoutes = require("./src/routes/pipeline.routes.js");
 app.use(cors());
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -37,9 +38,10 @@ app.use("/auth", authRoutes);
 app.use("/api/salesteam", salesTeamRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/referrals", referralRoutes);
 app.use("/api/emails",emailRoutes);
 app.use("/api/quotations", quotationRoutes);
-
+app.use("/api/referral-pipeline", pipelineRoutes);
 function readDB() {
   if (!fs.existsSync(DB_FILE)) {
     const initialData = seedDatabase();
@@ -102,13 +104,13 @@ function seedDatabase() {
       { id: 'p_6', name: 'Won', order: 6 },
       { id: 'p_7', name: 'Lost', order: 7 }
     ],
-    referralPipelines: [
-      { id: 'rp_1', name: 'Referral Submitted', order: 1 },
-      { id: 'rp_2', name: 'Qualified', order: 2 },
-      { id: 'rp_3', name: 'Proposal', order: 3 },
-      { id: 'rp_4', name: 'Won', order: 4 },
-      { id: 'rp_5', name: 'Reward Approved', order: 5 }
-    ],
+    // referralPipelines: [
+    //   { id: 'rp_1', name: 'Referral Submitted', order: 1 },
+    //   { id: 'rp_2', name: 'Qualified', order: 2 },
+    //   { id: 'rp_3', name: 'Proposal', order: 3 },
+    //   { id: 'rp_4', name: 'Won', order: 4 },
+    //   { id: 'rp_5', name: 'Reward Approved', order: 5 }
+    // ],
     leads: [
       { id: 'l_1', name: 'Dr. Elizabeth Blackwell', company: 'Blackwell Clinic Group', email: 'eblackwell@blackwellclinic.com', phone: '+1 (555) 0211', source: 'Website', serviceType: 'Service Based', category: 'Healthcare', status: 'New', assignedUser: 'Kyle Reese', createdDate: subDays(12), notes: 'Interested in full suite software upgrades for 4 hospitals.', campaign: 'Tech Expo 2026', team: 'Sales Team Alpha', city: 'Detroit', country: 'United States' },
       { id: 'l_2', name: 'Henry Ford II', company: 'Ford Manufacturing Labs', email: 'hford@fordmfg.com', phone: '+1 (555) 0222', source: 'Referral', serviceType: 'Product Based', category: 'Manufacturing', status: 'Contacted', assignedUser: 'Sarah Connor', createdDate: subDays(8), notes: 'Referred by Michael Scott. Interested in assembly line automation IoT.', campaign: 'None', team: 'Sales Team Beta', city: 'Detroit', country: 'United States' },
@@ -247,43 +249,43 @@ function seedDatabase() {
         grandTotal: 260000
       }
     ],
-    referrals: [
-      {
-        id: 'ref_1',
-        referrerName: 'Clark Kent', // Must be from Won opportunity (o_3)
-        referrerCompany: 'Daily Planet Publishing',
-        referredLeadName: 'Lois Lane',
-        referredCompany: 'Metropolis Gazette',
-        dealValue: 75000,
-        stage: 'rp_3', // Proposal
-        dateSubmitted: subDays(15),
-        rewardType: 'Credits',
-        rewardValue: '₹1,500 CRM Credits',
-        rewardApproved: false
-      },
-      {
-        id: 'ref_2',
-        referrerName: 'Clark Kent',
-        referrerCompany: 'Daily Planet Publishing',
-        referredLeadName: 'Perry White',
-        referredCompany: 'Tribune Press Group',
-        dealValue: 120000,
-        stage: 'rp_5', // Reward Approved
-        dateSubmitted: subDays(40),
-        rewardType: 'Discount on Future Projects',
-        rewardValue: '15% Renewal Discount',
-        rewardApproved: true
-      }
-    ],
-    companyBranding: {
-      name: 'Global CRM Cloud',
-      primaryColor: '#2563EB',
-      secondaryColor: '#0F172A',
-      logoText: 'CRM 360'
-    },
-    auditLogs: [
-      { id: 'log_init', timestamp: new Date().toISOString(), user: 'System', role: 'System', action: 'INITIALIZE', module: 'Database', details: 'CRM Mock DB initialized.' }
-    ]
+    // referrals: [
+    //   {
+    //     id: 'ref_1',
+    //     referrerName: 'Clark Kent', // Must be from Won opportunity (o_3)
+    //     referrerCompany: 'Daily Planet Publishing',
+    //     referredLeadName: 'Lois Lane',
+    //     referredCompany: 'Metropolis Gazette',
+    //     dealValue: 75000,
+    //     stage: 'rp_3', // Proposal
+    //     dateSubmitted: subDays(15),
+    //     rewardType: 'Credits',
+    //     rewardValue: '₹1,500 CRM Credits',
+    //     rewardApproved: false
+    //   },
+    //   {
+    //     id: 'ref_2',
+    //     referrerName: 'Clark Kent',
+    //     referrerCompany: 'Daily Planet Publishing',
+    //     referredLeadName: 'Perry White',
+    //     referredCompany: 'Tribune Press Group',
+    //     dealValue: 120000,
+    //     stage: 'rp_5', // Reward Approved
+    //     dateSubmitted: subDays(40),
+    //     rewardType: 'Discount on Future Projects',
+    //     rewardValue: '15% Renewal Discount',
+    //     rewardApproved: true
+    //   }
+    // ],
+    // companyBranding: {
+    //   name: 'Global CRM Cloud',
+    //   primaryColor: '#2563EB',
+    //   secondaryColor: '#0F172A',
+    //   logoText: 'CRM 360'
+    // },
+    // auditLogs: [
+    //   { id: 'log_init', timestamp: new Date().toISOString(), user: 'System', role: 'System', action: 'INITIALIZE', module: 'Database', details: 'CRM Mock DB initialized.' }
+    // ]
   };
 
   return db;
@@ -799,39 +801,6 @@ app.put('/api/quotations/:id', (req, res) => {
   res.status(404).json({ message: 'Quotation not found' });
 });
 
-// Referrals CRUD
-app.get('/api/referrals', (req, res) => {
-  const db = readDB();
-  res.json(db.referrals);
-});
-
-app.post('/api/referrals', (req, res) => {
-  const db = readDB();
-  const referral = {
-    id: 'ref_' + Date.now(),
-    dateSubmitted: new Date().toISOString().split('T')[0],
-    stage: 'rp_1',
-    rewardApproved: false,
-    ...req.body
-  };
-  db.referrals.push(referral);
-  logActivity(db, null, 'SUBMIT_REFERRAL', 'Referral Program', `New referral submitted by ${referral.referrerName} for ${referral.referredCompany}`);
-  writeDB(db);
-  res.status(201).json(referral);
-});
-
-app.put('/api/referrals/:id', (req, res) => {
-  const { id } = req.params;
-  const db = readDB();
-  const index = db.referrals.findIndex(r => r.id === id);
-  if (index !== -1) {
-    db.referrals[index] = { ...db.referrals[index], ...req.body };
-    logActivity(db, null, 'UPDATE_REFERRAL', 'Referral Program', `Updated referral ID: ${id}`);
-    writeDB(db);
-    return res.json(db.referrals[index]);
-  }
-  res.status(404).json({ message: 'Referral not found' });
-});
 
 // Company Branding & Settings
 app.get('/api/settings/branding', (req, res) => {

@@ -17,6 +17,13 @@ export default function ReferralsPage() {
       setReferralForm={crm.setReferralForm}
       onSubmitReferral={crm.handleReferralCreate}
       onApproveReward={crm.handleApproveReward}
+    onDeleteReferral={crm.handleDeleteReferral}
+    onMoveReferral={crm.handleMoveReferral}
+
+onAddReferralStage={crm.handleAddReferralStage}
+
+onDeleteReferralStage={crm.handleDeleteReferralStage}
+dashboard={crm.dashboard}
     />
   );
 }

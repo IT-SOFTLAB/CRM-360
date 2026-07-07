@@ -1,89 +1,239 @@
 "use client";
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useEffect
+} from "react";
 
-import React, { createContext, useState, useContext } from 'react';
 import { Referral } from '../types/referral';
 import { referralService } from '../services/referral.service';
 import { ToastContext } from './ToastContext';
-import { AuthContext } from './AuthContext';
-import { DEFAULT_REFERRAL_FORM, OFFLINE_REFERRALS } from '../utils/constants';
-
+//import { AuthContext } from './AuthContext';
+import { DEFAULT_REFERRAL_FORM } from '../utils/constants';
 export interface ReferralContextType {
   referrals: Referral[];
   setReferrals: React.Dispatch<React.SetStateAction<Referral[]>>;
+
   referralForm: any;
   setReferralForm: React.Dispatch<React.SetStateAction<any>>;
+
   showReferralModal: boolean;
   setShowReferralModal: React.Dispatch<React.SetStateAction<boolean>>;
-  loadReferrals: () => Promise<void>;
-  handleReferralCreate: (referralForm: any) => Promise<void>;
-  handleApproveReward: (refId: string) => Promise<void>;
-}
 
+
+  dashboard:any;
+
+loadDashboard:()=>Promise<void>;
+  loadReferrals: () => Promise<void>;
+
+  handleReferralCreate: (form: any) => Promise<void>;
+
+  handleApproveReward: (id: string) => Promise<void>;
+
+  handleDeleteReferral: (id: string) => Promise<void>;
+
+  handleMoveReferral: (id: string, stageId: string) => Promise<void>;
+}
 export const ReferralContext = createContext<ReferralContextType | undefined>(undefined);
 
 export const ReferralProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [referralForm, setReferralForm] = useState<any>(DEFAULT_REFERRAL_FORM);
   const [showReferralModal, setShowReferralModal] = useState(false);
+const [dashboard, setDashboard] = useState({
 
+  totalReferrals: 0,
+
+  qualifiedLeads: 0,
+
+  conversions: 0,
+
+  totalRewardsPaid: 0,
+
+  pendingRewardAmount: 0
+
+});
   const toastCtx = useContext(ToastContext);
-  const authCtx = useContext(AuthContext);
+  //const authCtx = useContext(AuthContext);
 
   const loadReferrals = async () => {
-    const apiReferrals = await referralService.getReferrals();
-    if (apiReferrals) {
-      setReferrals(apiReferrals);
-    } else if (referrals.length === 0) {
-      setReferrals(OFFLINE_REFERRALS);
-    }
-  };
+  try {
 
-  const handleReferralCreate = async (form: any) => {
-    const res = await referralService.createReferral(form);
-    if (res) {
-      setReferrals(prev => [...prev, res]);
-      if (toastCtx) toastCtx.addToast('success', 'Referral submitted!');
-    } else {
-      const mockRef = {
-        id: 'ref_' + Date.now(),
-        dateSubmitted: new Date().toISOString().split('T')[0],
-        stage: 'rp_1',
-        rewardApproved: false,
-        ...form
-      };
-      setReferrals(prev => [...prev, mockRef]);
-      if (toastCtx) toastCtx.addToast('success', 'Referral submitted (Offline)');
+
+const data = await referralService.getReferrals();
+setReferrals(data ?? []);
+await loadDashboard();
+
+  } catch (err) {
+
+    console.error(err);
+
+    toastCtx?.addToast("error", "Unable to load referrals");
+
+  }
+};
+
+
+const loadDashboard = async () => {
+
+    try{
+
+        const data =
+            await referralService.getDashboard();
+
+        if(data){
+
+            setDashboard(data);
+
+        }
+
     }
+
+    catch(err){
+
+        console.error(err);
+
+    }
+
+};
+const handleReferralCreate = async (form: any) => {
+
+  try {
+
+    await referralService.createReferral(form);
+
+  await loadReferrals();
+    toastCtx?.addToast(
+      "success",
+      "Referral submitted successfully."
+    );
+
     setShowReferralModal(false);
-  };
 
-  const handleApproveReward = async (refId: string) => {
-    const user = authCtx?.user;
-    if (user?.role !== 'Super Admin') {
-      if (toastCtx) toastCtx.addToast('error', 'Only Super Admin can approve referral rewards');
-      return;
-    }
-    const res = await referralService.updateReferral(refId, { rewardApproved: true, stage: 'rp_5' });
-    if (res) {
-      if (toastCtx) toastCtx.addToast('success', 'Referral Reward Approved!');
-      await loadReferrals();
-    } else {
-      setReferrals(prev => prev.map(r => r.id === refId ? { ...r, rewardApproved: true, stage: 'rp_5' } : r));
-      if (toastCtx) toastCtx.addToast('success', 'Referral Reward Approved (Offline)');
-    }
-  };
+    setReferralForm(DEFAULT_REFERRAL_FORM);
+
+    
+  } catch (err) {
+
+    console.error(err);
+
+    toastCtx?.addToast(
+      "error",
+      "Unable to create referral."
+    );
+
+  }
+
+};
+
+ const handleApproveReward = async (id: string) => {
+
+  try {
+
+    await referralService.approveReward(id);
+
+   await loadReferrals();
+    toastCtx?.addToast(
+      "success",
+      "Reward Approved"
+    );
+
+  } catch (err) {
+
+    console.error(err);
+
+    toastCtx?.addToast(
+      "error",
+      "Unable to approve reward."
+    );
+
+  }
+
+};
+
+const handleDeleteReferral = async (id: string) => {
+
+  try {
+
+    await referralService.deleteReferral(id);
+
+ await loadReferrals();
+    toastCtx?.addToast(
+      "success",
+      "Referral deleted"
+    );
+
+  } catch (err) {
+
+    console.error(err);
+
+    toastCtx?.addToast(
+      "error",
+      "Unable to delete referral."
+    );
+
+  }
+
+};
+
+const handleMoveReferral = async (
+
+  id: string,
+
+  stageId: string
+
+) => {
+
+  try {
+
+    await referralService.moveReferral(id, stageId);
+
+await loadReferrals();
+  } catch (err) {
+
+    console.error(err);
+
+    toastCtx?.addToast(
+      "error",
+      "Unable to move referral"
+    );
+
+  }
+
+};
+
+useEffect(() => {
+  loadReferrals();
+}, []);
+
 
   return (
     <ReferralContext.Provider value={{
-      referrals,
-      setReferrals,
-      referralForm,
-      setReferralForm,
-      showReferralModal,
-      setShowReferralModal,
-      loadReferrals,
-      handleReferralCreate,
-      handleApproveReward
+     referrals,
+
+  setReferrals,
+
+  referralForm,
+
+  setReferralForm,
+
+  showReferralModal,
+
+  setShowReferralModal,
+
+  loadReferrals,
+
+  handleReferralCreate,
+
+  handleApproveReward,
+
+  handleDeleteReferral,
+
+  handleMoveReferral,
+  dashboard,
+
+loadDashboard
     }}>
       {children}
     </ReferralContext.Provider>

@@ -17,6 +17,7 @@ import { applyFilters as applyFiltersUtil } from '../utils/filters';
 import { DEFAULT_ACTIVE_FILTERS } from '../utils/constants';
 import { leadService } from '../services/lead.service';
 import api from '../services/api';
+import { usePipeline } from "../hooks/usePipeline";
 
 export interface CRMContextType {
   mounted: boolean;
@@ -36,7 +37,17 @@ export interface CRMContextType {
   pipelines: any[];
   setPipelines: React.Dispatch<React.SetStateAction<any[]>>;
   referralPipelines: any[];
-  setReferralPipelines: React.Dispatch<React.SetStateAction<any[]>>;
+setReferralPipelines: React.Dispatch<React.SetStateAction<any[]>>;
+dashboard:any;
+
+loadDashboard:()=>Promise<void>;
+loadReferralPipelines: () => Promise<void>;
+
+handleAddReferralStage: (data: any) => Promise<void>;
+
+handleDeleteReferralStage: (id: string) => Promise<void>;
+
+handleReferralStageReorder: (stages: any[]) => Promise<void>;
   activities: any[];
   setActivities: React.Dispatch<React.SetStateAction<any[]>>;
   emails: any[];
@@ -82,6 +93,7 @@ export interface CRMContextType {
   setShowReferralModal: React.Dispatch<React.SetStateAction<boolean>>;
   settingsUsers: any[];
   setSettingsUsers: React.Dispatch<React.SetStateAction<any[]>>;
+  
 
   // Actions
   apiCall: (path: string, method?: string, body?: any) => Promise<any>;
@@ -105,6 +117,7 @@ export interface CRMContextType {
   updateQuoteStatus: (quoteId: string, status: string) => Promise<void>;
   handleReferralCreate: (referralForm: any) => Promise<void>;
   handleApproveReward: (refId: string) => Promise<void>;
+  handleDeleteReferral: (id: string) => Promise<void>;
   handleAddCategory: (catName: string) => Promise<void>;
   handleDeleteCategory: (catName: string) => Promise<void>;
   handleBrandingSave: (e: React.FormEvent) => Promise<void>;
@@ -114,6 +127,10 @@ export interface CRMContextType {
   clearAllFilters: () => void;
   toggleTheme: () => void;
   handleQuotationUpdate: (id: string, data: any) => Promise<void>;
+  handleMoveReferral: (
+    id: string,
+    stageId: string
+) => Promise<void>;
 }
 
 const CRMContext = createContext<CRMContextType | undefined>(undefined);
@@ -128,6 +145,7 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
   const activityCtx = useActivities();
   const quoteCtx = useQuotations();
   const referralCtx = useReferrals();
+  const pipelineCtx = usePipeline();
   const emailCtx = useEmails();
   const settingsCtx = useSettings();
 
@@ -145,15 +163,18 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
 
   const loadCRMData = async () => {
     await Promise.all([
-      leadsCtx.loadLeads(),
-      oppCtx.loadOpportunities(),
-      customerCtx.loadCustomers(),
-      activityCtx.loadActivities(),
-      quoteCtx.loadQuotations(),
-      referralCtx.loadReferrals(),
-      emailCtx.loadEmails(),
-      settingsCtx.loadSettings()
-    ]);
+    leadsCtx.loadLeads(),
+    oppCtx.loadOpportunities(),
+    customerCtx.loadCustomers(),
+    activityCtx.loadActivities(),
+    quoteCtx.loadQuotations(),
+    referralCtx.loadReferrals(),
+
+    pipelineCtx.loadStages(),
+
+    emailCtx.loadEmails(),
+    settingsCtx.loadSettings()
+]);
   };
 
   // Compatibility API call
@@ -241,8 +262,17 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       setOpportunities: oppCtx.setOpportunities,
       pipelines: oppCtx.pipelines,
       setPipelines: oppCtx.setPipelines,
-      referralPipelines: oppCtx.referralPipelines,
-      setReferralPipelines: oppCtx.setReferralPipelines,
+      referralPipelines: pipelineCtx.stages,
+      loadReferralPipelines: pipelineCtx.loadStages,
+dashboard: referralCtx.dashboard,
+loadDashboard: referralCtx.loadDashboard,
+handleAddReferralStage: pipelineCtx.handleCreateStage,
+
+handleDeleteReferralStage: pipelineCtx.handleDeleteStage,
+
+handleReferralStageReorder:
+pipelineCtx.handleReorderStages,
+   setReferralPipelines: pipelineCtx.setStages,
       activities: activityCtx.activities,
       setActivities: activityCtx.setActivities,
       emails: emailCtx.emails,
@@ -291,6 +321,7 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       apiCall,
       loadCRMData,
       addToast: toastCtx.addToast,
+  
       handleAuthSubmit: (e) => auth.handleAuthSubmit(e, loadCRMData),
       handleLogout: auth.handleLogout,
       selectQuickAccount: auth.selectQuickAccount,
@@ -310,6 +341,8 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       updateQuoteStatus: quoteCtx.updateQuoteStatus,
       handleReferralCreate: referralCtx.handleReferralCreate,
       handleApproveReward: referralCtx.handleApproveReward,
+      handleDeleteReferral: referralCtx.handleDeleteReferral,
+      handleMoveReferral: referralCtx.handleMoveReferral,
       handleAddCategory: settingsCtx.handleAddCategory,
       handleDeleteCategory: settingsCtx.handleDeleteCategory,
       handleBrandingSave: settingsCtx.handleBrandingSave,
@@ -317,7 +350,9 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       applyFilters,
       handleSaveCustomFilter,
       clearAllFilters,
+      
       toggleTheme: themeCtx.toggleTheme
+      
     }}>
       {children}
     </CRMContext.Provider>
