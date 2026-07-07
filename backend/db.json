@@ -29,6 +29,7 @@
     }
   ],
   "categories": [
+    "Healthcare",
     "Manufacturing",
     "Education",
     "Real Estate",
@@ -44,29 +45,39 @@
   ],
   "pipelines": [
     {
+      "id": "p_1",
+      "name": "New",
+      "order": 1
+    },
+    {
+      "id": "p_2",
+      "name": "Possible Response Received",
+      "order": 2
+    },
+    {
       "id": "p_3",
       "name": "Discussion",
-      "order": 5
+      "order": 3
     },
     {
       "id": "p_4",
       "name": "Proposal Preparation",
-      "order": 7
+      "order": 4
+    },
+    {
+      "id": "p_5",
+      "name": "Negotiation",
+      "order": 5
     },
     {
       "id": "p_6",
       "name": "Won",
-      "order": 8
+      "order": 6
     },
     {
-      "id": "p_1782467758119",
-      "name": "new",
-      "order": 2
-    },
-    {
-      "id": "p_1783332195651",
+      "id": "p_7",
       "name": "Lost",
-      "order": 9
+      "order": 7
     }
   ],
   "referralPipelines": [
@@ -98,419 +109,196 @@
   ],
   "leads": [
     {
-      "id": "cmqukw3kh0000o0uon8irary6",
-      "name": "yashika",
-      "contactName": "yashika",
-      "company": "orgYashika",
-      "source": "CSV/Excel Import",
-      "email": "yashika@gmail.com",
-      "phone": "9765423101 abc",
-      "category": "Healthcare",
+      "id": "l_1",
+      "name": "Dr. Elizabeth Blackwell",
+      "company": "Blackwell Clinic Group",
+      "email": "eblackwell@blackwellclinic.com",
+      "phone": "+1 (555) 0211",
+      "source": "Website",
       "serviceType": "Service Based",
-      "assignedUser": null,
-      "status": "new",
-      "createdAt": "1970-01-01T00:00:46.199Z",
-      "createdDate": "1970-01-01"
-    },
-    {
-      "id": "cmqul2gde0000o0zouhahcvyd",
-      "name": "yashika",
-      "contactName": "yashika",
-      "company": "orgYashika",
-      "source": "CSV/Excel Import",
-      "email": "yashika@gmail.com",
-      "phone": "9765423101 abc",
       "category": "Healthcare",
-      "serviceType": "product-basedIT",
-      "assignedUser": null,
       "status": "New",
-      "createdAt": "1970-01-01T00:00:46.199Z",
-      "createdDate": "1970-01-01"
+      "assignedUser": "Kyle Reese",
+      "createdDate": "2026-06-25",
+      "notes": "Interested in full suite software upgrades for 4 hospitals.",
+      "campaign": "Tech Expo 2026",
+      "team": "Sales Team Alpha",
+      "city": "Detroit",
+      "country": "United States"
     },
     {
-      "id": "cmqul3q1x0000o0poqeopnrtx",
-      "name": "yashika",
-      "contactName": "yashika",
-      "company": "orgYashika",
-      "source": "CSV/Excel Import",
-      "email": "yashika@gmail.com",
-      "phone": "9765423101",
-      "category": "IT",
-      "serviceType": "product-based",
-      "assignedUser": "abc",
-      "status": "New",
-      "createdAt": "1970-01-01T00:00:46.199Z",
-      "createdDate": "1970-01-01"
+      "id": "l_2",
+      "name": "Henry Ford II",
+      "company": "Ford Manufacturing Labs",
+      "email": "hford@fordmfg.com",
+      "phone": "+1 (555) 0222",
+      "source": "Referral",
+      "serviceType": "Product Based",
+      "category": "Manufacturing",
+      "status": "Contacted",
+      "assignedUser": "Sarah Connor",
+      "createdDate": "2026-06-29",
+      "notes": "Referred by Michael Scott. Interested in assembly line automation IoT.",
+      "campaign": "None",
+      "team": "Sales Team Beta",
+      "city": "Detroit",
+      "country": "United States"
     },
     {
-      "id": "cmqul64f60000o08kx2aamg8x",
-      "name": "yashika",
-      "contactName": "yashika",
-      "company": "orgYashika",
-      "source": "CSV/Excel Import",
-      "email": "yashika@gmail.com",
-      "phone": "9765423101",
-      "category": "IT",
-      "serviceType": "product-based",
-      "assignedUser": "abc",
-      "status": "New",
-      "createdAt": "1970-01-01T00:00:46.199Z",
-      "createdDate": "1970-01-01"
+      "id": "l_3",
+      "name": "Marie Curie",
+      "company": "Sorbonne Research Academy",
+      "email": "mcurie@sorbonne.edu",
+      "phone": "+1 (555) 0233",
+      "source": "Campaign",
+      "serviceType": "Service Based",
+      "category": "Education",
+      "status": "Qualified",
+      "assignedUser": "John Doe (SA)",
+      "createdDate": "2026-07-02",
+      "notes": "Responded to summer scholarship cloud system campaign. Budget is tight but project is prestigious.",
+      "campaign": "Summer Cloud Promo",
+      "team": "Enterprise Core",
+      "city": "Paris",
+      "country": "France"
     },
     {
-      "id": "cmqul9wch0000o0bkmuf3gx3k",
-      "name": "yashika",
-      "contactName": "yashika",
-      "company": "orgYashika",
-      "source": "CSV/Excel Import",
-      "email": "yashika@gmail.com",
-      "phone": "9765423101",
-      "category": "IT",
-      "serviceType": "product-based",
-      "assignedUser": "abc",
+      "id": "l_4",
+      "name": "Donald Trump Jr.",
+      "company": "Trump Heights Real Estate",
+      "email": "djunior@trumpheights.com",
+      "phone": "+1 (555) 0244",
+      "source": "Manual Entry",
+      "serviceType": "Service Based",
+      "category": "Real Estate",
       "status": "New",
-      "createdAt": "2026-06-26T12:34:38.000Z",
-      "createdDate": "2026-06-26"
+      "assignedUser": "Kyle Reese",
+      "createdDate": "2026-07-05",
+      "notes": "Met at property tech expo. Requesting custom CRM portal integrations.",
+      "campaign": "Tech Expo 2026",
+      "team": "Sales Team Alpha",
+      "city": "New York",
+      "country": "United States"
     },
     {
-      "id": "cmqulcsd70000o0d45tmuj1vn",
-      "name": "yashika",
-      "contactName": "yashika",
-      "company": "orgYashika",
-      "source": "CSV/Excel Import",
-      "email": "yashika@gmail.com",
-      "phone": "9765423101",
-      "category": "IT",
-      "serviceType": "product-based",
-      "assignedUser": "abc",
+      "id": "l_5",
+      "name": "Jeff Bezos",
+      "company": "Amazon Fulfillment Logistics",
+      "email": "bezos@fulfillment.org",
+      "phone": "+1 (555) 0255",
+      "source": "Email",
+      "serviceType": "Product Based",
+      "category": "Logistics",
       "status": "New",
-      "createdAt": "2026-06-26T12:34:38.000Z",
-      "createdDate": "2026-06-26"
-    },
-    {
-      "id": "cmqurhht30000o0vcszkki33b",
-      "name": "yashika",
-      "contactName": "yashika",
-      "company": "orgYashika",
-      "source": "CSV/Excel Import",
-      "email": "yashika@gmail.com",
-      "phone": "9765423101",
-      "category": "IT",
-      "serviceType": "product-based",
-      "assignedUser": "abc",
-      "status": "New",
-      "createdAt": "2026-06-26T00:00:00.000Z",
-      "createdDate": "2026-06-26"
-    },
-    {
-      "id": "cmqusso0m0000o0o8676xkhfp",
-      "name": "yashika",
-      "contactName": "yashika",
-      "company": "orgYashika",
-      "source": "CSV/Excel Import",
-      "email": "yashika@gmail.com",
-      "phone": "9765423101",
-      "category": "IT",
-      "serviceType": "product-based",
-      "assignedUser": "abc",
-      "status": "New",
-      "createdAt": "2026-06-26T00:00:00.000Z",
-      "createdDate": "2026-06-26"
-    },
-    {
-      "id": "l_1782709971109_su97i",
-      "name": "Trupti",
-      "contactName": "Trupti",
-      "company": "orgTrupti",
-      "source": "CSV/Excel Import",
-      "email": "trupti@gmail.com",
-      "phone": "9765423101",
-      "category": "IT",
-      "serviceType": "product-based",
-      "assignedUser": "aabcd",
-      "status": "New",
-      "createdAt": "2026-06-29T00:00:00.000Z",
-      "createdDate": "2026-06-29"
-    },
-    {
-      "id": "l_1782710058723_0n0ou",
-      "name": "Trupti",
-      "contactName": "Trupti",
-      "company": "orgTrupti",
-      "source": "CSV/Excel Import",
-      "email": "trupti@gmail.com",
-      "phone": "9765423101",
-      "category": "IT",
-      "serviceType": "product-based",
-      "assignedUser": "aabcd",
-      "status": "New",
-      "createdAt": "2026-06-29T00:00:00.000Z",
-      "createdDate": "2026-06-29"
-    },
-    {
-      "id": "cmqyrlznq0000o034ygolbei9",
-      "name": "Trupti",
-      "contactName": "Trupti",
-      "company": "orgTrupti",
-      "source": "CSV/Excel Import",
-      "email": "trupti@gmail.com",
-      "phone": "9765423101",
-      "category": "IT",
-      "serviceType": "product-based",
-      "assignedUser": "aabcd",
-      "status": "New",
-      "createdDate": "2026-06-29"
-    },
-    {
-      "id": "cmqyvoyah0000o06g26xcuk5h",
-      "name": "PQRS",
-      "contactName": "PQRS",
-      "company": "orgPqrs",
-      "source": "CSV/Excel Import",
-      "email": "pqrs@gmail.com",
-      "phone": "9765423100",
-      "category": "IT",
-      "serviceType": "service-based",
-      "assignedUser": "xyz",
-      "status": "New",
-      "createdAt": "2026-06-29",
-      "createdDate": "2026-06-29"
-    },
-    {
-      "id": "cmr30ojhl0001o0dkm4b0ijgc",
-      "name": "Yash",
-      "contactName": "Yash",
-      "company": "yash technologies",
-      "source": "CSV/Excel Import",
-      "email": "yashtech@gmail.com",
-      "phone": "9764423100",
-      "category": "IT",
-      "serviceType": "service-based",
-      "assignedUser": "sara",
-      "status": "New",
-      "createdAt": "2026-07-02",
-      "createdDate": "2026-07-02"
-    },
-    {
-      "id": "cmr4j57kn0001o0pof2t9tbec",
-      "name": "Yashii",
-      "contactName": "Yashii",
-      "company": "yash technologies",
-      "source": "CSV/Excel Import",
-      "email": "yashiii@gmail.com",
-      "phone": "9764423110",
-      "category": "healthcare",
-      "serviceType": "service-based",
-      "assignedUser": "aaaa",
-      "status": "New",
-      "createdAt": "2026-07-03",
-      "createdDate": "2026-07-03"
-    },
-    {
-      "id": "cmr912gu70007o0zctoy2qkv4",
-      "name": "Yashii",
-      "contactName": "Yashii",
-      "company": "yash technologies",
-      "source": "CSV/Excel Import",
-      "email": "yashiii@gmail.com",
-      "phone": "9764423110",
-      "category": "healthcare",
-      "serviceType": "service-based",
-      "assignedUser": "aaaa",
-      "status": "New",
-      "createdAt": "2026-07-06",
-      "createdDate": "2026-07-06"
-    },
-    {
-      "id": "cmr914ead0002o0ogevsxe311",
-      "name": "Yashii",
-      "contactName": "Yashii",
-      "company": "yash technologies",
-      "source": "CSV/Excel Import",
-      "email": "yashiii@gmail.com",
-      "phone": "9764423110",
-      "category": "healthcare",
-      "serviceType": "service-based",
-      "assignedUser": "aaaa",
-      "status": "New",
-      "createdAt": "2026-07-06",
-      "createdDate": "2026-07-06"
+      "assignedUser": "Sarah Connor",
+      "createdDate": "2026-07-06",
+      "notes": "Inquired about warehouse tracking optimization dashboard licensing.",
+      "campaign": "Summer Cloud Promo",
+      "team": "Sales Team Beta",
+      "city": "Seattle",
+      "country": "United States"
     }
   ],
   "opportunities": [
     {
-      "id": "o_1782467621825",
-      "customerName": "yashika",
-      "company": "orgYashika",
-      "dealValue": 15000,
-      "expectedClosing": "2026-07-26",
+      "id": "o_1",
+      "customerName": "Bruce Wayne",
+      "company": "Wayne Enterprises",
+      "dealValue": 250000,
+      "expectedClosing": "2026-08-06",
       "assignedSalesperson": "Sarah Connor",
-      "priority": "Medium",
+      "priority": "High",
       "tags": [
-        "CSV/Excel Import",
-        "IT"
-      ],
-      "stageId": "p_1782467758119",
-      "createdDate": "2026-06-26"
-    },
-    {
-      "id": "o_1782467832055",
-      "customerName": "yashika",
-      "company": "orgYashika",
-      "dealValue": 15000,
-      "expectedClosing": "2026-07-26",
-      "assignedSalesperson": "Sarah Connor",
-      "priority": "Medium",
-      "tags": [
-        "CSV/Excel Import",
-        "IT"
-      ],
-      "stageId": "p_1",
-      "createdDate": "2026-06-26"
-    },
-    {
-      "id": "o_1782469193251",
-      "leadId": "cmqugzch00000o0j03zwp7z9d",
-      "customerName": "Parthika ",
-      "company": "Microsoft",
-      "dealValue": 15000,
-      "expectedClosing": "2026-07-26",
-      "assignedSalesperson": "John Doe (SA)",
-      "priority": "Medium",
-      "tags": [
-        "Website",
-        "IT Services"
-      ],
-      "stageId": "p_1",
-      "createdDate": "2026-06-26"
-    },
-    {
-      "id": "o_1782469212910",
-      "leadId": "cmqugzch00000o0j03zwp7z9d",
-      "customerName": "Parthika ",
-      "company": "Microsoft",
-      "dealValue": 15000,
-      "expectedClosing": "2026-07-26",
-      "assignedSalesperson": "John Doe (SA)",
-      "priority": "Medium",
-      "tags": [
-        "Website",
-        "IT Services"
-      ],
-      "stageId": "p_1",
-      "createdDate": "2026-06-26"
-    },
-    {
-      "id": "o_1782469414047",
-      "leadId": "cmqugzch00000o0j03zwp7z9d",
-      "customerName": "Parthika ",
-      "company": "Microsoft",
-      "dealValue": 15000,
-      "expectedClosing": "2026-07-26",
-      "assignedSalesperson": "John Doe (SA)",
-      "priority": "Medium",
-      "tags": [
-        "Website",
-        "IT Services"
-      ],
-      "stageId": "p_1",
-      "createdDate": "2026-06-26"
-    },
-    {
-      "id": "o_1782469458315",
-      "leadId": "cmqulaitu0000o0fgmgzd2omh",
-      "customerName": "yashika",
-      "company": "orgYashika",
-      "dealValue": 15000,
-      "expectedClosing": "2026-07-26",
-      "assignedSalesperson": "Sarah Connor",
-      "priority": "Medium",
-      "tags": [
-        "CSV/Excel Import",
-        "IT"
-      ],
-      "stageId": "p_1",
-      "createdDate": "2026-06-26"
-    },
-    {
-      "id": "o_1782469774723",
-      "leadId": "cmquh1iaz0002o0j0wufl1lrc",
-      "customerName": "xyz",
-      "company": "xyzorg",
-      "dealValue": 15000,
-      "expectedClosing": "2026-07-26",
-      "assignedSalesperson": "John Doe (SA)",
-      "priority": "Medium",
-      "tags": [
-        "Website",
-        "Education"
-      ],
-      "stageId": "p_4",
-      "createdDate": "2026-06-26"
-    },
-    {
-      "id": "o_1782470615306",
-      "leadId": "cmqusy9rl0000o018k2dv8tug",
-      "customerName": "Parthika",
-      "company": "Microsoft",
-      "dealValue": 150000,
-      "expectedClosing": "2026-07-26",
-      "assignedSalesperson": "John Doe (SA)",
-      "priority": "Medium",
-      "tags": [
-        "Website",
-        "IT Services"
+        "SaaS",
+        "Security"
       ],
       "stageId": "p_3",
-      "createdDate": "2026-06-26"
+      "createdDate": "2026-06-07",
+      "campaign": "None",
+      "team": "Enterprise Core",
+      "city": "Gotham",
+      "country": "United States",
+      "source": "Manual Entry"
     },
     {
-      "id": "o_1782712506954",
-      "leadId": "cmqyrlznq0000o034ygolbei9",
-      "customerName": "Trupti",
-      "company": "orgTrupti",
-      "dealValue": 15000,
-      "expectedClosing": "2026-07-29",
-      "assignedSalesperson": "aabcd",
-      "priority": "Medium",
+      "id": "o_2",
+      "customerName": "Tony Stark",
+      "company": "Stark Industries",
+      "dealValue": 850000,
+      "expectedClosing": "2026-07-22",
+      "assignedSalesperson": "John Doe (SA)",
+      "priority": "High",
       "tags": [
-        "CSV/Excel Import",
-        "IT"
+        "Enterprise",
+        "AI"
       ],
-      "stageId": "p_1782467758119",
-      "createdDate": "2026-06-29"
+      "stageId": "p_5",
+      "createdDate": "2026-05-23",
+      "campaign": "Tech Expo 2026",
+      "team": "Enterprise Core",
+      "city": "Metropolis",
+      "country": "United States",
+      "source": "Website"
     },
     {
-      "id": "o_1782717175689",
-      "leadId": "cmqyvoyah0000o06g26xcuk5h",
-      "customerName": "PQRS",
-      "company": "orgPqrs",
-      "dealValue": 25000,
-      "expectedClosing": "2026-07-29",
-      "assignedSalesperson": "xyz",
-      "priority": "Medium",
+      "id": "o_3",
+      "customerName": "Clark Kent",
+      "company": "Daily Planet Publishing",
+      "dealValue": 45000,
+      "expectedClosing": "2026-08-21",
+      "assignedSalesperson": "Kyle Reese",
+      "priority": "Low",
       "tags": [
-        "CSV/Excel Import",
-        "IT"
+        "CMS",
+        "Cloud"
       ],
-      "stageId": "p_1782467758119",
-      "createdDate": "2026-06-29"
+      "stageId": "p_6",
+      "createdDate": "2026-05-08",
+      "closedDate": "2026-05-23",
+      "campaign": "Summer Cloud Promo",
+      "team": "Sales Team Alpha",
+      "city": "Metropolis",
+      "country": "United States",
+      "source": "Website"
     },
     {
-      "id": "o_1782729360907",
-      "leadId": "cmqyrlznq0000o034ygolbei9",
-      "customerName": "Trupti",
-      "company": "orgTrupti",
-      "dealValue": 15000,
-      "expectedClosing": "2026-07-29",
-      "assignedSalesperson": "aabcd",
+      "id": "o_4",
+      "customerName": "Peter Parker",
+      "company": "Daily Bugle Photos",
+      "dealValue": 12000,
+      "expectedClosing": "2026-07-12",
+      "assignedSalesperson": "Kyle Reese",
       "priority": "Medium",
       "tags": [
-        "CSV/Excel Import",
-        "IT"
+        "Upgrade"
       ],
-      "stageId": "p_1782467758119",
-      "createdDate": "2026-06-29"
+      "stageId": "p_2",
+      "createdDate": "2026-06-27",
+      "campaign": "None",
+      "team": "Sales Team Alpha",
+      "city": "New York",
+      "country": "United States",
+      "source": "Referral"
+    },
+    {
+      "id": "o_5",
+      "customerName": "Lex Luthor",
+      "company": "LexCorp Biotech",
+      "dealValue": 500000,
+      "expectedClosing": "2026-06-17",
+      "assignedSalesperson": "Sarah Connor",
+      "priority": "High",
+      "tags": [
+        "Custom Development"
+      ],
+      "stageId": "p_7",
+      "createdDate": "2026-06-12",
+      "closedDate": "2026-07-06",
+      "campaign": "AI Promo",
+      "team": "Sales Team Beta",
+      "city": "Metropolis",
+      "country": "United States",
+      "source": "Email"
     }
   ],
   "activities": [
@@ -518,33 +306,33 @@
       "id": "a_1",
       "title": "Stark Industries Proposal Review",
       "type": "Meeting",
-      "date": "2026-06-26",
+      "date": "2026-07-08",
       "time": "14:00",
       "duration": "60",
       "description": "Review the proposal prep with Stark team online.",
       "salesperson": "John Doe (SA)",
       "leadId": "",
       "opportunityId": "o_2",
-      "done": true
+      "done": false
     },
     {
       "id": "a_2",
       "title": "Wayne Enterprises Discovery Call",
       "type": "Call",
-      "date": "2026-06-23",
+      "date": "2026-07-05",
       "time": "10:30",
       "duration": "30",
       "description": "Introduce Odoo style platform integrations.",
       "salesperson": "Sarah Connor",
       "leadId": "",
       "opportunityId": "o_1",
-      "done": false
+      "done": true
     },
     {
       "id": "a_3",
       "title": "Send Quote to Blackwell Clinic",
       "type": "Email",
-      "date": "2026-06-25",
+      "date": "2026-07-07",
       "time": "09:00",
       "duration": "15",
       "description": "Email quotation for hospital upgrade.",
@@ -557,7 +345,7 @@
       "id": "a_4",
       "title": "Follow-up with Donald Trump Jr.",
       "type": "Follow-up",
-      "date": "2026-06-28",
+      "date": "2026-07-10",
       "time": "16:00",
       "duration": "20",
       "description": "Answer question about CRM integrations.",
@@ -570,7 +358,7 @@
       "id": "a_5",
       "title": "Contract Negotiation Meeting",
       "type": "Meeting",
-      "date": "2026-06-29",
+      "date": "2026-07-11",
       "time": "11:00",
       "duration": "90",
       "description": "Final pricing discussions with Stark Corp.",
@@ -588,7 +376,7 @@
       "subject": "Re: Stark CRM Proposal Draft",
       "body": "The proposal looks great John, but we need to ensure the Recharts analytics widget can ingest 50k events per second. Let's discuss in our meeting tomorrow.",
       "folder": "Inbox",
-      "date": "2026-06-24T14:32:00Z",
+      "date": "2026-07-06T14:32:00Z",
       "read": false,
       "replied": false,
       "bounced": false,
@@ -597,12 +385,12 @@
         {
           "sender": "superadmin@crm.com",
           "body": "Hi Tony, attached is the draft proposal. Please let me know your thoughts.",
-          "date": "2026-06-23T09:15:00Z"
+          "date": "2026-07-05T09:15:00Z"
         },
         {
           "sender": "tony@starkindustries.com",
           "body": "Thanks, checking it now.",
-          "date": "2026-06-23T11:45:00Z"
+          "date": "2026-07-05T11:45:00Z"
         }
       ]
     },
@@ -613,7 +401,7 @@
       "subject": "Wayne Enterprises - Contract Updates",
       "body": "Sarah, I have requested my legal team to review the liability terms. Please expect updates by Thursday.",
       "folder": "Inbox",
-      "date": "2026-06-23T10:11:00Z",
+      "date": "2026-07-05T10:11:00Z",
       "read": true,
       "replied": true,
       "bounced": false,
@@ -627,7 +415,7 @@
       "subject": "Welcome to CRM - Auto Enrollment Code",
       "body": "Hi Clark, congratulations on closing the deal! You are now auto-enrolled in our CRM Referral Program. Your referral code is REF-CLARK-99.",
       "folder": "Sent",
-      "date": "2026-06-21T16:00:00Z",
+      "date": "2026-07-03T16:00:00Z",
       "read": true,
       "replied": false,
       "bounced": false,
@@ -641,7 +429,7 @@
       "subject": "Delivery Status Notification (Failure)",
       "body": "The mail system failed to deliver the message to bad-email@unknown-hospital.org because the domain does not exist.",
       "folder": "Trash",
-      "date": "2026-06-22T18:22:00Z",
+      "date": "2026-07-04T18:22:00Z",
       "read": true,
       "replied": false,
       "bounced": true,
@@ -656,7 +444,7 @@
       "clientName": "Clark Kent",
       "company": "Daily Planet Publishing",
       "opportunityId": "o_3",
-      "date": "2026-04-26",
+      "date": "2026-05-08",
       "status": "Approved",
       "taxRate": 8,
       "discount": 2500,
@@ -684,7 +472,7 @@
       "clientName": "Tony Stark",
       "company": "Stark Industries",
       "opportunityId": "o_2",
-      "date": "2026-06-20",
+      "date": "2026-07-02",
       "status": "Sent",
       "taxRate": 10,
       "discount": 50000,
@@ -712,7 +500,7 @@
       "clientName": "Bruce Wayne",
       "company": "Wayne Enterprises",
       "opportunityId": "o_1",
-      "date": "2026-06-24",
+      "date": "2026-07-06",
       "status": "Draft",
       "taxRate": 8,
       "discount": 10000,
@@ -733,771 +521,6 @@
       "subtotal": 250000,
       "taxAmount": 20000,
       "grandTotal": 260000
-    }
-  ],
-  "referrals": [
-    {
-      "id": "ref_1",
-      "referrerName": "Clark Kent",
-      "referrerCompany": "Daily Planet Publishing",
-      "referredLeadName": "Lois Lane",
-      "referredCompany": "Metropolis Gazette",
-      "dealValue": 75000,
-      "stage": "rp_5",
-      "dateSubmitted": "2026-06-10",
-      "rewardType": "Credits",
-      "rewardValue": "$1,500 CRM Credits",
-      "rewardApproved": true
-    },
-    {
-      "id": "ref_2",
-      "referrerName": "Clark Kent",
-      "referrerCompany": "Daily Planet Publishing",
-      "referredLeadName": "Perry White",
-      "referredCompany": "Tribune Press Group",
-      "dealValue": 120000,
-      "stage": "rp_5",
-      "dateSubmitted": "2026-05-16",
-      "rewardType": "Discount on Future Projects",
-      "rewardValue": "15% Renewal Discount",
-      "rewardApproved": true
-    }
-  ],
-  "companyBranding": {
-    "name": "Global CRM Cloud",
-    "primaryColor": "#2563EB",
-    "secondaryColor": "#0F172A",
-    "logoText": "CRM 360"
-  },
-  "auditLogs": [
-    {
-      "id": "log_1783407492346_ul5e3",
-      "timestamp": "2026-07-07T06:58:12.346Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783407480961_fk65j",
-      "timestamp": "2026-07-07T06:58:00.961Z",
-      "user": "System",
-      "role": "System",
-      "action": "DELETE_PIPELINE",
-      "module": "Settings",
-      "details": "Deleted pipeline stage: qualified"
-    },
-    {
-      "id": "log_1783407465276_qbqvu",
-      "timestamp": "2026-07-07T06:57:45.276Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783407453556_98c5y",
-      "timestamp": "2026-07-07T06:57:33.556Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783407444130_1jdv4",
-      "timestamp": "2026-07-07T06:57:24.130Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783407415348_t43o9",
-      "timestamp": "2026-07-07T06:56:55.348Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783407382021_v35u8",
-      "timestamp": "2026-07-07T06:56:22.021Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783407358370_1yxlb",
-      "timestamp": "2026-07-07T06:55:58.371Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783407356080_3xlj3",
-      "timestamp": "2026-07-07T06:55:56.080Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783407354257_wa77r",
-      "timestamp": "2026-07-07T06:55:54.257Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783407352360_vt5fn",
-      "timestamp": "2026-07-07T06:55:52.360Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783407346934_7a0i5",
-      "timestamp": "2026-07-07T06:55:46.934Z",
-      "user": "System",
-      "role": "System",
-      "action": "CREATE_PIPELINE",
-      "module": "Settings",
-      "details": "Created sales pipeline stage: qualified"
-    },
-    {
-      "id": "log_1783332876517_wp01d",
-      "timestamp": "2026-07-06T10:14:36.517Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783332873286_gomtz",
-      "timestamp": "2026-07-06T10:14:33.287Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783332195652_zccd8",
-      "timestamp": "2026-07-06T10:03:15.652Z",
-      "user": "System",
-      "role": "System",
-      "action": "CREATE_PIPELINE",
-      "module": "Settings",
-      "details": "Created sales pipeline stage: Lost"
-    },
-    {
-      "id": "log_1783332031038_lrdnj",
-      "timestamp": "2026-07-06T10:00:31.039Z",
-      "user": "System",
-      "role": "System",
-      "action": "DELETE_PIPELINE",
-      "module": "Settings",
-      "details": "Deleted pipeline stage: Lost"
-    },
-    {
-      "id": "log_1783331992003_ab1vt",
-      "timestamp": "2026-07-06T09:59:52.003Z",
-      "user": "System",
-      "role": "System",
-      "action": "DELETE_PIPELINE",
-      "module": "Settings",
-      "details": "Deleted pipeline stage: Negotiation"
-    },
-    {
-      "id": "log_1783331988965_kh6bc",
-      "timestamp": "2026-07-06T09:59:48.965Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783331986968_ksrxq",
-      "timestamp": "2026-07-06T09:59:46.968Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783331984828_yc2l4",
-      "timestamp": "2026-07-06T09:59:44.828Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783331982070_88p7q",
-      "timestamp": "2026-07-06T09:59:42.070Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783331978095_4t5wj",
-      "timestamp": "2026-07-06T09:59:38.095Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783331974481_vhgsv",
-      "timestamp": "2026-07-06T09:59:34.481Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1783078368036_hadll",
-      "timestamp": "2026-07-03T11:32:48.038Z",
-      "user": "System",
-      "role": "System",
-      "action": "DELETE_CATEGORY",
-      "module": "Settings",
-      "details": "Deleted project category: Healthcare"
-    },
-    {
-      "id": "log_1782814190502_gf31x",
-      "timestamp": "2026-06-30T10:09:50.503Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1782712506955_cecqa",
-      "timestamp": "2026-06-29T05:55:06.956Z",
-      "user": "System",
-      "role": "System",
-      "action": "CONVERT_LEAD",
-      "module": "Leads",
-      "details": "Converted lead Trupti into Opportunity (Valued at ₹15000)"
-    },
-    {
-      "id": "log_1782710286762_165vu",
-      "timestamp": "2026-06-29T05:18:06.762Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Microsoft (Stage: p_3)"
-    },
-    {
-      "id": "log_1782710275396_c2c4s",
-      "timestamp": "2026-06-29T05:17:55.396Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Microsoft (Stage: p_1782467758119)"
-    },
-    {
-      "id": "log_1782710271273_73ow4",
-      "timestamp": "2026-06-29T05:17:51.273Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Microsoft (Stage: p_3)"
-    },
-    {
-      "id": "log_1782710214215_5h0nc",
-      "timestamp": "2026-06-29T05:16:54.215Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Microsoft (Stage: p_3)"
-    },
-    {
-      "id": "log_1782710210565_4x3l2",
-      "timestamp": "2026-06-29T05:16:50.565Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Microsoft (Stage: p_3)"
-    },
-    {
-      "id": "log_1782710205687_afmzj",
-      "timestamp": "2026-06-29T05:16:45.687Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Microsoft (Stage: p_1782467758119)"
-    },
-    {
-      "id": "log_1782710201351_n0r5c",
-      "timestamp": "2026-06-29T05:16:41.351Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Microsoft (Stage: p_3)"
-    },
-    {
-      "id": "log_1782709823085_dg6km",
-      "timestamp": "2026-06-29T05:10:23.085Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: xyzorg (Stage: p_4)"
-    },
-    {
-      "id": "log_1782709818318_co21u",
-      "timestamp": "2026-06-29T05:10:18.318Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: xyzorg (Stage: p_3)"
-    },
-    {
-      "id": "log_1782707478124_pc5b9",
-      "timestamp": "2026-06-29T04:31:18.124Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_ACTIVITY",
-      "module": "Activities",
-      "details": "Updated activity ID: a_1"
-    },
-    {
-      "id": "log_1782707387621_cpoyl",
-      "timestamp": "2026-06-29T04:29:47.621Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_ACTIVITY",
-      "module": "Activities",
-      "details": "Updated activity ID: a_2"
-    },
-    {
-      "id": "log_1782707385731_7dvpf",
-      "timestamp": "2026-06-29T04:29:45.731Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_ACTIVITY",
-      "module": "Activities",
-      "details": "Updated activity ID: a_2"
-    },
-    {
-      "id": "log_1782707372110_2k15g",
-      "timestamp": "2026-06-29T04:29:32.110Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_ACTIVITY",
-      "module": "Activities",
-      "details": "Updated activity ID: a_1"
-    },
-    {
-      "id": "log_1782707361069_f86so",
-      "timestamp": "2026-06-29T04:29:21.069Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_ACTIVITY",
-      "module": "Activities",
-      "details": "Updated activity ID: a_3"
-    },
-    {
-      "id": "log_1782707356913_ikaum",
-      "timestamp": "2026-06-29T04:29:16.913Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_ACTIVITY",
-      "module": "Activities",
-      "details": "Updated activity ID: a_3"
-    },
-    {
-      "id": "log_1782707354708_7hozf",
-      "timestamp": "2026-06-29T04:29:14.708Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_ACTIVITY",
-      "module": "Activities",
-      "details": "Updated activity ID: a_2"
-    },
-    {
-      "id": "log_1782707354679_6bfia",
-      "timestamp": "2026-06-29T04:29:14.681Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_ACTIVITY",
-      "module": "Activities",
-      "details": "Updated activity ID: a_1"
-    },
-    {
-      "id": "log_1782707212595_08xb0",
-      "timestamp": "2026-06-29T04:26:52.595Z",
-      "user": "System",
-      "role": "System",
-      "action": "DELETE_PIPELINE",
-      "module": "Settings",
-      "details": "Deleted pipeline stage: Possible Response Received"
-    },
-    {
-      "id": "log_1782584289313_vgxyt",
-      "timestamp": "2026-06-27T18:18:09.313Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: orgYashika (Stage: p_1782467758119)"
-    },
-    {
-      "id": "log_1782471525147_q4k0w",
-      "timestamp": "2026-06-26T10:58:45.147Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: orgYashika (Stage: p_2)"
-    },
-    {
-      "id": "log_1782471150253_exl7p",
-      "timestamp": "2026-06-26T10:52:30.253Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Daily Bugle Photos (Stage: p_2)"
-    },
-    {
-      "id": "log_1782470668052_kwwuw",
-      "timestamp": "2026-06-26T10:44:28.052Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Microsoft (Stage: p_2)"
-    },
-    {
-      "id": "log_1782470657488_a8txq",
-      "timestamp": "2026-06-26T10:44:17.488Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Microsoft (Stage: p_3)"
-    },
-    {
-      "id": "log_1782470655988_9clm1",
-      "timestamp": "2026-06-26T10:44:15.988Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Microsoft (Stage: p_3)"
-    },
-    {
-      "id": "log_1782470647901_zw4e7",
-      "timestamp": "2026-06-26T10:44:07.901Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Microsoft (Stage: p_2)"
-    },
-    {
-      "id": "log_1782470615306_qtnhi",
-      "timestamp": "2026-06-26T10:43:35.307Z",
-      "user": "System",
-      "role": "System",
-      "action": "CONVERT_LEAD",
-      "module": "Leads",
-      "details": "Converted lead Parthika into Opportunity (Valued at $150000)"
-    },
-    {
-      "id": "log_1782470120400_sumwn",
-      "timestamp": "2026-06-26T10:35:20.400Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: xyzorg (Stage: p_3)"
-    },
-    {
-      "id": "log_1782470094156_55f1d",
-      "timestamp": "2026-06-26T10:34:54.156Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: xyzorg (Stage: p_5)"
-    },
-    {
-      "id": "log_1782470089371_aa3u4",
-      "timestamp": "2026-06-26T10:34:49.371Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: xyzorg (Stage: p_4)"
-    },
-    {
-      "id": "log_1782469990395_1yr6d",
-      "timestamp": "2026-06-26T10:33:10.395Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: xyzorg (Stage: p_2)"
-    },
-    {
-      "id": "log_1782469774724_z7xbq",
-      "timestamp": "2026-06-26T10:29:34.724Z",
-      "user": "System",
-      "role": "System",
-      "action": "CONVERT_LEAD",
-      "module": "Leads",
-      "details": "Converted lead xyz into Opportunity (Valued at $15000)"
-    },
-    {
-      "id": "log_1782469477829_epn9u",
-      "timestamp": "2026-06-26T10:24:37.829Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Daily Bugle Photos (Stage: p_1782467758119)"
-    },
-    {
-      "id": "log_1782469472828_yl8m6",
-      "timestamp": "2026-06-26T10:24:32.828Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: orgYashika (Stage: p_1782467758119)"
-    },
-    {
-      "id": "log_1782469458316_80x8k",
-      "timestamp": "2026-06-26T10:24:18.316Z",
-      "user": "System",
-      "role": "System",
-      "action": "CONVERT_LEAD",
-      "module": "Leads",
-      "details": "Converted lead yashika into Opportunity (Valued at $15000)"
-    },
-    {
-      "id": "log_1782469414047_2gn4o",
-      "timestamp": "2026-06-26T10:23:34.047Z",
-      "user": "System",
-      "role": "System",
-      "action": "CONVERT_LEAD",
-      "module": "Leads",
-      "details": "Converted lead Parthika  into Opportunity (Valued at $15000)"
-    },
-    {
-      "id": "log_1782469212911_e1l8b",
-      "timestamp": "2026-06-26T10:20:12.911Z",
-      "user": "System",
-      "role": "System",
-      "action": "CONVERT_LEAD",
-      "module": "Leads",
-      "details": "Converted lead Parthika  into Opportunity (Valued at $15000)"
-    },
-    {
-      "id": "log_1782469193251_nof7l",
-      "timestamp": "2026-06-26T10:19:53.251Z",
-      "user": "System",
-      "role": "System",
-      "action": "CONVERT_LEAD",
-      "module": "Leads",
-      "details": "Converted lead Parthika  into Opportunity (Valued at $15000)"
-    },
-    {
-      "id": "log_1782467832055_lhmvj",
-      "timestamp": "2026-06-26T09:57:12.055Z",
-      "user": "System",
-      "role": "System",
-      "action": "CONVERT_LEAD",
-      "module": "Leads",
-      "details": "Converted lead yashika into Opportunity (Valued at $15000)"
-    },
-    {
-      "id": "log_1782467774155_62seg",
-      "timestamp": "2026-06-26T09:56:14.155Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1782467772469_5k65p",
-      "timestamp": "2026-06-26T09:56:12.469Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1782467770860_goi0x",
-      "timestamp": "2026-06-26T09:56:10.860Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1782467767159_30b9h",
-      "timestamp": "2026-06-26T09:56:07.159Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1782467765633_vi6r1",
-      "timestamp": "2026-06-26T09:56:05.633Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1782467763783_dnay2",
-      "timestamp": "2026-06-26T09:56:03.783Z",
-      "user": "System",
-      "role": "System",
-      "action": "REORDER_PIPELINE",
-      "module": "Settings",
-      "details": "Reordered pipeline stages"
-    },
-    {
-      "id": "log_1782467758120_3q0yc",
-      "timestamp": "2026-06-26T09:55:58.120Z",
-      "user": "System",
-      "role": "System",
-      "action": "CREATE_PIPELINE",
-      "module": "Settings",
-      "details": "Created sales pipeline stage: new"
-    },
-    {
-      "id": "log_1782467744229_b7sky",
-      "timestamp": "2026-06-26T09:55:44.229Z",
-      "user": "System",
-      "role": "System",
-      "action": "DELETE_PIPELINE",
-      "module": "Settings",
-      "details": "Deleted pipeline stage: New"
-    },
-    {
-      "id": "log_1782467634552_nz4as",
-      "timestamp": "2026-06-26T09:53:54.552Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: orgYashika (Stage: p_2)"
-    },
-    {
-      "id": "log_1782467631640_hxmel",
-      "timestamp": "2026-06-26T09:53:51.640Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: orgYashika (Stage: p_1)"
-    },
-    {
-      "id": "log_1782467630012_dljp3",
-      "timestamp": "2026-06-26T09:53:50.012Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: orgYashika (Stage: p_2)"
-    },
-    {
-      "id": "log_1782467621825_fj5kp",
-      "timestamp": "2026-06-26T09:53:41.825Z",
-      "user": "System",
-      "role": "System",
-      "action": "CONVERT_LEAD",
-      "module": "Leads",
-      "details": "Converted lead yashika into Opportunity (Valued at $15000)"
-    },
-    {
-      "id": "log_1782467455797_6dw1d",
-      "timestamp": "2026-06-26T09:50:55.798Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_ACTIVITY",
-      "module": "Activities",
-      "details": "Updated activity ID: a_1"
-    },
-    {
-      "id": "log_1782449947095_i2qzp",
-      "timestamp": "2026-06-26T04:59:07.095Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Wayne Enterprises (Stage: p_3)"
-    },
-    {
-      "id": "log_1782449935503_w9zzc",
-      "timestamp": "2026-06-26T04:58:55.503Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Daily Bugle Photos (Stage: p_2)"
-    },
-    {
-      "id": "log_1782449928050_dy3ud",
-      "timestamp": "2026-06-26T04:58:48.050Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_OPPORTUNITY",
-      "module": "Opportunities",
-      "details": "Updated opportunity: Daily Bugle Photos (Stage: p_1)"
-    },
-    {
-      "id": "log_init",
-      "timestamp": "2026-06-25T09:52:16.266Z",
-      "user": "System",
-      "role": "System",
-      "action": "INITIALIZE",
-      "module": "Database",
-      "details": "CRM Mock DB initialized."
     }
   ]
 }

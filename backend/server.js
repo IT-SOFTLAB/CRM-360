@@ -108,13 +108,13 @@ function seedDatabase() {
       { id: 'p_6', name: 'Won', order: 6 },
       { id: 'p_7', name: 'Lost', order: 7 }
     ],
-    // referralPipelines: [
-    //   { id: 'rp_1', name: 'Referral Submitted', order: 1 },
-    //   { id: 'rp_2', name: 'Qualified', order: 2 },
-    //   { id: 'rp_3', name: 'Proposal', order: 3 },
-    //   { id: 'rp_4', name: 'Won', order: 4 },
-    //   { id: 'rp_5', name: 'Reward Approved', order: 5 }
-    // ],
+    referralPipelines: [
+      { id: 'rp_1', name: 'Referral Submitted', order: 1 },
+      { id: 'rp_2', name: 'Qualified', order: 2 },
+      { id: 'rp_3', name: 'Proposal', order: 3 },
+      { id: 'rp_4', name: 'Won', order: 4 },
+      { id: 'rp_5', name: 'Reward Approved', order: 5 }
+    ],
     leads: [
       { id: 'l_1', name: 'Dr. Elizabeth Blackwell', company: 'Blackwell Clinic Group', email: 'eblackwell@blackwellclinic.com', phone: '+1 (555) 0211', source: 'Website', serviceType: 'Service Based', category: 'Healthcare', status: 'New', assignedUser: 'Kyle Reese', createdDate: subDays(12), notes: 'Interested in full suite software upgrades for 4 hospitals.', campaign: 'Tech Expo 2026', team: 'Sales Team Alpha', city: 'Detroit', country: 'United States' },
       { id: 'l_2', name: 'Henry Ford II', company: 'Ford Manufacturing Labs', email: 'hford@fordmfg.com', phone: '+1 (555) 0222', source: 'Referral', serviceType: 'Product Based', category: 'Manufacturing', status: 'Contacted', assignedUser: 'Sarah Connor', createdDate: subDays(8), notes: 'Referred by Michael Scott. Interested in assembly line automation IoT.', campaign: 'None', team: 'Sales Team Beta', city: 'Detroit', country: 'United States' },
