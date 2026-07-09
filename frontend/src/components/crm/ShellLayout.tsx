@@ -181,13 +181,13 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3, href: '/dashboard', roles: ['SUPER_ADMIN', 'ADMIN', 'USER'] },
     { id: 'leads', label: 'Leads', icon: Users, href: '/leads', roles: ['ADMIN', 'USER'] },
-    { id: 'opportunities', label: 'Opportunities', icon: ClipboardList, href: '/opportunities', roles: ['ADMIN', 'USER'] },
+    { id: 'opportunities', label: 'Pipeline', icon: ClipboardList, href: '/opportunities', roles: ['ADMIN', 'USER'] },
     { id: 'salesteam', label: 'Teams', icon: Users, href: '/salesteam', roles: ['SUPER_ADMIN', 'ADMIN'] },
     { id: 'activities', label: 'Activities', icon: CalendarIcon, href: '/activities', roles: ['ADMIN', 'USER'] },
     { id: 'emails', label: 'Emails', icon: Mail, href: '/emails', roles: ['ADMIN', 'USER'] },
     { id: 'quotations', label: 'Quotations', icon: FileText, href: '/quotations', roles: ['ADMIN', 'USER'] },
     { id: 'customers', label: 'Customers', icon: Building2, href: '/customers', roles: ['ADMIN', 'USER'] },
-    { id: 'referrals', label: 'Referrals', icon: TrendingUp, href: '/referrals', roles: ['ADMIN', 'USER'] },
+    { id: 'referrals', label: 'Retention', icon: TrendingUp, href: '/referrals', roles: ['ADMIN', 'USER'] },
     { id: 'settings', label: 'Settings', icon: SettingsIcon, href: '/settings', roles: ['SUPER_ADMIN', 'ADMIN'] },
   ];
 
@@ -380,7 +380,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                         >
                           <Icon className="w-3.5 h-3.5" />
                           <span>{tab.label}</span>
-                          <span className="text-[8px] opacity-70 ml-1">▼</span>
+                          {/* <span className="text-[8px] opacity-70 ml-1">▼</span> */}
                         </Link>
 
                         {showTeamsDropdown && navTeams.length > 0 && (
