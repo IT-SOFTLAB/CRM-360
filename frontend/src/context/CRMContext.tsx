@@ -282,7 +282,7 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
 
       pipelineCtx.loadStages(),
 
-    emailCtx.loadEmails(),
+    // emailCtx.loadEmails(),
     settingsCtx.loadSettings()
 ]);
   };
