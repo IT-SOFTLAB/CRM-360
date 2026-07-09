@@ -10,7 +10,7 @@ import { customerService } from "../../services/customer.service";
 import api from "../../services/api";
 
 const CustomerView = () => {
-    const { customers, user } = useCRM();
+    const { customers, user, setCustomers, addToast } = useCRM();
     const userRole = (user?.role || '').toUpperCase().replace(/[\s_]+/g, '_');
     const isManager = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
 
@@ -291,23 +291,23 @@ const CustomerView = () => {
                                             />
                                         </div>
                                         <div className="border-t border-border-crm pt-4">
-    <button
-        onClick={async () => {
-            try {
-                await customerService.updateCustomer(selectedCustomer.id, selectedCustomer);
-
-                alert("Customer Updated");
-                window.location.reload();
-            } catch (err) {
-                console.log(err);
-                alert("Update Failed");
-            }
-        }}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl"
-    >
-        Save Changes
-    </button>
-</div>
+                                            <button
+                                                onClick={async () => {
+                                                    try {
+                                                        await customerService.updateCustomer(selectedCustomer.id, selectedCustomer);
+                                                        setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? selectedCustomer : c));
+                                                        setShowCustomerDrawer(false);
+                                                        addToast('success', 'Customer updated successfully');
+                                                    } catch (err) {
+                                                        console.error(err);
+                                                        addToast('error', 'Failed to update customer');
+                                                    }
+                                                }}
+                                                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl cursor-pointer font-semibold transition"
+                                            >
+                                                Save Changes
+                                            </button>
+                                        </div>
                                         <div>
                                             <p className="text-slate-400 font-semibold uppercase text-[10px]">Opportunity ID</p>
                                             <p className="font-medium text-txt-primary mt-0.5">{selectedCustomer.opportunityId}</p>

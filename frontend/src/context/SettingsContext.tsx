@@ -10,8 +10,6 @@ export interface SettingsContextType {
   categories: string[];
   setCategories: React.Dispatch<React.SetStateAction<string[]>>;
   serviceTypes: string[];
-  auditLogs: any[];
-  setAuditLogs: React.Dispatch<React.SetStateAction<any[]>>;
   companyBranding: any;
   setCompanyBranding: React.Dispatch<React.SetStateAction<any>>;
   settingsUsers: any[];
@@ -28,7 +26,6 @@ export const SettingsContext = createContext<SettingsContextType | undefined>(un
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [categories, setCategories] = useState<string[]>([]);
   const [serviceTypes] = useState<string[]>(SERVICE_TYPES);
-  const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [companyBranding, setCompanyBranding] = useState<any>(DEFAULT_COMPANY_BRANDING);
   const [settingsUsers, setSettingsUsers] = useState<any[]>([]);
 
@@ -39,15 +36,12 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     const apiCategories = await settingsService.getCategories();
     const apiUsers = await settingsService.getUsers();
     const apiBranding = await settingsService.getBranding();
-    const apiLogs = await settingsService.getAuditLogs();
 
     if (apiCategories) setCategories(apiCategories);
     else if (categories.length === 0) setCategories([]);
 
     if (apiUsers) setSettingsUsers(apiUsers);
     if (apiBranding) setCompanyBranding(apiBranding);
-    if (apiLogs) setAuditLogs(apiLogs);
-    else if (auditLogs.length === 0) setAuditLogs([]);
   };
 
   const handleAddCategory = async (catName: string) => {
@@ -77,7 +71,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const handleBrandingSave = async (e: React.FormEvent) => {
     e.preventDefault();
     const user = authCtx?.user;
-    if (user?.role !== 'Super Admin') {
+    const role = (user?.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+    if (role !== 'SUPER_ADMIN') {
       if (toastCtx) toastCtx.addToast('error', 'Only Super Admin can modify branding');
       return;
     }
@@ -91,7 +86,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const handleDeleteUser = async (userId: string) => {
     const user = authCtx?.user;
-    if (user?.role !== 'Super Admin') {
+    const role = (user?.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+    if (role !== 'SUPER_ADMIN') {
       if (toastCtx) toastCtx.addToast('error', 'Only Super Admin can delete users');
       return;
     }
@@ -114,8 +110,6 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       categories,
       setCategories,
       serviceTypes,
-      auditLogs,
-      setAuditLogs,
       companyBranding,
       setCompanyBranding,
       settingsUsers,

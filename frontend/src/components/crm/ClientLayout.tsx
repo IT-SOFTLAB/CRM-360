@@ -11,17 +11,19 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (crm.mounted) {
-      if (!crm.user && pathname !== '/login') {
-        router.push('/login');
-      } else if (crm.user && (pathname === '/login' || pathname === '/')) {
-        router.push('/dashboard');
-      }
-    }
-  }, [crm.user, crm.mounted, pathname, router]);
+    // Wait until the silent token-refresh check is complete before making routing decisions
+    if (!crm.authReady) return;
 
-  // Prevent flash of content if not mounted or if checking auth
-  if (!crm.mounted) {
+    if (!crm.user && pathname !== '/login') {
+      router.push('/login');
+    } else if (crm.user && (pathname === '/login' || pathname === '/')) {
+      router.push('/dashboard');
+    }
+  }, [crm.user, crm.authReady, pathname, router]);
+
+  // Show a loading spinner while auth is initialising (token refresh in progress)
+  // This prevents the flash redirect to /login on page reload
+  if (!crm.authReady) {
     return (
       <div className="min-h-screen bg-bg-main flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -32,7 +34,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // If user is null and we are not on /login, show loading spinner while redirecting
+  // Auth is ready but user is not logged in — show brief spinner while navigating to login
   if (!crm.user && pathname !== '/login') {
     return (
       <div className="min-h-screen bg-bg-main flex items-center justify-center">

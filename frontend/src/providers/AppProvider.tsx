@@ -12,17 +12,19 @@ import { CustomerProvider } from '../context/CustomerContext';
 import { ActivityProvider } from '../context/ActivityContext';
 import { QuotationProvider } from '../context/QuotationContext';
 import { EmailProvider } from '../context/EmailContext';
+import { PipelineProvider } from '../context/PipelineContext';
 import { TaskProvider } from '../context/TaskContext';
-import {PipelineProvider} from '../context/PipelineContext';
+import { NotificationProvider } from '../context/NotificationContext';
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <ToastProvider>
       <ThemeProvider>
         <AuthProvider>
-          <SettingsProvider>
-            <PipelineProvider>
-            <ReferralProvider>
+          <NotificationProvider>
+            <SettingsProvider>
+              <PipelineProvider>
+              <ReferralProvider>
               <LeadProvider>
                 <OpportunityProvider>
                   <CustomerProvider>
@@ -41,6 +43,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             </ReferralProvider>
             </PipelineProvider>
           </SettingsProvider>
+          </NotificationProvider>
         </AuthProvider>
       </ThemeProvider>
     </ToastProvider>

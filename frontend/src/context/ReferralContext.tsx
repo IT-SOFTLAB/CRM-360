@@ -2,8 +2,7 @@
 import React, {
   createContext,
   useState,
-  useContext,
-  useEffect
+  useContext
 } from "react";
 
 import { Referral } from '../types/referral';
@@ -23,6 +22,7 @@ export interface ReferralContextType {
 
 
   dashboard:any;
+  setDashboard: React.Dispatch<React.SetStateAction<any>>;
 
 loadDashboard:()=>Promise<void>;
   loadReferrals: () => Promise<void>;
@@ -185,9 +185,7 @@ await loadReferrals();
 
 };
 
-useEffect(() => {
-  loadReferrals();
-}, []);
+
 
 
   return (
@@ -214,6 +212,7 @@ useEffect(() => {
 
   handleMoveReferral,
   dashboard,
+  setDashboard,
 
 loadDashboard
     }}>

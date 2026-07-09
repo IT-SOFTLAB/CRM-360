@@ -7,7 +7,6 @@ interface SettingsViewProps {
   setCompanyBranding: (branding: any) => void;
   categories: string[];
   settingsUsers: any[];
-  auditLogs: any[];
   user: any;
   onSaveBranding: (e: React.FormEvent) => void;
   onAddCategory: (name: string) => void;
@@ -22,7 +21,6 @@ export default function SettingsView({
   setCompanyBranding,
   categories,
   settingsUsers,
-  auditLogs,
   user,
   onSaveBranding,
   onAddCategory,
@@ -37,8 +35,6 @@ export default function SettingsView({
     name: '',
     email: '',
     role: 'USER',
-    department: '',
-    category: '',
     password: ''
   });
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -62,8 +58,6 @@ export default function SettingsView({
         name: '',
         email: '',
         role: 'USER',
-        department: '',
-        category: '',
         password: ''
       });
       if (onRefreshUsersList) onRefreshUsersList();
@@ -77,30 +71,30 @@ export default function SettingsView({
   const userRole = (user?.role || '').toUpperCase().replace(' ', '_');
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs text-slate-200">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs text-txt-primary">
       
       {/* Column 1: Config Branding & Categories */}
       <div className="space-y-6">
         
         {/* Branding Configuration */}
         {userRole === 'SUPER_ADMIN' && (
-          <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 space-y-4">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400">Company Branding</h4>
+          <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4">
+            <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Company Branding</h4>
             <form onSubmit={onSaveBranding} className="space-y-3">
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Company Name</label>
+                <label className="block text-txt-secondary font-semibold mb-1">Company Name</label>
                 <input
                   type="text"
-                  className="w-full border border-slate-650 bg-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none"
+                  className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none focus:border-blue-500"
                   value={companyBranding.name}
                   onChange={e => setCompanyBranding({ ...companyBranding, name: e.target.value })}
                 />
               </div>
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Navbar Logo text</label>
+                <label className="block text-txt-secondary font-semibold mb-1">Navbar Logo text</label>
                 <input
                   type="text"
-                  className="w-full border border-slate-650 bg-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none"
+                  className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none focus:border-blue-500"
                   value={companyBranding.logoText}
                   onChange={e => setCompanyBranding({ ...companyBranding, logoText: e.target.value })}
                 />
@@ -116,12 +110,12 @@ export default function SettingsView({
         )}
 
         {/* Project Categories */}
-        <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 space-y-4">
-          <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400">Project Categories</h4>
+        <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4">
+          <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Project Categories</h4>
           <form onSubmit={handleAddCategorySubmit} className="flex gap-2">
             <input
               type="text" required placeholder="Add Healthcare..."
-              className="flex-grow border border-slate-650 bg-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none"
+              className="flex-grow border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none focus:border-blue-500"
               value={newCategoryName}
               onChange={e => setNewCategoryName(e.target.value)}
             />
@@ -136,7 +130,7 @@ export default function SettingsView({
             {categories.map(cat => (
               <span
                 key={cat}
-                className="bg-slate-700 border border-slate-600 text-slate-200 rounded-xl px-2.5 py-1 flex items-center space-x-1"
+                className="bg-bg-main border border-border-crm text-txt-primary rounded-xl px-2.5 py-1 flex items-center space-x-1"
               >
                 <span>{cat}</span>
                 <button type="button" onClick={() => onDeleteCategory(cat)} className="text-rose-500 hover:text-rose-700 cursor-pointer">
@@ -153,9 +147,9 @@ export default function SettingsView({
       <div className="lg:col-span-2 space-y-6">
         
         {/* User management list */}
-        <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 space-y-4">
+        <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4">
           <div className="flex justify-between items-center">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400">User Accounts Management</h4>
+            <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">User Accounts Management</h4>
             <button
               onClick={() => {
                 setShowInviteModal(true);
@@ -170,7 +164,7 @@ export default function SettingsView({
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b border-slate-700 text-[10px] text-slate-400 font-bold uppercase">
+                <tr className="border-b border-border-crm text-[10px] text-txt-secondary font-bold uppercase">
                   <th className="py-2">User Name</th>
                   <th className="py-2">Email</th>
                   <th className="py-2">Role Scope</th>
@@ -178,14 +172,18 @@ export default function SettingsView({
                   <th className="py-2 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700/60">
+              <tbody className="divide-y divide-border-crm">
                 {settingsUsers.map(usr => (
-                  <tr key={usr.id} className="text-slate-200">
+                  <tr key={usr.id} className="text-txt-primary">
                     <td className="py-2.5 font-bold">{usr.name}</td>
-                    <td className="py-2.5 text-slate-400">{usr.email}</td>
-                    <td className="py-2.5 font-semibold text-blue-400">{usr.role}</td>
+                    <td className="py-2.5 text-txt-secondary">{usr.email}</td>
+                    <td className="py-2.5 font-semibold text-blue-600 dark:text-blue-400">{usr.role}</td>
                     <td className="py-2.5">
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${usr.status === 'Active' ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/20' : 'bg-slate-700 text-slate-400'}`}>
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold ${
+                        usr.status === 'Active' 
+                          ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' 
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                      }`}>
                         {usr.status || 'Active'}
                       </span>
                     </td>
@@ -207,19 +205,19 @@ export default function SettingsView({
         </div>
 
         {/* Permissions Matrix */}
-        <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 space-y-4">
-          <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400">Role Permissions Access Matrix</h4>
+        <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4">
+          <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Role Permissions Access Matrix</h4>
           <div className="overflow-x-auto text-[10px]">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-700 text-slate-400 font-bold uppercase">
+                <tr className="border-b border-border-crm text-txt-secondary font-bold uppercase">
                   <th className="py-2">Permission Access Scope</th>
                   <th className="py-2">Super Admin</th>
                   <th className="py-2">Admin</th>
                   <th className="py-2">Standard User</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-700/60 text-slate-200">
+              <tbody className="divide-y divide-border-crm text-txt-primary">
                 {[
                   { perm: 'Full System Control Panel Settings', sa: true, ad: false, us: false },
                   { perm: 'Create, Edit, Delete Pipelines/Stages', sa: true, ad: false, us: false },
@@ -228,10 +226,10 @@ export default function SettingsView({
                   { perm: 'Referral Rewards Approval', sa: true, ad: false, us: false }
                 ].map((pm, i) => (
                   <tr key={i}>
-                    <td className="py-2.5 font-semibold text-slate-300">{pm.perm}</td>
-                    <td className="py-2.5">{pm.sa ? <Check className="w-4 h-4 text-emerald-400" /> : <X className="w-4 h-4 text-rose-500" />}</td>
-                    <td className="py-2.5">{pm.ad ? <Check className="w-4 h-4 text-emerald-400" /> : <X className="w-4 h-4 text-rose-500" />}</td>
-                    <td className="py-2.5">{pm.us ? <Check className="w-4 h-4 text-emerald-400" /> : <X className="w-4 h-4 text-rose-500" />}</td>
+                    <td className="py-2.5 font-semibold text-txt-primary">{pm.perm}</td>
+                    <td className="py-2.5">{pm.sa ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <X className="w-4 h-4 text-rose-500" />}</td>
+                    <td className="py-2.5">{pm.ad ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <X className="w-4 h-4 text-rose-500" />}</td>
+                    <td className="py-2.5">{pm.us ? <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /> : <X className="w-4 h-4 text-rose-500" />}</td>
                   </tr>
                 ))}
               </tbody>
@@ -239,45 +237,26 @@ export default function SettingsView({
           </div>
         </div>
 
-        {/* Audit Logs */}
-        <div className="bg-slate-800 border border-slate-700/60 rounded-2xl p-5 space-y-4">
-          <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400">Real-Time Audit System Logs</h4>
-          <div className="max-h-60 overflow-y-auto divide-y divide-slate-700/60">
-            {auditLogs.map((log) => (
-              <div key={log.id} className="py-2.5 space-y-0.5 text-[10px]">
-                <div className="flex justify-between font-bold">
-                  <span className="text-blue-400">{log.action} ({log.module})</span>
-                  <span className="text-slate-500 font-medium">{new Date(log.timestamp).toLocaleTimeString()}</span>
-                </div>
-                <p className="text-slate-300 leading-relaxed">{log.details}</p>
-                <div className="text-slate-500">By: {log.user} ({log.role})</div>
-              </div>
-            ))}
-            {auditLogs.length === 0 && (
-              <div className="text-center py-6 text-slate-500">No logs available.</div>
-            )}
-          </div>
-        </div>
 
       </div>
 
       {/* USER INVITATION MODAL */}
       {showInviteModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-            <div className="bg-slate-700/30 px-6 py-4 border-b border-slate-700 flex justify-between items-center">
-              <h3 className="font-bold text-slate-100 text-sm">Create User Account</h3>
-              <button onClick={() => setShowInviteModal(false)} className="text-slate-400 hover:text-slate-200 cursor-pointer">
+          <div className="bg-card border border-border-crm rounded-2xl w-full max-w-md overflow-hidden shadow-2xl text-txt-primary">
+            <div className="bg-bg-main px-6 py-4 border-b border-border-crm flex justify-between items-center">
+              <h3 className="font-bold text-txt-primary text-sm">Create User Account</h3>
+              <button onClick={() => setShowInviteModal(false)} className="text-txt-secondary hover:text-txt-primary cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <form onSubmit={handleInviteSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">User Full Name</label>
+                <label className="block text-xs font-semibold text-txt-secondary mb-1">User Full Name</label>
                 <input
                   type="text" required
-                  className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
+                  className="w-full border border-border-crm rounded-xl px-4 py-2 text-sm text-txt-primary bg-bg-main focus:outline-none focus:border-blue-500"
                   placeholder="e.g. Rahul Sharma"
                   value={inviteForm.name}
                   onChange={e => setInviteForm({ ...inviteForm, name: e.target.value })}
@@ -285,10 +264,10 @@ export default function SettingsView({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Email Address</label>
+                <label className="block text-xs font-semibold text-txt-secondary mb-1">Email Address</label>
                 <input
                   type="email" required
-                  className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
+                  className="w-full border border-border-crm rounded-xl px-4 py-2 text-sm text-txt-primary bg-bg-main focus:outline-none focus:border-blue-500"
                   placeholder="e.g. rahul@company.com"
                   value={inviteForm.email}
                   onChange={e => setInviteForm({ ...inviteForm, email: e.target.value })}
@@ -296,10 +275,10 @@ export default function SettingsView({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Create Password</label>
+                <label className="block text-xs font-semibold text-txt-secondary mb-1">Create Password</label>
                 <input
                   type="password" required
-                  className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
+                  className="w-full border border-border-crm rounded-xl px-4 py-2 text-sm text-txt-primary bg-bg-main focus:outline-none focus:border-blue-500"
                   placeholder="e.g. ••••••••"
                   value={inviteForm.password}
                   onChange={e => setInviteForm({ ...inviteForm, password: e.target.value })}
@@ -307,41 +286,15 @@ export default function SettingsView({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-400 mb-1">Access Role Scope</label>
+                <label className="block text-xs font-semibold text-txt-secondary mb-1">Access Role Scope</label>
                 <select
-                  className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
+                  className="w-full border border-border-crm rounded-xl px-4 py-2 text-sm text-txt-primary bg-bg-main focus:outline-none focus:border-blue-500"
                   value={inviteForm.role}
                   onChange={e => setInviteForm({ ...inviteForm, role: e.target.value })}
                 >
                   {userRole === 'SUPER_ADMIN' && <option value="ADMIN">CRM Manager (Admin)</option>}
                   <option value="USER">Sales Executive (User)</option>
                 </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Department</label>
-                  <input
-                    type="text"
-                    className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
-                    placeholder="e.g. North Region"
-                    value={inviteForm.department}
-                    onChange={e => setInviteForm({ ...inviteForm, department: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">Default Category</label>
-                  <select
-                    className="w-full border border-slate-600 rounded-xl px-4 py-2 text-sm text-slate-100 bg-slate-700 focus:outline-none focus:border-blue-500"
-                    value={inviteForm.category}
-                    onChange={e => setInviteForm({ ...inviteForm, category: e.target.value })}
-                  >
-                    <option value="">Select Category...</option>
-                    {categories.map((c: string) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
               </div>
 
               <button

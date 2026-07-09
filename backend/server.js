@@ -21,10 +21,11 @@ const prisma = new PrismaClient();
 const customerRoutes = require("./src/routes/customerRoutes.js");
 const quotationRoutes = require("./src/routes/quotationRoutes");
 const salesTeamRoutes = require("./src/routes/salesTeamRoutes.js");
-const taskRoutes = require("./src/routes/taskRoutes.js");
 const userRoutes = require("./src/routes/userRoutes.js");
 const referralRoutes = require("./src/routes/referral.routes.js");
 const pipelineRoutes = require("./src/routes/pipeline.routes.js");
+const bootstrapRoutes = require("./src/routes/bootstrapRoutes.js");
+const notificationRoutes = require("./src/routes/notificationRoutes.js");
 
 app.use(cors({
   origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
@@ -40,12 +41,13 @@ app.use("/api/customers", customerRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/auth", authRoutes);
 app.use("/api/salesteam", salesTeamRoutes);
-app.use("/api/tasks", taskRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/referrals", referralRoutes);
 app.use("/api/emails",emailRoutes);
 app.use("/api/quotations", quotationRoutes);
 app.use("/api/referral-pipeline", pipelineRoutes);
+app.use("/api/bootstrap", bootstrapRoutes);
+app.use("/api/notifications", notificationRoutes);
 function readDB() {
   if (!fs.existsSync(DB_FILE)) {
     const initialData = seedDatabase();
@@ -70,6 +72,9 @@ function writeDB(data) {
 
 // Log actions (Audit log)
 function logActivity(db, user, action, module, details) {
+  if (!db.auditLogs) {
+    db.auditLogs = [];
+  }
   const log = {
     id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
     timestamp: new Date().toISOString(),
@@ -809,12 +814,23 @@ app.put('/api/quotations/:id', (req, res) => {
 // Company Branding & Settings
 app.get('/api/settings/branding', (req, res) => {
   const db = readDB();
-  res.json(db.companyBranding);
+  res.json(db.companyBranding || {
+    name: 'Global CRM Cloud',
+    primaryColor: '#2563EB',
+    secondaryColor: '#0F172A',
+    logoText: 'CRM 360'
+  });
 });
 
 app.put('/api/settings/branding', (req, res) => {
   const db = readDB();
-  db.companyBranding = { ...db.companyBranding, ...req.body };
+  const defaultBranding = {
+    name: 'Global CRM Cloud',
+    primaryColor: '#2563EB',
+    secondaryColor: '#0F172A',
+    logoText: 'CRM 360'
+  };
+  db.companyBranding = { ...defaultBranding, ...db.companyBranding, ...req.body };
   logActivity(db, null, 'UPDATE_BRANDING', 'Settings', `Updated company branding details.`);
   writeDB(db);
   res.json(db.companyBranding);

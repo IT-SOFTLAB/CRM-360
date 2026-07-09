@@ -1,98 +1,112 @@
 "use client";
 
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useContext } from 'react';
 import { taskService } from '../services/task.service';
 import { ToastContext } from './ToastContext';
 
 export interface TaskContextType {
   tasks: any[];
-  setTasks: React.Dispatch<React.SetStateAction<any[]>>;
-  selectedTask: any | null;
-  setSelectedTask: React.Dispatch<React.SetStateAction<any | null>>;
   loading: boolean;
+  selectedTask: any | null;
   loadTasks: () => Promise<void>;
   loadTaskDetails: (id: string) => Promise<void>;
-  handleCreateTask: (taskData: any) => Promise<boolean>;
-  handleUpdateTask: (id: string, taskData: any) => Promise<boolean>;
+  handleCreateTask: (taskForm: any) => Promise<boolean>;
+  handleUpdateTask: (id: string, updates: any) => Promise<boolean>;
+  handleAddTaskComment: (taskId: string, comment: string) => Promise<boolean>;
   handleDeleteTask: (id: string) => Promise<boolean>;
-  handleAddTaskComment: (id: string, content: string) => Promise<boolean>;
 }
 
 export const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
 export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [tasks, setTasks] = useState<any[]>([]);
-  const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const toastCtx = useContext(ToastContext);
 
   const loadTasks = async () => {
     setLoading(true);
-    const data = await taskService.getTasks();
-    setTasks(data);
+    const apiTasks = await taskService.getTasks();
+    if (apiTasks) {
+      setTasks(apiTasks);
+    }
     setLoading(false);
   };
 
   const loadTaskDetails = async (id: string) => {
-    const data = await taskService.getTaskById(id);
-    setSelectedTask(data);
+    setLoading(true);
+    const apiTask = await taskService.getTaskById(id);
+    if (apiTask) {
+      setSelectedTask(apiTask);
+    }
+    setLoading(false);
   };
 
-  const handleCreateTask = async (taskData: any) => {
-    try {
-      const newTask = await taskService.createTask(taskData);
-      setTasks(prev => [newTask, ...prev]);
-      toastCtx?.addToast('success', 'Task created successfully');
+  const handleCreateTask = async (taskForm: any): Promise<boolean> => {
+    const res = await taskService.createTask(taskForm);
+    if (res) {
+      setTasks(prev => [res, ...prev]);
+      if (toastCtx) toastCtx.addToast('success', 'Task created successfully!');
       return true;
-    } catch (err: any) {
-      toastCtx?.addToast('error', err?.response?.data?.message || 'Failed to create task');
+    } else {
+      if (toastCtx) toastCtx.addToast('error', 'Failed to create task');
       return false;
     }
   };
 
-  const handleUpdateTask = async (id: string, taskData: any) => {
-    try {
-      const updated = await taskService.updateTask(id, taskData);
-      setTasks(prev => prev.map(t => t.id === id ? updated : t));
+  const handleUpdateTask = async (id: string, updates: any): Promise<boolean> => {
+    // Optimistic update
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    if (selectedTask && selectedTask.id === id) {
+      setSelectedTask((prev: any) => prev ? { ...prev, ...updates } : null);
+    }
+
+    const res = await taskService.updateTask(id, updates);
+    if (res) {
+      setTasks(prev => prev.map(t => t.id === id ? res : t));
       if (selectedTask && selectedTask.id === id) {
-        setSelectedTask({ ...selectedTask, ...updated });
+        setSelectedTask(res);
       }
-      toastCtx?.addToast('success', 'Task updated successfully');
+      if (toastCtx) toastCtx.addToast('success', 'Task updated');
       return true;
-    } catch (err: any) {
-      toastCtx?.addToast('error', err?.response?.data?.message || 'Failed to update task');
+    } else {
+      if (toastCtx) toastCtx.addToast('error', 'Failed to update task');
+      await loadTasks();
       return false;
     }
   };
 
-  const handleDeleteTask = async (id: string) => {
-    try {
-      await taskService.deleteTask(id);
-      setTasks(prev => prev.filter(t => t.id !== id));
-      if (selectedTask && selectedTask.id === id) {
-        setSelectedTask(null);
+  const handleAddTaskComment = async (taskId: string, comment: string): Promise<boolean> => {
+    const res = await taskService.addTaskComment(taskId, comment);
+    if (res) {
+      if (selectedTask && selectedTask.id === taskId) {
+        setSelectedTask((prev: any) => ({
+          ...prev,
+          comments: [res, ...(prev.comments || [])]
+        }));
       }
-      toastCtx?.addToast('success', 'Task deleted successfully');
+      if (toastCtx) toastCtx.addToast('success', 'Comment added');
       return true;
-    } catch (err: any) {
-      toastCtx?.addToast('error', err?.response?.data?.message || 'Failed to delete task');
+    } else {
+      if (toastCtx) toastCtx.addToast('error', 'Failed to add comment');
       return false;
     }
   };
 
-  const handleAddTaskComment = async (id: string, content: string) => {
-    try {
-      const comment = await taskService.addTaskComment(id, content);
-      if (selectedTask && selectedTask.id === id) {
-        setSelectedTask({
-          ...selectedTask,
-          comments: [comment, ...(selectedTask.comments || [])]
-        });
-      }
-      toastCtx?.addToast('success', 'Comment added');
+  const handleDeleteTask = async (id: string): Promise<boolean> => {
+    const originalTasks = tasks;
+    setTasks(prev => prev.filter(t => t.id !== id));
+    if (selectedTask && selectedTask.id === id) {
+      setSelectedTask(null);
+    }
+
+    const res = await taskService.deleteTask(id);
+    if (res) {
+      if (toastCtx) toastCtx.addToast('success', 'Task deleted successfully');
       return true;
-    } catch (err: any) {
-      toastCtx?.addToast('error', 'Failed to add comment');
+    } else {
+      setTasks(originalTasks);
+      if (toastCtx) toastCtx.addToast('error', 'Failed to delete task');
       return false;
     }
   };
@@ -100,16 +114,14 @@ export const TaskProvider: React.FC<{ children: React.ReactNode }> = ({ children
   return (
     <TaskContext.Provider value={{
       tasks,
-      setTasks,
-      selectedTask,
-      setSelectedTask,
       loading,
+      selectedTask,
       loadTasks,
       loadTaskDetails,
       handleCreateTask,
       handleUpdateTask,
-      handleDeleteTask,
-      handleAddTaskComment
+      handleAddTaskComment,
+      handleDeleteTask
     }}>
       {children}
     </TaskContext.Provider>

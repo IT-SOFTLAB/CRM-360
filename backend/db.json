@@ -370,6 +370,104 @@
   ],
   "emails": [
     {
+      "id": "e_1783574357356",
+      "date": "2026-07-09T05:19:17.356Z",
+      "read": true,
+      "replied": false,
+      "bounced": false,
+      "threadId": "th_1783574357356",
+      "history": [],
+      "sender": "parthika@gmail.com",
+      "recipient": "lead2@gmail.com",
+      "subject": "Update regarding your project/opportunity",
+      "body": "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin",
+      "folder": "Sent"
+    },
+    {
+      "id": "e_1783574357346",
+      "date": "2026-07-09T05:19:17.346Z",
+      "read": true,
+      "replied": false,
+      "bounced": false,
+      "threadId": "th_1783574357346",
+      "history": [],
+      "sender": "parthika@gmail.com",
+      "recipient": "pqrs@gmail.com",
+      "subject": "Update regarding your project/opportunity",
+      "body": "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin",
+      "folder": "Sent"
+    },
+    {
+      "id": "e_1783574357336",
+      "date": "2026-07-09T05:19:17.336Z",
+      "read": true,
+      "replied": false,
+      "bounced": false,
+      "threadId": "th_1783574357336",
+      "history": [],
+      "sender": "parthika@gmail.com",
+      "recipient": "trupti@gmail.com",
+      "subject": "Update regarding your project/opportunity",
+      "body": "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin",
+      "folder": "Sent"
+    },
+    {
+      "id": "e_1783574357325",
+      "date": "2026-07-09T05:19:17.325Z",
+      "read": true,
+      "replied": false,
+      "bounced": false,
+      "threadId": "th_1783574357325",
+      "history": [],
+      "sender": "parthika@gmail.com",
+      "recipient": "xyz@gmail.com",
+      "subject": "Update regarding your project/opportunity",
+      "body": "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin",
+      "folder": "Sent"
+    },
+    {
+      "id": "e_1783574357315",
+      "date": "2026-07-09T05:19:17.315Z",
+      "read": true,
+      "replied": false,
+      "bounced": false,
+      "threadId": "th_1783574357315",
+      "history": [],
+      "sender": "parthika@gmail.com",
+      "recipient": "yashtech@gmail.com",
+      "subject": "Update regarding your project/opportunity",
+      "body": "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin",
+      "folder": "Sent"
+    },
+    {
+      "id": "e_1783574357301",
+      "date": "2026-07-09T05:19:17.301Z",
+      "read": true,
+      "replied": false,
+      "bounced": false,
+      "threadId": "th_1783574357301",
+      "history": [],
+      "sender": "parthika@gmail.com",
+      "recipient": "yashiii@gmail.com",
+      "subject": "Update regarding your project/opportunity",
+      "body": "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin",
+      "folder": "Sent"
+    },
+    {
+      "id": "e_1783574357274",
+      "date": "2026-07-09T05:19:17.274Z",
+      "read": true,
+      "replied": false,
+      "bounced": false,
+      "threadId": "th_1783574357274",
+      "history": [],
+      "sender": "parthika@gmail.com",
+      "recipient": "lead1@gmail.com",
+      "subject": "Update regarding your project/opportunity",
+      "body": "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin",
+      "folder": "Sent"
+    },
+    {
       "id": "e_1",
       "sender": "tony@starkindustries.com",
       "recipient": "superadmin@crm.com",
@@ -521,6 +619,122 @@
       "subtotal": 250000,
       "taxAmount": 20000,
       "grandTotal": 260000
+    }
+  ],
+  "companyBranding": {
+    "name": "Global CRM",
+    "primaryColor": "#2563EB",
+    "secondaryColor": "#0F172A",
+    "logoText": "CRM "
+  },
+  "auditLogs": [
+    {
+      "id": "log_1783574357356_sc6wf",
+      "timestamp": "2026-07-09T05:19:17.356Z",
+      "user": "System",
+      "role": "System",
+      "action": "SEND_EMAIL",
+      "module": "Email Integration",
+      "details": "Sent email to lead2@gmail.com: \"Update regarding your project/opportunity\""
+    },
+    {
+      "id": "log_1783574357347_6wyge",
+      "timestamp": "2026-07-09T05:19:17.347Z",
+      "user": "System",
+      "role": "System",
+      "action": "SEND_EMAIL",
+      "module": "Email Integration",
+      "details": "Sent email to pqrs@gmail.com: \"Update regarding your project/opportunity\""
+    },
+    {
+      "id": "log_1783574357336_1q9sy",
+      "timestamp": "2026-07-09T05:19:17.336Z",
+      "user": "System",
+      "role": "System",
+      "action": "SEND_EMAIL",
+      "module": "Email Integration",
+      "details": "Sent email to trupti@gmail.com: \"Update regarding your project/opportunity\""
+    },
+    {
+      "id": "log_1783574357325_q0bzq",
+      "timestamp": "2026-07-09T05:19:17.325Z",
+      "user": "System",
+      "role": "System",
+      "action": "SEND_EMAIL",
+      "module": "Email Integration",
+      "details": "Sent email to xyz@gmail.com: \"Update regarding your project/opportunity\""
+    },
+    {
+      "id": "log_1783574357315_63v28",
+      "timestamp": "2026-07-09T05:19:17.315Z",
+      "user": "System",
+      "role": "System",
+      "action": "SEND_EMAIL",
+      "module": "Email Integration",
+      "details": "Sent email to yashtech@gmail.com: \"Update regarding your project/opportunity\""
+    },
+    {
+      "id": "log_1783574357301_r9gcj",
+      "timestamp": "2026-07-09T05:19:17.301Z",
+      "user": "System",
+      "role": "System",
+      "action": "SEND_EMAIL",
+      "module": "Email Integration",
+      "details": "Sent email to yashiii@gmail.com: \"Update regarding your project/opportunity\""
+    },
+    {
+      "id": "log_1783574357275_u0b71",
+      "timestamp": "2026-07-09T05:19:17.275Z",
+      "user": "System",
+      "role": "System",
+      "action": "SEND_EMAIL",
+      "module": "Email Integration",
+      "details": "Sent email to lead1@gmail.com: \"Update regarding your project/opportunity\""
+    },
+    {
+      "id": "log_1783513621347_nuwbl",
+      "timestamp": "2026-07-08T12:27:01.347Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_BRANDING",
+      "module": "Settings",
+      "details": "Updated company branding details."
+    },
+    {
+      "id": "log_1783513594140_cspey",
+      "timestamp": "2026-07-08T12:26:34.140Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_BRANDING",
+      "module": "Settings",
+      "details": "Updated company branding details."
+    },
+    {
+      "id": "log_1783513234746_h3nqn",
+      "timestamp": "2026-07-08T12:20:34.746Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_BRANDING",
+      "module": "Settings",
+      "details": "Updated company branding details."
+    },
+    {
+      "id": "log_1783513219742_ghpkr",
+      "timestamp": "2026-07-08T12:20:19.743Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_BRANDING",
+      "module": "Settings",
+      "details": "Updated company branding details."
+    },
+    {
+      "id": "log_1783508951540_brcai",
+      "timestamp": "2026-07-08T11:09:11.540Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_BRANDING",
+      "module": "Settings",
+      "details": "Updated company branding details."
     }
   ]
 }

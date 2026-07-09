@@ -297,7 +297,7 @@ exports.changePassword = async (req, res) => {
 
 exports.inviteUser = async (req, res) => {
   try {
-    const { name, email, role, department, salesTeamId, category, password } = req.body;
+    const { name, email, role, salesTeamId, password } = req.body;
     const inviter = req.user;
 
     if (!name || !email || !role || !password) {
@@ -325,9 +325,7 @@ exports.inviteUser = async (req, res) => {
         name,
         email,
         role,
-        department,
         salesTeamId: salesTeamId || null,
-        category,
         password: hashedPassword, 
         status: 'Active',
         invitationToken: null,

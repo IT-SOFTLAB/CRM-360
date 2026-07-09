@@ -30,14 +30,35 @@ export const ActivityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const handleActivityCreate = async (activityForm: any) => {
+    setShowActivityModal(false);
+    
+    // Optimistically add activity instantly
+    const tempId = 'act_temp_' + Date.now();
+    const tempActivity = {
+      id: tempId,
+      title: activityForm.title || "Untitled Activity",
+      type: activityForm.type || "Call",
+      description: activityForm.description || "",
+      date: activityForm.date || new Date().toISOString().split('T')[0],
+      time: activityForm.time || "12:00 PM",
+      done: false,
+      salesperson: activityForm.salesperson || "Unassigned",
+      leadId: activityForm.leadId || "",
+      duration: Number(activityForm.duration || 0),
+      opportunityId: activityForm.opportunityId || ""
+    };
+    setActivities(prev => [tempActivity as any, ...prev]);
+
     try {
       const res = await activityService.createActivity(activityForm);
-      await loadActivities();
+      if (res) {
+        setActivities(prev => prev.map(a => a.id === tempId ? res : a));
+      }
       if (toastCtx) {
         toastCtx.addToast("success", "Activity scheduled!");
       }
-      setShowActivityModal(false);
     } catch (err) {
+      setActivities(prev => prev.filter(a => a.id !== tempId));
       if (toastCtx) {
         toastCtx.addToast("error", "Unable to schedule activity.");
       }
@@ -45,13 +66,17 @@ export const ActivityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const toggleActivityDone = async (activityId: string, currentStatus: boolean) => {
+    // Optimistically toggle activity status immediately
+    setActivities(prev => prev.map(a => a.id === activityId ? { ...a, done: !currentStatus } : a));
+
     try {
       await activityService.updateActivity(activityId, { done: !currentStatus });
-      await loadActivities();
       if (toastCtx) {
         toastCtx.addToast("success", "Activity updated");
       }
     } catch {
+      // Revert if failed
+      setActivities(prev => prev.map(a => a.id === activityId ? { ...a, done: currentStatus } : a));
       if (toastCtx) {
         toastCtx.addToast("error", "Unable to update activity");
       }

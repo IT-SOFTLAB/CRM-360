@@ -24,6 +24,7 @@ export interface OpportunityContextType {
   handleStageReorder: (stageId: string, direction: 'left' | 'right') => Promise<void>;
   handleStageDelete: (stageId: string) => Promise<void>;
   handleDeleteOpportunity: (oppId: string) => Promise<void>;
+  handleUpdateOpportunity: (oppId: string, oppData: any) => Promise<void>;
 }
 
 export const OpportunityContext = createContext<OpportunityContextType | undefined>(undefined);
@@ -186,6 +187,19 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
+  const handleUpdateOpportunity = async (oppId: string, oppData: any) => {
+    // Optimistic update
+    setOpportunities(prev => prev.map(o => o.id === oppId ? { ...o, ...oppData } : o));
+
+    const res = await opportunityService.updateOpportunity(oppId, oppData);
+    if (res) {
+      // Merge with server response state
+      setOpportunities(prev => prev.map(o => o.id === oppId ? { ...o, ...res } : o));
+    } else {
+      if (toastCtx) toastCtx.addToast('success', 'Opportunity updated (Offline Mode)');
+    }
+  };
+
   return (
     <OpportunityContext.Provider value={{
       opportunities,
@@ -201,7 +215,8 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
       handleAddStage,
       handleStageReorder,
       handleStageDelete,
-      handleDeleteOpportunity
+      handleDeleteOpportunity,
+      handleUpdateOpportunity
     }}>
       {children}
     </OpportunityContext.Provider>

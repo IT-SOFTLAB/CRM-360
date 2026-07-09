@@ -5,10 +5,13 @@ import { User, AuthForm } from '../types/user';
 import { authService } from '../services/auth.service';
 import { ToastContext } from './ToastContext';
 import { DEFAULT_AUTH_FORM } from '../utils/constants';
+import api from '../services/api';
 
 export interface AuthContextType {
   mounted: boolean;
   setMounted: React.Dispatch<React.SetStateAction<boolean>>;
+  /** true once the silent token-refresh check on page load is complete */
+  authReady: boolean;
   user: User | null;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
   authMode: 'login' | 'register' | 'setup';
@@ -27,6 +30,7 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mounted, setMounted] = useState(false);
+  const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register' | 'setup'>('login');
   const [authForm, setAuthForm] = useState<AuthForm>(DEFAULT_AUTH_FORM);
@@ -35,24 +39,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     setMounted(true);
-    
-    // Check if user is saved locally
-    const savedUser = localStorage.getItem('crm_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
 
-    // Check Odoo setup status
-    const checkSetup = async () => {
-      const res = await authService.checkSetupStatus();
-      if (res && res.setupRequired) {
-        setSetupRequired(true);
-        setAuthMode('setup');
-      } else {
+    const initialize = async () => {
+      // Check Odoo setup status
+      try {
+        const res = await authService.checkSetupStatus();
+        if (res && res.setupRequired) {
+          setSetupRequired(true);
+          setAuthMode('setup');
+          setAuthReady(true);
+          return;
+        } else {
+          setSetupRequired(false);
+        }
+      } catch {
         setSetupRequired(false);
       }
+
+      // Restore user from localStorage
+      const savedUser = localStorage.getItem('crm_user');
+      if (!savedUser) {
+        // No saved session — ready immediately
+        setAuthReady(true);
+        return;
+      }
+
+      // Silently refresh the accessToken cookie so API calls work on reload
+      try {
+        await api.post('/auth/refresh');
+        // Token refreshed — restore user from localStorage
+        setUser(JSON.parse(savedUser));
+      } catch {
+        // Refresh token expired or invalid — force logout
+        localStorage.removeItem('crm_user');
+        setUser(null);
+      } finally {
+        setAuthReady(true);
+      }
     };
-    checkSetup();
+
+    initialize();
   }, []);
 
   const handleAuthSubmit = async (e: React.FormEvent, onSuccess?: () => void) => {
@@ -137,6 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <AuthContext.Provider value={{
       mounted,
       setMounted,
+      authReady,
       user,
       setUser,
       authMode,

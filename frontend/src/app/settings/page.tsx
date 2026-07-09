@@ -11,7 +11,6 @@ export default function SettingsPage() {
       setCompanyBranding={crm.setCompanyBranding}
       categories={crm.categories}
       settingsUsers={crm.settingsUsers}
-      auditLogs={crm.auditLogs}
       user={crm.user}
       onSaveBranding={crm.handleBrandingSave}
       onAddCategory={crm.handleAddCategory}

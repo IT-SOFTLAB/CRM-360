@@ -2,8 +2,7 @@
 import React, {
   createContext,
   useContext,
-  useState,
-  useEffect
+  useState
 } from "react";
 
 import { pipelineService } from "../services/pipeline.service";
@@ -80,9 +79,7 @@ setStages(data ?? []);
     }
   };
 
-  useEffect(() => {
-  loadStages();
-}, []);
+
 
 
 

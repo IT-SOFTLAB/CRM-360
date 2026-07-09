@@ -88,10 +88,10 @@ model Referral {
   rewardValue       Float
   rewardApproved    Boolean           @default(false)
   currentStageId    String
-  createdBy         String?
-  createdById       String?
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+  createdBy         String?
+  createdById       String?
   currentStage      ReferralPipeline  @relation(fields: [currentStageId], references: [id])
   referralHistories ReferralHistory[]
   referralRewards   ReferralReward[]
@@ -135,6 +135,8 @@ model Opportunity {
   createdAt              DateTime  @default(now())
   updatedAt              DateTime  @updatedAt
   assignedSalespersonId  String?
+  priority               Int       @default(0)
+  tags                   String[]
   assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
 }
 

@@ -207,7 +207,7 @@ export default function ActivitiesView({
               { id: 'my', label: 'My Activities' },
               { id: 'team', label: 'Team Activities' },
               { id: 'today', label: 'Today\'s Activities' },
-              { id: 'overdue', label: 'Overdue Activities' }
+              
             ].map(f => (
               <button
                 key={f.id}
@@ -228,7 +228,7 @@ export default function ActivitiesView({
       {!isManager && (
         <div className="bg-card border border-border-crm rounded-2xl p-4 flex items-center space-x-2 text-txt-secondary select-none shadow-sm">
           <Clock className="w-4 h-4 text-emerald-500" />
-          <span className="font-bold text-xs">Viewing Activities Assigned To You ({filteredActivities.length} logs)</span>
+          <span className="font-bold text-xs">Viewing Activities Assigned To You ({filteredActivities.length})</span>
         </div>
       )}
 
@@ -529,7 +529,6 @@ export default function ActivitiesView({
                     <option value="Meeting">Meeting</option>
                     <option value="Call">Call</option>
                     <option value="Email">Email</option>
-                    <option value="Task">Task</option>
                     <option value="Follow-up">Follow-up</option>
                   </select>
                 </div>

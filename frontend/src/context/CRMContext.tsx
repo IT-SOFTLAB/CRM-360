@@ -18,9 +18,11 @@ import { DEFAULT_ACTIVE_FILTERS } from '../utils/constants';
 import { leadService } from '../services/lead.service';
 import api from '../services/api';
 import { usePipeline } from "../hooks/usePipeline";
+import { useNotifications } from "../hooks/useNotifications";
 
 export interface CRMContextType {
   mounted: boolean;
+  authReady: boolean;
   user: any;
   setUser: React.Dispatch<React.SetStateAction<any>>;
   authMode: 'login' | 'register' | 'setup';
@@ -37,17 +39,17 @@ export interface CRMContextType {
   pipelines: any[];
   setPipelines: React.Dispatch<React.SetStateAction<any[]>>;
   referralPipelines: any[];
-setReferralPipelines: React.Dispatch<React.SetStateAction<any[]>>;
-dashboard:any;
+  setReferralPipelines: React.Dispatch<React.SetStateAction<any[]>>;
+  dashboard: any;
 
-loadDashboard:()=>Promise<void>;
-loadReferralPipelines: () => Promise<void>;
+  loadDashboard: () => Promise<void>;
+  loadReferralPipelines: () => Promise<void>;
 
-handleAddReferralStage: (data: any) => Promise<void>;
+  handleAddReferralStage: (data: any) => Promise<void>;
 
-handleDeleteReferralStage: (id: string) => Promise<void>;
+  handleDeleteReferralStage: (id: string) => Promise<void>;
 
-handleReferralStageReorder: (stages: any[]) => Promise<void>;
+  handleReferralStageReorder: (stages: any[]) => Promise<void>;
   activities: any[];
   setActivities: React.Dispatch<React.SetStateAction<any[]>>;
   emails: any[];
@@ -63,8 +65,6 @@ handleReferralStageReorder: (stages: any[]) => Promise<void>;
   categories: string[];
   setCategories: React.Dispatch<React.SetStateAction<string[]>>;
   serviceTypes: string[];
-  auditLogs: any[];
-  setAuditLogs: React.Dispatch<React.SetStateAction<any[]>>;
   companyBranding: any;
   setCompanyBranding: React.Dispatch<React.SetStateAction<any>>;
   theme: string;
@@ -93,7 +93,7 @@ handleReferralStageReorder: (stages: any[]) => Promise<void>;
   setShowReferralModal: React.Dispatch<React.SetStateAction<boolean>>;
   settingsUsers: any[];
   setSettingsUsers: React.Dispatch<React.SetStateAction<any[]>>;
-  
+
 
   // Actions
   apiCall: (path: string, method?: string, body?: any) => Promise<any>;
@@ -108,6 +108,7 @@ handleReferralStageReorder: (stages: any[]) => Promise<void>;
   handleConvertLeadFromView: (leadId: string, dealValue: string) => Promise<void>;
   handleMoveOpportunity: (oppId: string, stageId: string) => Promise<void>;
   handleDeleteOpportunity: (oppId: string) => Promise<void>;
+  handleUpdateOpportunity: (oppId: string, oppData: any) => Promise<void>;
   handleAddStage: (stageName: string) => Promise<void>;
   handleStageReorder: (stageId: string, direction: 'left' | 'right') => Promise<void>;
   handleStageDelete: (stageId: string) => Promise<void>;
@@ -131,7 +132,7 @@ handleReferralStageReorder: (stages: any[]) => Promise<void>;
   handleMoveReferral: (
     id: string,
     stageId: string
-) => Promise<void>;
+  ) => Promise<void>;
 }
 
 const CRMContext = createContext<CRMContextType | undefined>(undefined);
@@ -149,6 +150,7 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
   const pipelineCtx = usePipeline();
   const emailCtx = useEmails();
   const settingsCtx = useSettings();
+  const notificationsCtx = useNotifications();
 
   // Local filter and UI states
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
@@ -157,25 +159,71 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
   const [customFilterName, setCustomFilterName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Initial load
+  // Initial load — wait for authReady so the token is refreshed before fetching
   useEffect(() => {
+    if (!auth.authReady) return;  // auth still initialising
+    if (!auth.user) return;        // not logged in
     loadCRMData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.authReady, auth.user]);
 
   const loadCRMData = async () => {
+    try {
+      const res = await api.get('/bootstrap');
+      if (res && res.data) {
+        const {
+          leads,
+          opportunities,
+          customers,
+          activities,
+          quotations,
+          referrals,
+          referralDashboard,
+          referralPipelineStages,
+          pipelines,
+          referralPipelines,
+          emails,
+          categories,
+          companyBranding,
+          settingsUsers,
+          notifications
+        } = res.data;
+
+        if (leads !== undefined) leadsCtx.setLeads(leads ?? []);
+        if (opportunities !== undefined) oppCtx.setOpportunities(opportunities ?? []);
+        if (pipelines !== undefined) oppCtx.setPipelines(pipelines ?? []);
+        if (referralPipelines !== undefined) oppCtx.setReferralPipelines(referralPipelines ?? []);
+        if (customers !== undefined) customerCtx.setCustomers(customers ?? []);
+        if (activities !== undefined) activityCtx.setActivities(activities ?? []);
+        if (quotations !== undefined) quoteCtx.setQuotations(quotations ?? []);
+        if (referrals !== undefined) referralCtx.setReferrals(referrals ?? []);
+        if (referralDashboard !== undefined) referralCtx.setDashboard(referralDashboard);
+        if (referralPipelineStages !== undefined) pipelineCtx.setStages(referralPipelineStages ?? []);
+        if (emails !== undefined) emailCtx.setEmails(emails ?? []);
+        if (categories !== undefined) settingsCtx.setCategories(categories ?? []);
+        if (companyBranding !== undefined) settingsCtx.setCompanyBranding(companyBranding);
+        if (settingsUsers !== undefined) settingsCtx.setSettingsUsers(settingsUsers ?? []);
+        if (notifications !== undefined) notificationsCtx.setNotifications(notifications ?? []);
+        return;
+      }
+    } catch (err) {
+      console.warn("Bootstrap loading failed. Falling back to parallel individual requests...", err);
+    }
+
     await Promise.all([
-    leadsCtx.loadLeads(),
-    oppCtx.loadOpportunities(),
-    customerCtx.loadCustomers(),
-    activityCtx.loadActivities(),
-    quoteCtx.loadQuotations(),
-    referralCtx.loadReferrals(),
+      leadsCtx.loadLeads(),
+      oppCtx.loadOpportunities(),
+      customerCtx.loadCustomers(),
+      activityCtx.loadActivities(),
+      quoteCtx.loadQuotations(),
+      referralCtx.loadReferrals(),
 
-    pipelineCtx.loadStages(),
+      pipelineCtx.loadStages(),
 
-    emailCtx.loadEmails(),
-    settingsCtx.loadSettings()
-]);
+      emailCtx.loadEmails(),
+      settingsCtx.loadSettings(),
+      notificationsCtx.fetchNotifications()
+    ]);
   };
 
   // Compatibility API call
@@ -193,38 +241,42 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
 
   const handleConvertLeadFromView = async (leadId: string, dealValue: string) => {
     const leadObj = leadsCtx.leads.find(l => l.id === leadId);
-    const salesperson = leadObj?.assignedUser || auth.user?.name || 'Unassigned';
+    if (!leadObj) return;
+    const salesperson = leadObj.assignedUser || auth.user?.name || 'Unassigned';
+
+    // Optimistically update lead status and append opportunity instantly
+    const sortedPipes = [...oppCtx.pipelines].sort((a, b) => a.order - b.order);
+    const newStage = oppCtx.pipelines.find(p => p.name.toLowerCase() === 'new') || sortedPipes[0];
+    const stageId = newStage ? newStage.id : 'p_1';
+
+    const tempOppId = 'o_temp_' + Date.now();
+    const tempOpp = {
+      id: tempOppId,
+      leadId: leadId,
+      customerName: leadObj.contactName || leadObj.name || 'Unknown',
+      company: leadObj.company || 'Unknown',
+      dealValue: Number(dealValue) || 10000,
+      expectedClosing: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      assignedSalesperson: salesperson,
+      priority: 'Medium',
+      tags: [leadObj.source, leadObj.category],
+      stageId: stageId,
+      stage: newStage ? newStage.name : 'New',
+      createdDate: new Date().toISOString().split('T')[0]
+    };
+
+    oppCtx.setOpportunities(prev => [tempOpp, ...prev]);
+    leadsCtx.setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: 'Converted' } : l));
 
     const res = await leadService.convertLead(leadId, { dealValue, salesperson });
     if (res) {
-      oppCtx.setOpportunities(prev => [res.opportunity, ...prev]);
-      leadsCtx.setLeads(prev => prev.filter(l => l.id !== leadId));
+      oppCtx.setOpportunities(prev => prev.map(o => o.id === tempOppId ? res.opportunity : o));
       toastCtx.addToast("success", "Converted successfully");
       await loadCRMData();
     } else {
-      if (leadObj) {
-        const sortedPipes = [...oppCtx.pipelines].sort((a, b) => a.order - b.order);
-        const newStage = oppCtx.pipelines.find(p => p.name.toLowerCase() === 'new') || sortedPipes[0];
-        const stageId = newStage ? newStage.id : 'p_1';
-
-        const mockOpp = {
-          id: 'o_' + Date.now(),
-          leadId: leadId,
-          customerName: leadObj.contactName || leadObj.name || 'Unknown',
-          company: leadObj.company,
-          dealValue: Number(dealValue) || 10000,
-          expectedClosing: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          assignedSalesperson: salesperson,
-          priority: 'Medium',
-          tags: [leadObj.source, leadObj.category],
-          stageId: stageId,
-          stage: newStage ? newStage.name : 'New',
-          createdDate: new Date().toISOString().split('T')[0]
-        };
-        oppCtx.setOpportunities(prev => [...prev, mockOpp]);
-        leadsCtx.setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStage ? newStage.name : 'New' } : l));
-        toastCtx.addToast('success', 'Converted lead to Opportunity (Offline Mode)');
-      }
+      oppCtx.setOpportunities(prev => prev.map(o => o.id === tempOppId ? { ...o, id: 'o_' + Date.now() } : o));
+      leadsCtx.setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStage ? newStage.name : 'New' } : l));
+      toastCtx.addToast('success', 'Converted lead to Opportunity (Offline Mode)');
     }
   };
 
@@ -248,6 +300,7 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
   return (
     <CRMContext.Provider value={{
       mounted: auth.mounted,
+      authReady: auth.authReady,
       user: auth.user,
       setUser: auth.setUser,
       authMode: auth.authMode,
@@ -265,15 +318,15 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       setPipelines: oppCtx.setPipelines,
       referralPipelines: pipelineCtx.stages,
       loadReferralPipelines: pipelineCtx.loadStages,
-dashboard: referralCtx.dashboard,
-loadDashboard: referralCtx.loadDashboard,
-handleAddReferralStage: pipelineCtx.handleCreateStage,
+      dashboard: referralCtx.dashboard,
+      loadDashboard: referralCtx.loadDashboard,
+      handleAddReferralStage: pipelineCtx.handleCreateStage,
 
-handleDeleteReferralStage: pipelineCtx.handleDeleteStage,
+      handleDeleteReferralStage: pipelineCtx.handleDeleteStage,
 
-handleReferralStageReorder:
-pipelineCtx.handleReorderStages,
-   setReferralPipelines: pipelineCtx.setStages,
+      handleReferralStageReorder:
+        pipelineCtx.handleReorderStages,
+      setReferralPipelines: pipelineCtx.setStages,
       activities: activityCtx.activities,
       setActivities: activityCtx.setActivities,
       emails: emailCtx.emails,
@@ -289,8 +342,6 @@ pipelineCtx.handleReorderStages,
       categories: settingsCtx.categories,
       setCategories: settingsCtx.setCategories,
       serviceTypes: settingsCtx.serviceTypes,
-      auditLogs: settingsCtx.auditLogs,
-      setAuditLogs: settingsCtx.setAuditLogs,
       companyBranding: settingsCtx.companyBranding,
       setCompanyBranding: settingsCtx.setCompanyBranding,
       theme: themeCtx.theme,
@@ -322,7 +373,7 @@ pipelineCtx.handleReorderStages,
       apiCall,
       loadCRMData,
       addToast: toastCtx.addToast,
-  
+
       handleAuthSubmit: (e) => auth.handleAuthSubmit(e, loadCRMData),
       handleLogout: auth.handleLogout,
       selectQuickAccount: auth.selectQuickAccount,
@@ -330,11 +381,12 @@ pipelineCtx.handleReorderStages,
       handleUpdateLeadFromView: leadsCtx.handleUpdateLeadFromView,
       handleDeleteLeadFromView: leadsCtx.handleDeleteLeadFromView,
       handleConvertLeadFromView,
-  handleMoveOpportunity: oppCtx.handleMoveOpportunity,
-  handleDeleteOpportunity: oppCtx.handleDeleteOpportunity,
-  handleAddStage: oppCtx.handleAddStage,
-  handleStageReorder: oppCtx.handleStageReorder,
-  handleStageDelete: oppCtx.handleStageDelete,
+      handleMoveOpportunity: oppCtx.handleMoveOpportunity,
+      handleDeleteOpportunity: oppCtx.handleDeleteOpportunity,
+      handleUpdateOpportunity: oppCtx.handleUpdateOpportunity,
+      handleAddStage: oppCtx.handleAddStage,
+      handleStageReorder: oppCtx.handleStageReorder,
+      handleStageDelete: oppCtx.handleStageDelete,
       handleActivityCreate: activityCtx.handleActivityCreate,
       toggleActivityDone: activityCtx.toggleActivityDone,
       handleSendEmail: emailCtx.handleSendEmail,
@@ -352,9 +404,9 @@ pipelineCtx.handleReorderStages,
       applyFilters,
       handleSaveCustomFilter,
       clearAllFilters,
-      
+
       toggleTheme: themeCtx.toggleTheme
-      
+
     }}>
       {children}
     </CRMContext.Provider>

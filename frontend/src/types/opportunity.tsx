@@ -5,8 +5,8 @@ export interface Opportunity {
   dealValue: number;
   expectedClosing: string;
   assignedSalesperson: string;
-  priority: string;
-  tags: string[];
+  priority?: string | number;
+  tags?: string[];
   stageId: string;
   stage: string;
   createdDate: string;

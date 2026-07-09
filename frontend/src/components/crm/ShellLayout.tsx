@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import "@/app/globals.css";
@@ -28,15 +28,28 @@ import {
   TrendingUp,
   Settings as SettingsIcon,
   Upload,
-  Menu
+  Menu,
+  MessageSquare,
+  Trash2,
+  CheckCheck,
+  Download
 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
+import { useNotifications } from '@/hooks/useNotifications';
 import api from '@/services/api';
 
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const crm = useCRM();
+  const notificationsCtx = useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification
+  } = notificationsCtx;
 
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -44,6 +57,18 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const [showImportModal, setShowImportModal] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const [navTeams, setNavTeams] = useState<any[]>([]);
+  const [showTeamsDropdown, setShowTeamsDropdown] = useState(false);
+
+  useEffect(() => {
+    const role = (crm.user?.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+    if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
+      api.get('/salesteam')
+        .then(res => setNavTeams(res.data || []))
+        .catch(err => console.warn('Failed loading nav teams', err));
+    }
+  }, [crm.user]);
 
   const handleTermsAccept = () => {
     setShowImportModal(false);
@@ -103,6 +128,48 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     }
   };
 
+  const handleDownloadSample = () => {
+    const headers = [
+      'contactName',
+      'category',
+      'serviceType',
+      'company',
+      'email',
+      'phone',
+      'assignedUser',
+      'createdAt'
+    ];
+
+    const sampleRow = [
+      'John Doe',
+      'Healthcare',
+      'Service Based',
+      'Apex Ltd',
+      'john@apex.com',
+      '9876543210',
+      'Sarah Connor',
+      new Date().toISOString()
+    ];
+
+    const csvContent = '\uFEFF' + [
+      headers.join(','),
+      sampleRow.map(val => {
+        const str = String(val).replace(/"/g, '""');
+        return str.includes(',') || str.includes('\n') || str.includes('"') ? `"${str}"` : str;
+      }).join(',')
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'leads_import_template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    crm.addToast('success', 'Sample template downloaded!');
+  };
+
   // If path is login, don't show shell
   if (pathname === '/login') {
     return <>{children}</>;
@@ -115,7 +182,6 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3, href: '/dashboard', roles: ['SUPER_ADMIN', 'ADMIN', 'USER'] },
     { id: 'leads', label: 'Leads', icon: Users, href: '/leads', roles: ['ADMIN', 'USER'] },
     { id: 'opportunities', label: 'Opportunities', icon: ClipboardList, href: '/opportunities', roles: ['ADMIN', 'USER'] },
-    { id: 'tasks', label: 'Tasks', icon: ClipboardList, href: '/tasks', roles: ['SUPER_ADMIN', 'ADMIN', 'USER'] },
     { id: 'salesteam', label: 'Teams', icon: Users, href: '/salesteam', roles: ['SUPER_ADMIN', 'ADMIN'] },
     { id: 'activities', label: 'Activities', icon: CalendarIcon, href: '/activities', roles: ['ADMIN', 'USER'] },
     { id: 'emails', label: 'Emails', icon: Mail, href: '/emails', roles: ['ADMIN', 'USER'] },
@@ -205,6 +271,51 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                   const userRole = (crm.user?.role || '').toUpperCase().replace(' ', '_');
                   if (tab.roles && !tab.roles.includes(userRole)) return null;
 
+                  if (tab.id === 'salesteam') {
+                    return (
+                      <div 
+                        key={tab.id} 
+                        className="relative group shrink-0"
+                        onMouseEnter={() => setShowTeamsDropdown(true)}
+                        onMouseLeave={() => setShowTeamsDropdown(false)}
+                      >
+                        <Link
+                          href={tab.href}
+                          className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                            currentTab === tab.id
+                              ? 'bg-primary text-white'
+                              : 'text-txt-secondary hover:bg-slate-200 blue:hover:bg-slate-800 '
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                          <span>{tab.label}</span>
+                          <span className="text-[8px] opacity-70 ml-1">▼</span>
+                        </Link>
+
+                        {showTeamsDropdown && navTeams.length > 0 && (
+                          <div className="absolute top-full left-0 mt-1 bg-card border border-border-crm rounded-xl shadow-lg py-1.5 min-w-44 z-50 animate-fade-in text-txt-primary">
+                            <Link 
+                              href="/salesteam" 
+                              className="block px-4 py-2 text-xs font-bold hover:bg-slate-150 dark:hover:bg-slate-800 transition"
+                            >
+                              🌍 Teams Overview
+                            </Link>
+                            <div className="border-t border-border-crm/45 my-1"></div>
+                            {navTeams.map(team => (
+                              <Link 
+                                key={team.id}
+                                href={`/salesteam?team=${team.id}`}
+                                className="block px-4 py-2 text-xs font-medium hover:bg-slate-150 dark:hover:bg-slate-800 transition"
+                              >
+                                👥 {team.name}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
                   return (
                     <Link
                       key={tab.id}
@@ -251,6 +362,51 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                   const userRole = (crm.user?.role || '').toUpperCase().replace(' ', '_');
                   if (tab.roles && !tab.roles.includes(userRole)) return null;
 
+                  if (tab.id === 'salesteam') {
+                    return (
+                      <div 
+                        key={tab.id} 
+                        className="relative group shrink-0"
+                        onMouseEnter={() => setShowTeamsDropdown(true)}
+                        onMouseLeave={() => setShowTeamsDropdown(false)}
+                      >
+                        <Link
+                          href={tab.href}
+                          className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
+                            currentTab === tab.id
+                              ? 'bg-primary text-white'
+                              : 'text-txt-secondary hover:bg-slate-200 blue:hover:bg-slate-800 '
+                          }`}
+                        >
+                          <Icon className="w-3.5 h-3.5" />
+                          <span>{tab.label}</span>
+                          <span className="text-[8px] opacity-70 ml-1">▼</span>
+                        </Link>
+
+                        {showTeamsDropdown && navTeams.length > 0 && (
+                          <div className="absolute top-full left-0 mt-1 bg-card border border-border-crm rounded-xl shadow-lg py-1.5 min-w-44 z-50 animate-fade-in text-txt-primary">
+                            <Link 
+                              href="/salesteam" 
+                              className="block px-4 py-2 text-xs font-bold hover:bg-slate-150 dark:hover:bg-slate-800 transition"
+                            >
+                              🌍 Teams Overview
+                            </Link>
+                            <div className="border-t border-border-crm/45 my-1"></div>
+                            {navTeams.map(team => (
+                              <Link 
+                                key={team.id}
+                                href={`/salesteam?team=${team.id}`}
+                                className="block px-4 py-2 text-xs font-medium hover:bg-slate-150 dark:hover:bg-slate-800 transition"
+                              >
+                                👥 {team.name}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+
                   return (
                     <Link
                       key={tab.id}
@@ -281,6 +437,91 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             >
               {crm.theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             </button>
+
+            {/* Notifications Button */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowNotifications(!showNotifications);
+                  setShowProfileMenu(false);
+                }}
+                className="p-2 rounded-xl text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary transition relative cursor-pointer"
+                title="Notifications"
+              >
+                <div className="relative w-5 h-5 flex items-center justify-center">
+                  <MessageSquare className="w-5 h-5 text-txt-secondary" />
+                  <MessageSquare className="w-3.5 h-3.5 text-txt-secondary absolute -bottom-1 -right-1 bg-card border border-card rounded" style={{ transform: 'translate(1px, 1px)' }} />
+                </div>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-rose-500 text-white rounded-full text-[9px] font-bold h-4 min-w-4 px-1 flex items-center justify-center border-2 border-card">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-card border border-border-crm rounded-xl shadow-lg z-50 text-txt-primary flex flex-col max-h-[480px]">
+                  {/* Dropdown Header */}
+                  <div className="px-4 py-3 border-b border-border-crm flex items-center justify-between">
+                    <span className="font-semibold text-xs text-txt-primary flex items-center space-x-1.5">
+                      <span>Notifications</span>
+                    </span>
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={markAllAsRead}
+                        className="text-[10px] text-primary hover:underline font-semibold flex items-center space-x-1 cursor-pointer"
+                      >
+                        <CheckCheck className="w-3 h-3" />
+                        <span>Mark all read</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown List */}
+                  <div className="overflow-y-auto flex-1 py-1 max-h-[300px] divide-y divide-border-crm">
+                    {notifications.length === 0 ? (
+                      <div className="px-4 py-8 text-center text-txt-secondary text-xs">
+                        No notifications
+                      </div>
+                    ) : (
+                      notifications.map((notif) => (
+                        <div
+                          key={notif.id}
+                          onClick={() => {
+                            if (!notif.read) markAsRead(notif.id);
+                          }}
+                          className={`px-4 py-2.5 text-left text-xs transition cursor-pointer flex gap-2 items-start relative ${
+                            !notif.read ? 'bg-slate-50 dark:bg-slate-900/40' : 'hover:bg-slate-50 dark:hover:bg-slate-900/20'
+                          }`}
+                        >
+                          {/* Unread dot */}
+                          {!notif.read && (
+                            <span className="w-1.5 h-1.5 bg-primary rounded-full absolute left-1.5 top-4 mt-0.5 shrink-0" />
+                          )}
+                          <div className={`flex-1 ${!notif.read ? 'pl-1' : ''}`}>
+                            <p className="font-semibold text-txt-primary mb-0.5 leading-tight">{notif.title}</p>
+                            <p className="text-txt-secondary text-[11px] leading-snug">{notif.message}</p>
+                            <p className="text-[10px] text-slate-400 mt-1">
+                              {new Date(notif.createdAt).toLocaleDateString()} {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteNotification(notif.id);
+                            }}
+                            className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-txt-secondary hover:text-rose-500 transition cursor-pointer self-start"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Profile Dropdown */}
             <div className="relative">
@@ -740,7 +981,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       
       {/* Footer Branding */}
       <footer className="bg-card border-t border-border-crm text-center py-4 text-[10px] text-txt-secondary shrink-0">
-        <p>© 2026 {crm.companyBranding.name}. All rights reserved. Powered by Next.js, Express & Tailwind CSS.</p>
+        <p>© 2026 {crm.companyBranding.name}. All rights reserved.</p>
       </footer>
 
       {/* CSV Import Terms & Conditions Modal */}
@@ -755,17 +996,26 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             
             {/* Scrollable Terms Text Container */}
             <div className="overflow-y-auto pr-1 space-y-4 mb-5 text-txt-secondary leading-relaxed bg-bg-main p-4 rounded-xl border border-border-crm max-h-[50vh]">
-              <p className="font-bold text-txt-primary">
+               <p className="font-bold text-txt-primary">
                 Please read and accept the instructions below before importing your leads list.
               </p>
-              
-              {/* <div>
-                <h5 className="font-bold text-txt-primary mb-1">1. Database Saving & Status</h5>
-                <p>
-                  All valid records found in the uploaded file will be saved directly into the CRM database. Each imported lead will be automatically assigned a status of <strong className="text-primary font-bold">New</strong>.
-                </p>
-              </div> */}
 
+              {/* Sample Template Download Call-to-action */}
+              <div className="flex items-center justify-between bg-card border border-border-crm p-3 rounded-xl gap-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-txt-primary text-xs">Need a sample file?</p>
+                  <p className="text-[10px] text-txt-secondary mt-0.5 leading-snug">Get a pre-formatted template with all the correct column headings.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadSample}
+                  className="px-2.5 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-[10px] font-semibold transition cursor-pointer flex items-center gap-1 shrink-0 shadow-sm"
+                >
+                  <Download className="w-3.5 h-3.5" style={{ strokeWidth: 2.5 }} />
+                  <span>Get Template</span>
+                </button>
+              </div>
+              
               <div>
                 <h5 className="font-bold text-txt-primary mb-1"> Required CSV/Excel Columns</h5>
                 <p>The sheet must contain the following column headers exactly (case-sensitive):</p>

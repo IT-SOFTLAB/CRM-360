@@ -1,7 +1,8 @@
 "use client";
-
-import TasksView from "@/components/crm/TasksView";
-
-export default function TasksPage() {
-  return <TasksView />;
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+export default function TasksRedirect() {
+  const router = useRouter();
+  useEffect(() => { router.replace('/dashboard'); }, [router]);
+  return null;
 }

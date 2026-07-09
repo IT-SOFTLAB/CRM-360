@@ -5,7 +5,7 @@ import { TaskContext, TaskContextType } from '../context/TaskContext';
 
 export const useTasks = (): TaskContextType => {
   const context = useContext(TaskContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useTasks must be used within a TaskProvider');
   }
   return context;

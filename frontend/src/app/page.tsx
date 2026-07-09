@@ -5,18 +5,18 @@ import { useRouter } from 'next/navigation';
 import { useCRM } from '@/context/CRMContext';
 
 export default function RootPage() {
-  const { user, mounted } = useCRM();
+  const { user, authReady } = useCRM();
   const router = useRouter();
 
   useEffect(() => {
-    if (mounted) {
+    if (authReady) {
       if (user) {
         router.replace('/dashboard');
       } else {
         router.replace('/login');
       }
     }
-  }, [user, mounted, router]);
+  }, [user, authReady, router]);
 
   return (
     <div className="min-h-screen bg-bg-main flex items-center justify-center">

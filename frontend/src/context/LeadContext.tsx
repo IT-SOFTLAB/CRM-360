@@ -33,33 +33,61 @@ export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const handleCreateLeadFromView = async (leadForm: any) => {
+    setShowLeadCreateModal(false);
+    
+    // Optimistically render the new lead instantly
+    const tempId = 'l_temp_' + Date.now();
+    const tempLead = {
+      id: tempId,
+      status: 'New',
+      createdAt: new Date().toISOString(),
+      contactName: leadForm.contactName,
+      name: leadForm.contactName || leadForm.name || "Unknown",
+      source: leadForm.source || 'Direct',
+      createdDate: new Date().toISOString().split('T')[0],
+      company: leadForm.company,
+      email: leadForm.email,
+      phone: leadForm.phone,
+      category: leadForm.category,
+      serviceType: leadForm.serviceType,
+      assignedUser: leadForm.assignedUser || 'Unassigned'
+    };
+    setLeads(prev => [...prev, tempLead as any]);
+
     const res = await leadService.createLead(leadForm);
     if (res) {
-      setLeads(prev => [...prev, res]);
-      if (toastCtx) toastCtx.addToast('success', `Lead for ${res.name} created!`);
+      setLeads(prev => prev.map(l => l.id === tempId ? res : l));
+      if (toastCtx) toastCtx.addToast('success', `Lead for ${res.contactName || res.name} created!`);
     } else {
+      setLeads(prev => prev.filter(l => l.id !== tempId));
       if (toastCtx) toastCtx.addToast('error', 'Failed to create lead');
     }
-    setShowLeadCreateModal(false);
-    await loadLeads();
   };
 
   const handleUpdateLeadFromView = async (leadId: string, leadData: any) => {
+    
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, ...leadData } : l));
+
     const res = await leadService.updateLead(leadId, leadData);
     if (res) {
+      setLeads(prev => prev.map(l => l.id === leadId ? res : l));
       if (toastCtx) toastCtx.addToast('success', 'Lead updated');
-      await loadLeads();
     } else {
       if (toastCtx) toastCtx.addToast('error', 'Failed to update lead');
+      await loadLeads(); // Revert/reload on failure
     }
   };
 
   const handleDeleteLeadFromView = async (leadId: string) => {
+    // Optimistically remove lead state immediately
+    const originalLeads = leads;
+    setLeads(prev => prev.filter(l => l.id !== leadId));
+
     const res = await leadService.deleteLead(leadId);
     if (res) {
       if (toastCtx) toastCtx.addToast('success', 'Lead deleted');
-      await loadLeads();
     } else {
+      setLeads(originalLeads);
       if (toastCtx) toastCtx.addToast('error', 'Failed to delete lead');
     }
   };
