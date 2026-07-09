@@ -240,7 +240,7 @@ export default function SettingsView({
         {/* Audit Logs */}
         <div className="bg-slate-300 border border-slate-700/60 rounded-2xl p-5 space-y-4">
           <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">Real-Time Audit System Logs</h4>
-          <div className="max-h-60 overflow-y-auto divide-y divide-slate-700/60">
+          {/* <div className="max-h-60 overflow-y-auto divide-y divide-slate-700/60">
             {auditLogs.map((log) => (
               <div key={log.id} className="py-2.5 space-y-0.5 text-[10px]">
                 <div className="flex justify-between font-bold">
@@ -254,7 +254,7 @@ export default function SettingsView({
             {auditLogs.length === 0 && (
               <div className="text-center py-6 text-slate-700">No logs available.</div>
             )}
-          </div>
+          </div> */}
         </div>
 
       </div>

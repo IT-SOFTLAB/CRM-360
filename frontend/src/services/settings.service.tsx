@@ -64,13 +64,13 @@ export const settingsService = {
       return null;
     }
   },
-  getAuditLogs: async () => {
-    try {
-      const res = await api.get('/settings/logs');
-      return res.data;
-    } catch (err) {
-      console.warn('API error fetching audit logs, fallback to offline', err);
-      return null;
-    }
-  }
+  // getAuditLogs: async () => {
+  //   try {
+  //     const res = await api.get('/settings/logs');
+  //     return res.data;
+  //   } catch (err) {
+  //     console.warn('API error fetching audit logs, fallback to offline', err);
+  //     return null;
+  //   }
+  // }
 };
