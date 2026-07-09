@@ -10,6 +10,9 @@ router.post('/setup', auth.setup);
 
 // Standard auth endpoints
 router.post('/login', auth.login);
+router.get("/login/outlook", auth.outlookLogin);
+router.get("/callback", auth.outlookCallback);
+
 router.post('/refresh', auth.refresh);
 router.post('/logout', auth.logout);
 
@@ -19,6 +22,6 @@ router.post('/invite', authenticateJWT, requireAdminOrSuperAdmin, auth.inviteUse
 router.post('/accept-invitation', auth.acceptInvitation);
 
 // Outlook callback integrity
-router.get('/callback', auth.callback);
+//router.get('/callback', auth.callback);
 
 module.exports = router;

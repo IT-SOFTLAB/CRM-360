@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
+const session = require("express-session");
 const fs = require('fs');
 const path = require('path');
 require("dotenv").config();
@@ -33,7 +34,19 @@ app.use(cors({
 }));
 app.use(bodyParser.json());
 app.use(cookieParser());
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET || "crm360-secret",
+        resave: false,
+        saveUninitialized: false,
 
+        cookie: {
+            maxAge: 7 * 24 * 60 * 60 * 1000,
+            httpOnly: true,
+            secure: false
+        }
+    })
+);
 app.use("/api/leads", leadRoutes);
 app.use("/api/activities", activityRoutes);
 app.use("/api/opportunities",opportunityRoutes);
@@ -713,40 +726,40 @@ app.delete('/api/activities/:id', (req, res) => {
 });
 
 // Outlook Emails Integration Simulator
-app.get('/api/emails', (req, res) => {
-  const db = readDB();
-  res.json(db.emails);
-});
+// app.get('/api/emails', (req, res) => {
+//   const db = readDB();
+//   res.json(db.emails);
+// });
 
-app.post('/api/emails', (req, res) => {
-  const db = readDB();
-  const email = {
-    id: 'e_' + Date.now(),
-    date: new Date().toISOString(),
-    read: true,
-    replied: false,
-    bounced: false,
-    threadId: req.body.threadId || 'th_' + Date.now(),
-    history: req.body.history || [],
-    ...req.body
-  };
-  db.emails.unshift(email);
-  logActivity(db, null, 'SEND_EMAIL', 'Email Integration', `Sent email to ${email.recipient}: "${email.subject}"`);
-  writeDB(db);
-  res.status(201).json(email);
-});
+// app.post('/api/emails', (req, res) => {
+//   const db = readDB();
+//   const email = {
+//     id: 'e_' + Date.now(),
+//     date: new Date().toISOString(),
+//     read: true,
+//     replied: false,
+//     bounced: false,
+//     threadId: req.body.threadId || 'th_' + Date.now(),
+//     history: req.body.history || [],
+//     ...req.body
+//   };
+//   db.emails.unshift(email);
+//   logActivity(db, null, 'SEND_EMAIL', 'Email Integration', `Sent email to ${email.recipient}: "${email.subject}"`);
+//   writeDB(db);
+//   res.status(201).json(email);
+// });
 
-app.put('/api/emails/:id', (req, res) => {
-  const { id } = req.params;
-  const db = readDB();
-  const index = db.emails.findIndex(e => e.id === id);
-  if (index !== -1) {
-    db.emails[index] = { ...db.emails[index], ...req.body };
-    writeDB(db);
-    return res.json(db.emails[index]);
-  }
-  res.status(404).json({ message: 'Email not found' });
-});
+// app.put('/api/emails/:id', (req, res) => {
+//   const { id } = req.params;
+//   const db = readDB();
+//   const index = db.emails.findIndex(e => e.id === id);
+//   if (index !== -1) {
+//     db.emails[index] = { ...db.emails[index], ...req.body };
+//     writeDB(db);
+//     return res.json(db.emails[index]);
+//   }
+//   res.status(404).json({ message: 'Email not found' });
+// });
 
 // Quotations
 app.get('/api/quotations', (req, res) => {

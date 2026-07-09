@@ -2,8 +2,14 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const { Client } = require("@microsoft/microsoft-graph-client");
+require("isomorphic-fetch");
 
+const prisma = new PrismaClient();
+const {
+    getAuthUrl,
+    getTokenFromCode
+} = require("../services/graphService");
 const JWT_SECRET = process.env.JWT_SECRET || 'mysecretkey';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'myrefreshsecretkey';
 
@@ -380,6 +386,66 @@ exports.acceptInvitation = async (req, res) => {
 };
 
 
-exports.callback = async (req, res) => {
-  res.send('Outlook connection preserved successfully.');
+exports.outlookCallback = async (req, res) => {
+  try {
+
+    const token = await getTokenFromCode(req.query.code);
+
+    // Graph client with newly received token
+    const client = Client.init({
+      authProvider: (done) => {
+        done(null, token.accessToken);
+      }
+    });
+
+    // Get Outlook profile
+    const me = await client.api("/me").get();
+
+    // ⚠️ Temporary: keep existing global token until we replace email APIs
+    // global.accessToken = token.accessToken;
+    // global.refreshToken = token.refreshToken;
+
+    req.session.outlook = {
+    accessToken: token.accessToken,
+    refreshToken: token.refreshToken,
+    email: me.mail || me.userPrincipalName
+};
+
+    console.log("Connected Outlook:", me.mail || me.userPrincipalName);
+
+   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
+console.log("Redirecting to:", `${frontendUrl}/emails?connected=true`);
+
+return res.redirect(`${frontendUrl}/emails?connected=true`);
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+
+  }
+};
+exports.outlookLogin = async (req, res) => {
+  console.log("✅ outlookLogin route hit");
+    try {
+
+        const url = await getAuthUrl();
+
+        res.redirect(url);
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            message: err.message
+        });
+
+    }
+
 };

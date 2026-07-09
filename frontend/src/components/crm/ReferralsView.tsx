@@ -122,12 +122,12 @@ dashboard?.qualifiedLeads ?? 0
           </h3>
         </div>
 
-        <div className="bg-card rounded-2xl p-5 border border-border-crm shadow-xs">
+        {/* <div className="bg-card rounded-2xl p-5 border border-border-crm shadow-xs">
           <p className="text-xs font-bold text-txt-secondary uppercase tracking-wide">Conversions</p>
           <h3 className="text-2xl font-extrabold text-primary mt-1">
           {dashboard?.conversions ?? 0}
           </h3>
-        </div>
+        </div> */}
 
       </div>
 

@@ -115,6 +115,68 @@ export interface CRMContextType {
   handleActivityCreate: (activityForm: any) => Promise<void>;
   toggleActivityDone: (activityId: string, currentStatus: boolean) => Promise<void>;
   handleSendEmail: (replyText: string, emailObject: any) => Promise<void>;
+  isConnected: boolean;
+
+connectedEmail: string;
+
+connectOutlook: () => void;
+
+currentFolder: string;
+
+loadInbox: () => Promise<void>;
+
+loadSent: () => Promise<void>;
+
+loadDrafts: () => Promise<void>;
+
+loadTrash: () => Promise<void>;
+
+refreshInbox: () => Promise<void>;
+
+deleteEmail: (id: string) => Promise<void>;
+
+restoreEmail: (id: string) => Promise<void>;
+
+markRead: (id: string) => Promise<void>;
+
+markUnread: (id: string) => Promise<void>;
+
+forwardEmail: (
+  id: string,
+  to: string
+) => Promise<void>;
+
+getEmailDetails: (
+  id: string
+) => Promise<any>;
+
+getConversation: (
+  id: string
+) => Promise<any>;
+
+replyEmail: (
+  id: string,
+  message: string
+) => Promise<void>;
+
+replyAllEmail: (
+  id: string,
+  message: string
+) => Promise<void>;
+
+permanentDelete: (
+  id: string
+) => Promise<void>;
+
+searchEmails: (
+  keyword: string
+) => Promise<any>;
+
+getProfile: () => Promise<any>;
+
+getAttachments: (
+  id: string
+) => Promise<any>;
   handleQuotationCreate: (quoteForm: any) => Promise<void>;
   updateQuoteStatus: (quoteId: string, status: string) => Promise<void>;
   handleReferralCreate: (referralForm: any) => Promise<void>;
@@ -220,10 +282,9 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
 
       pipelineCtx.loadStages(),
 
-      emailCtx.loadEmails(),
-      settingsCtx.loadSettings(),
-      notificationsCtx.fetchNotifications()
-    ]);
+    emailCtx.loadEmails(),
+    settingsCtx.loadSettings()
+]);
   };
 
   // Compatibility API call
@@ -390,6 +451,49 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       handleActivityCreate: activityCtx.handleActivityCreate,
       toggleActivityDone: activityCtx.toggleActivityDone,
       handleSendEmail: emailCtx.handleSendEmail,
+      isConnected: emailCtx.isConnected,
+
+connectedEmail: emailCtx.connectedEmail,
+
+connectOutlook: emailCtx.connectOutlook,
+
+currentFolder: emailCtx.currentFolder,
+
+loadInbox: emailCtx.loadInbox,
+
+loadSent: emailCtx.loadSent,
+
+loadDrafts: emailCtx.loadDrafts,
+
+loadTrash: emailCtx.loadTrash,
+
+refreshInbox: emailCtx.refreshInbox,
+
+deleteEmail: emailCtx.deleteEmail,
+
+restoreEmail: emailCtx.restoreEmail,
+
+markRead: emailCtx.markRead,
+
+markUnread: emailCtx.markUnread,
+
+forwardEmail: emailCtx.forwardEmail,
+
+getEmailDetails: emailCtx.getEmailDetails,
+
+getConversation: emailCtx.getConversation,
+
+replyEmail: emailCtx.replyEmail,
+
+replyAllEmail: emailCtx.replyAllEmail,
+
+permanentDelete: emailCtx.permanentDelete,
+
+searchEmails: emailCtx.searchEmails,
+
+getProfile: emailCtx.getProfile,
+
+getAttachments: emailCtx.getAttachments,
       handleQuotationCreate: quoteCtx.handleQuotationCreate,
       handleQuotationUpdate: quoteCtx.handleQuotationUpdate,
       updateQuoteStatus: quoteCtx.updateQuoteStatus,
