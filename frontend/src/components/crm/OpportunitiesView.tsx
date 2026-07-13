@@ -58,21 +58,28 @@ export default function OpportunitiesView({
     return 0;
   };
 
-  const getTagColors = (tag: string, isDark: boolean) => {
-    const hash = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const hues = [0, 35, 145, 205, 270, 325]; // Red, Orange, Green, Blue, Purple, Pink
-    const hue = hues[hash % hues.length];
-    if (isDark) {
-      return {
-        bg: `hsla(${hue}, 70%, 35%, 0.25)`,
-        text: `hsla(${hue}, 85%, 70%, 1)`
-      };
-    }
+const getTagColors = (tag?: string, isDark: boolean = false) => {
+  const safeTag = tag?.trim() || "Default";
+
+  const hash = safeTag
+    .split("")
+    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+
+  const hues = [0, 35, 145, 205, 270, 325]; // Red, Orange, Green, Blue, Purple, Pink
+  const hue = hues[hash % hues.length];
+
+  if (isDark) {
     return {
-      bg: `hsla(${hue}, 85%, 92%, 0.9)`,
-      text: `hsla(${hue}, 90%, 30%, 1)`
+      bg: `hsla(${hue}, 70%, 35%, 0.25)`,
+      text: `hsla(${hue}, 85%, 70%, 1)`,
     };
+  }
+
+  return {
+    bg: `hsla(${hue}, 85%, 92%, 0.9)`,
+    text: `hsla(${hue}, 90%, 30%, 1)`,
   };
+};
 
   const handleStarClick = (oppId: string, starIndex: number) => {
     const opp = opportunities.find(o => o.id === oppId);

@@ -44,6 +44,41 @@ export const emailService = {
     return res.data;
   },
 
+createDraft: async (payload: any) => {
+
+    const res = await api.post(
+        "/emails/draft",
+        payload
+    );
+
+    return res.data;
+
+},
+
+updateDraft: async (
+    id: string,
+    payload: any
+) => {
+
+    const res = await api.patch(
+        `/emails/draft/${id}`,
+        payload
+    );
+
+    return res.data;
+
+},
+
+sendDraft: async (id: string) => {
+
+    const res = await api.post(
+        `/emails/draft/${id}/send`
+    );
+
+    return res.data;
+
+},
+
   replyEmail: async (
     id: string,
     message: string

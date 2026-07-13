@@ -29,7 +29,7 @@ interface EmailsViewProps {
     replyText: string,
     emailObj: any
   ) => void;
-
+currentFolder: string;
   applyFilters: (
     data: any[],
     type: "leads" | "opportunities" | "emails"
@@ -56,6 +56,19 @@ getEmailDetails: (
 getConversation: (
     id: string
 ) => Promise<any>;
+
+createDraft: (
+    payload: any
+) => Promise<any>;
+
+updateDraft: (
+    id: string,
+    payload: any
+) => Promise<any>;
+
+sendDraft: (
+    id: string
+) => Promise<any>;
 }
 
 export default function EmailsView({
@@ -69,7 +82,7 @@ export default function EmailsView({
   isConnected,
   connectedEmail,
   connectOutlook,
-
+currentFolder,
  refreshInbox,
 
 loadInbox,
@@ -88,13 +101,17 @@ forwardEmail,
 getEmailDetails,
 getConversation,
 
+createDraft,
+updateDraft,
+sendDraft,
+
 onSendReply,
 
   applyFilters
 
 }: EmailsViewProps) {
   
-  const [emailFolder, setEmailFolder] = useState('Inbox');
+  //const [emailFolder, setEmailFolder] = useState('Inbox');
   const [selectedEmail, setSelectedEmail] = useState<any>(null);
   const [emailReplyText, setEmailReplyText] = useState('');
   const [showCompose, setShowCompose] = useState(false);
@@ -145,6 +162,29 @@ const handleComposeSend = async (
   setShowCompose(false);
 
 };
+
+const handleSaveDraft = async () => {
+
+  await createDraft({
+    to: composeForm.to,
+    cc: composeForm.cc,
+    bcc: composeForm.bcc,
+    subject: composeForm.subject,
+    body: composeForm.body
+  });
+
+  setComposeForm({
+    to: "",
+    cc: "",
+    bcc: "",
+    subject: "",
+    body: ""
+  });
+
+  setShowCompose(false);
+
+};
+
 const filteredEmails = emails;
 
   return (
@@ -219,27 +259,11 @@ const filteredEmails = emails;
   {/* Refresh */}
 
   <button
-    onClick={async () => {
+  onClick={async () => {
 
-switch(emailFolder){
+    setSelectedEmail(null);
 
-case "Inbox":
-await loadInbox();
-break;
-
-case "Sent":
-await loadSent();
-break;
-
-case "Drafts":
-await loadDrafts();
-break;
-
-case "Trash":
-await loadTrash();
-break;
-
-}
+    await refreshInbox();
 
 }}
     className="border border-border-crm rounded-xl py-2 flex justify-center items-center gap-2 mb-4 hover:bg-slate-100"
@@ -296,7 +320,7 @@ break;
 
     setSelectedEmail(null);
 
-    setEmailFolder(folder.id);
+   await loadInbox();
 
     switch(folder.id){
 
@@ -328,7 +352,7 @@ break;
 
 }}
         className={`flex justify-between px-3 py-2 rounded-xl text-xs ${
-          emailFolder===folder.id
+       currentFolder===folder.id
           ? "bg-primary/10 text-primary"
           : "hover:bg-slate-100"
         }`}
@@ -367,6 +391,28 @@ break;
     } catch (err) {
       console.log("Conversation not available");
     }
+
+if (currentFolder === "Drafts") {
+
+    setComposeForm({
+
+        to: details.recipients?.join(", ") || "",
+
+        cc: details.cc?.join(", ") || "",
+
+        bcc: details.bcc?.join(", ") || "",
+
+        subject: details.subject,
+
+        body: details.body
+
+    });
+
+    setShowCompose(true);
+
+    return;
+
+}
 
     setSelectedEmail({
       ...details,
@@ -452,9 +498,30 @@ selectedEmail.recipients?.join(", ")
                 )}
               </div>
 
-        {emailFolder === "Trash" ? (
+<div className="flex items-center gap-2">
 
-          
+{currentFolder === "Drafts" && (
+
+<button
+    onClick={async () => {
+
+        await sendDraft(selectedEmail.id);
+
+        await loadSent();
+
+        setSelectedEmail(null);
+
+    }}
+    className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-xs"
+>
+
+Send
+
+</button>
+
+)}
+
+{currentFolder === "Trash" ? (
 
 <button
     onClick={async () => {
@@ -489,6 +556,8 @@ Delete
 </button>
 
 )}
+
+</div>
             </div>
 
             {/* Thread messages scroll */}
@@ -551,6 +620,7 @@ __html: hist.body
             </div>
 
             {/* Reply Input Box */}
+            {currentFolder !== "Drafts" && (
             <form onSubmit={handleSendEmailSubmit} className="p-4 border-t border-border-crm bg-card flex gap-2 shrink-0">
               <input
                 type="text" required placeholder="Write Outlook reply email thread..."
@@ -565,7 +635,7 @@ __html: hist.body
                 <Send className="w-4 h-4" />
               </button>
             </form>
-
+)}
           </div>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 text-slate-400">
@@ -730,29 +800,26 @@ className="w-full border rounded-xl px-4 py-3 resize-none"
 <div className="flex justify-end gap-3">
 
 <button
-
 type="button"
-
-onClick={()=>setShowCompose(false)}
-
+onClick={() => setShowCompose(false)}
 className="px-5 py-2 border rounded-xl"
-
 >
-
 Cancel
-
 </button>
 
 <button
-
-type="submit"
-
-className="bg-primary text-white px-6 py-2 rounded-xl"
-
+type="button"
+onClick={handleSaveDraft}
+className="bg-yellow-500 text-white px-5 py-2 rounded-xl"
 >
+Save Draft
+</button>
 
+<button
+type="submit"
+className="bg-primary text-white px-6 py-2 rounded-xl"
+>
 Send
-
 </button>
 
 </div>

@@ -710,3 +710,102 @@ exports.getConnectionStatus = async (req, res) => {
     });
 
 };
+
+exports.createDraft = async (req, res) => {
+
+    try {
+
+        const client = getGraphClient(
+            req.session.outlook.accessToken
+        );
+
+        const draft = await client
+            .api("/me/messages")
+            .post({
+
+                subject: req.body.subject,
+
+                body: {
+                    contentType: "HTML",
+                    content: req.body.body
+                },
+
+                toRecipients: req.body.to
+                    ? [{
+                        emailAddress: {
+                            address: req.body.to
+                        }
+                    }]
+                    : [],
+
+                ccRecipients: req.body.cc
+                    ? [{
+                        emailAddress: {
+                            address: req.body.cc
+                        }
+                    }]
+                    : [],
+
+                bccRecipients: req.body.bcc
+                    ? [{
+                        emailAddress: {
+                            address: req.body.bcc
+                        }
+                    }]
+                    : []
+
+            });
+
+        res.json(draft);
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+
+    }
+
+};
+
+exports.updateDraft = async (req, res) => {
+
+    const client = getGraphClient(
+        req.session.outlook.accessToken
+    );
+
+    const draft = await client
+        .api(`/me/messages/${req.params.id}`)
+        .patch({
+
+            subject: req.body.subject,
+
+            body: {
+                contentType: "HTML",
+                content: req.body.body
+            }
+
+        });
+
+    res.json(draft);
+
+};
+
+exports.sendDraft = async (req, res) => {
+
+    const client = getGraphClient(
+        req.session.outlook.accessToken
+    );
+
+    await client
+        .api(`/me/messages/${req.params.id}/send`)
+        .post({});
+
+    res.json({
+        success: true
+    });
+
+};

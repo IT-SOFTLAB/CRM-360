@@ -177,6 +177,20 @@ getProfile: () => Promise<any>;
 getAttachments: (
   id: string
 ) => Promise<any>;
+
+createDraft: (
+  payload: any
+) => Promise<any>;
+
+updateDraft: (
+  id: string,
+  payload: any
+) => Promise<any>;
+
+sendDraft: (
+  id: string
+) => Promise<any>;
+
   handleQuotationCreate: (quoteForm: any) => Promise<void>;
   updateQuoteStatus: (quoteId: string, status: string) => Promise<void>;
   handleReferralCreate: (referralForm: any) => Promise<void>;
@@ -234,23 +248,21 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       const res = await api.get('/bootstrap');
       if (res && res.data) {
         const {
-          leads,
-          opportunities,
-          customers,
-          activities,
-          quotations,
-          referrals,
-          referralDashboard,
-          referralPipelineStages,
-          pipelines,
-          referralPipelines,
-          emails,
-          categories,
-          companyBranding,
-          settingsUsers,
-          notifications
-        } = res.data;
-
+    leads,
+    opportunities,
+    customers,
+    activities,
+    quotations,
+    referrals,
+    referralDashboard,
+    referralPipelineStages,
+    pipelines,
+    referralPipelines,
+    categories,
+    companyBranding,
+    settingsUsers,
+    notifications
+} = res.data;
         if (leads !== undefined) leadsCtx.setLeads(leads ?? []);
         if (opportunities !== undefined) oppCtx.setOpportunities(opportunities ?? []);
         if (pipelines !== undefined) oppCtx.setPipelines(pipelines ?? []);
@@ -261,7 +273,7 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
         if (referrals !== undefined) referralCtx.setReferrals(referrals ?? []);
         if (referralDashboard !== undefined) referralCtx.setDashboard(referralDashboard);
         if (referralPipelineStages !== undefined) pipelineCtx.setStages(referralPipelineStages ?? []);
-        if (emails !== undefined) emailCtx.setEmails(emails ?? []);
+      //  if (emails !== undefined) emailCtx.setEmails(emails ?? []);
         if (categories !== undefined) settingsCtx.setCategories(categories ?? []);
         if (companyBranding !== undefined) settingsCtx.setCompanyBranding(companyBranding);
         if (settingsUsers !== undefined) settingsCtx.setSettingsUsers(settingsUsers ?? []);
@@ -274,16 +286,15 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
 
     await Promise.all([
       leadsCtx.loadLeads(),
-      oppCtx.loadOpportunities(),
-      customerCtx.loadCustomers(),
-      activityCtx.loadActivities(),
-      quoteCtx.loadQuotations(),
-      referralCtx.loadReferrals(),
+    oppCtx.loadOpportunities(),
+    customerCtx.loadCustomers(),
+    activityCtx.loadActivities(),
+    quoteCtx.loadQuotations(),
+    referralCtx.loadReferrals(),
+    pipelineCtx.loadStages(),
+    settingsCtx.loadSettings(),
 
-      pipelineCtx.loadStages(),
-
-    // emailCtx.loadEmails(),
-    settingsCtx.loadSettings()
+    emailCtx.loadInbox()
 ]);
   };
 
@@ -494,6 +505,12 @@ searchEmails: emailCtx.searchEmails,
 getProfile: emailCtx.getProfile,
 
 getAttachments: emailCtx.getAttachments,
+
+createDraft: emailCtx.createDraft,
+
+updateDraft: emailCtx.updateDraft,
+
+sendDraft: emailCtx.sendDraft,
       handleQuotationCreate: quoteCtx.handleQuotationCreate,
       handleQuotationUpdate: quoteCtx.handleQuotationUpdate,
       updateQuoteStatus: quoteCtx.updateQuoteStatus,

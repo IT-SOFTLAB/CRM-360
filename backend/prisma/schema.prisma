@@ -44,6 +44,7 @@ model Lead {
   serviceType     String
   assignedUser    String?
   assignedUserId  String?
+  source          String?
   assignedUserRel User?    @relation(fields: [assignedUserId], references: [id])
 }
 

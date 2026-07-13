@@ -85,6 +85,19 @@ getProfile: () => Promise<any>;
 getAttachments: (
     id: string
 ) => Promise<any>;
+createDraft: (
+    payload: any
+) => Promise<any>;
+
+updateDraft: (
+    id: string,
+    payload: any
+) => Promise<any>;
+
+sendDraft: (
+    id: string
+) => Promise<any>;
+
 }
 export const EmailContext = createContext<EmailContextType | undefined>(undefined);
 
@@ -110,48 +123,48 @@ const connectOutlook = () => {
 
 
 
-useEffect(() => {
+// useEffect(() => {
 
-  const checkConnection = async () => {
+//   const checkConnection = async () => {
 
-    try {
+//     try {
 
-      const profile = await emailService.profile();
+//       const profile = await emailService.profile();
 
-      setIsConnected(true);
+//       setIsConnected(true);
 
-      setConnectedEmail(
-        profile.mail || profile.userPrincipalName
-      );
+//       setConnectedEmail(
+//         profile.mail || profile.userPrincipalName
+//       );
 
-      await loadInbox();
+//       await loadInbox();
 
-    } catch (err) {
+//     } catch (err) {
 
-      setIsConnected(false);
+//       setIsConnected(false);
 
-      setConnectedEmail("");
+//       setConnectedEmail("");
 
-    }
+//     }
 
-    // Still show success message after OAuth redirect
-    const params = new URLSearchParams(window.location.search);
+//     // Still show success message after OAuth redirect
+//     const params = new URLSearchParams(window.location.search);
 
-    if (params.get("connected") === "true") {
+//     if (params.get("connected") === "true") {
 
-      toastCtx?.addToast(
-        "success",
-        "Outlook connected successfully!"
-      );
+//       toastCtx?.addToast(
+//         "success",
+//         "Outlook connected successfully!"
+//       );
 
-      window.history.replaceState({}, "", "/emails");
-    }
+//       window.history.replaceState({}, "", "/emails");
+//     }
 
-  };
+//   };
 
-  checkConnection();
+//   checkConnection();
 
-}, []);
+// }, []);
 
 // const user = authCtx?.user;
 
@@ -240,6 +253,10 @@ const refreshInbox = async () => {
 
         case "Trash":
             await loadTrash();
+            break;
+
+        default:
+            await loadInbox();
             break;
 
     }
@@ -364,7 +381,52 @@ const getAttachments = async (
     return await emailService.getAttachments(id);
 
 };
+const createDraft = async (payload: any) => {
 
+    const draft = await emailService.createDraft(payload);
+
+    toastCtx?.addToast(
+        "success",
+        "Draft saved successfully."
+    );
+
+    await loadDrafts();
+
+    return draft;
+
+};
+const updateDraft = async (
+    id: string,
+    payload: any
+) => {
+
+    const draft = await emailService.updateDraft(
+        id,
+        payload
+    );
+
+    toastCtx?.addToast(
+        "success",
+        "Draft updated."
+    );
+
+    await loadDrafts();
+
+    return draft;
+
+};
+const sendDraft = async (id: string) => {
+
+    await emailService.sendDraft(id);
+
+    toastCtx?.addToast(
+        "success",
+        "Draft sent successfully."
+    );
+
+    await loadSent();
+
+};
 
 
 
@@ -444,6 +506,12 @@ searchEmails,
 getProfile,
 
 getAttachments,
+
+createDraft,
+
+updateDraft,
+
+sendDraft,
    
 }}
 >

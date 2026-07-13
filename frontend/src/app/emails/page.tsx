@@ -9,41 +9,45 @@ export default function EmailsPage() {
 
   return (
 
-    <EmailsView
+   <EmailsView
 
-      emails={crm.emails}
-      user={crm.user}
-      searchQuery={crm.searchQuery}
+  emails={crm.emails}
+  user={crm.user}
+  searchQuery={crm.searchQuery}
 
-      isConnected={crm.isConnected}
-      connectedEmail={crm.connectedEmail}
+  isConnected={crm.isConnected}
+  connectedEmail={crm.connectedEmail}
+ currentFolder={crm.currentFolder}
 
-      connectOutlook={crm.connectOutlook}
+  connectOutlook={crm.connectOutlook}
 
-      refreshInbox={crm.refreshInbox}
+  refreshInbox={crm.refreshInbox}
 
-      loadInbox={crm.loadInbox}
-      loadSent={crm.loadSent}
-      loadDrafts={crm.loadDrafts}
-      loadTrash={crm.loadTrash}
+  loadInbox={crm.loadInbox}
+  loadSent={crm.loadSent}
+  loadDrafts={crm.loadDrafts}
+  loadTrash={crm.loadTrash}
 
-      deleteEmail={crm.deleteEmail}
-      restoreEmail={crm.restoreEmail}
+  deleteEmail={crm.deleteEmail}
+  restoreEmail={crm.restoreEmail}
 
-      markRead={crm.markRead}
-      markUnread={crm.markUnread}
+  markRead={crm.markRead}
+  markUnread={crm.markUnread}
 
-      forwardEmail={crm.forwardEmail}
+  forwardEmail={crm.forwardEmail}
 
-      getEmailDetails={crm.getEmailDetails}
-      getConversation={crm.getConversation}
+  getEmailDetails={crm.getEmailDetails}
+  getConversation={crm.getConversation}
 
-      onSendReply={crm.handleSendEmail}
+  createDraft={crm.createDraft}
+  updateDraft={crm.updateDraft}
+  sendDraft={crm.sendDraft}
 
-      applyFilters={crm.applyFilters}
+  onSendReply={crm.handleSendEmail}
 
-    />
+  applyFilters={crm.applyFilters}
 
+/>
   );
 
 }

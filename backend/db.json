@@ -369,171 +369,7 @@
     }
   ],
   "emails": [
-    {
-      "id": "e_1783574357356",
-      "date": "2026-07-09T05:19:17.356Z",
-      "read": true,
-      "replied": false,
-      "bounced": false,
-      "threadId": "th_1783574357356",
-      "history": [],
-      "sender": "parthika@gmail.com",
-      "recipient": "lead2@gmail.com",
-      "subject": "Update regarding your project/opportunity",
-      "body": "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin",
-      "folder": "Sent"
-    },
-    {
-      "id": "e_1783574357346",
-      "date": "2026-07-09T05:19:17.346Z",
-      "read": true,
-      "replied": false,
-      "bounced": false,
-      "threadId": "th_1783574357346",
-      "history": [],
-      "sender": "parthika@gmail.com",
-      "recipient": "pqrs@gmail.com",
-      "subject": "Update regarding your project/opportunity",
-      "body": "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin",
-      "folder": "Sent"
-    },
-    {
-      "id": "e_1783574357336",
-      "date": "2026-07-09T05:19:17.336Z",
-      "read": true,
-      "replied": false,
-      "bounced": false,
-      "threadId": "th_1783574357336",
-      "history": [],
-      "sender": "parthika@gmail.com",
-      "recipient": "trupti@gmail.com",
-      "subject": "Update regarding your project/opportunity",
-      "body": "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin",
-      "folder": "Sent"
-    },
-    {
-      "id": "e_1783574357325",
-      "date": "2026-07-09T05:19:17.325Z",
-      "read": true,
-      "replied": false,
-      "bounced": false,
-      "threadId": "th_1783574357325",
-      "history": [],
-      "sender": "parthika@gmail.com",
-      "recipient": "xyz@gmail.com",
-      "subject": "Update regarding your project/opportunity",
-      "body": "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin",
-      "folder": "Sent"
-    },
-    {
-      "id": "e_1783574357315",
-      "date": "2026-07-09T05:19:17.315Z",
-      "read": true,
-      "replied": false,
-      "bounced": false,
-      "threadId": "th_1783574357315",
-      "history": [],
-      "sender": "parthika@gmail.com",
-      "recipient": "yashtech@gmail.com",
-      "subject": "Update regarding your project/opportunity",
-      "body": "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin",
-      "folder": "Sent"
-    },
-    {
-      "id": "e_1783574357301",
-      "date": "2026-07-09T05:19:17.301Z",
-      "read": true,
-      "replied": false,
-      "bounced": false,
-      "threadId": "th_1783574357301",
-      "history": [],
-      "sender": "parthika@gmail.com",
-      "recipient": "yashiii@gmail.com",
-      "subject": "Update regarding your project/opportunity",
-      "body": "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin",
-      "folder": "Sent"
-    },
-    {
-      "id": "e_1783574357274",
-      "date": "2026-07-09T05:19:17.274Z",
-      "read": true,
-      "replied": false,
-      "bounced": false,
-      "threadId": "th_1783574357274",
-      "history": [],
-      "sender": "parthika@gmail.com",
-      "recipient": "lead1@gmail.com",
-      "subject": "Update regarding your project/opportunity",
-      "body": "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin",
-      "folder": "Sent"
-    },
-    {
-      "id": "e_1",
-      "sender": "tony@starkindustries.com",
-      "recipient": "superadmin@crm.com",
-      "subject": "Re: Stark CRM Proposal Draft",
-      "body": "The proposal looks great John, but we need to ensure the Recharts analytics widget can ingest 50k events per second. Let's discuss in our meeting tomorrow.",
-      "folder": "Inbox",
-      "date": "2026-07-06T14:32:00Z",
-      "read": false,
-      "replied": false,
-      "bounced": false,
-      "threadId": "th_stark_1",
-      "history": [
-        {
-          "sender": "superadmin@crm.com",
-          "body": "Hi Tony, attached is the draft proposal. Please let me know your thoughts.",
-          "date": "2026-07-05T09:15:00Z"
-        },
-        {
-          "sender": "tony@starkindustries.com",
-          "body": "Thanks, checking it now.",
-          "date": "2026-07-05T11:45:00Z"
-        }
-      ]
-    },
-    {
-      "id": "e_2",
-      "sender": "bruce@waynecorp.com",
-      "recipient": "admin@crm.com",
-      "subject": "Wayne Enterprises - Contract Updates",
-      "body": "Sarah, I have requested my legal team to review the liability terms. Please expect updates by Thursday.",
-      "folder": "Inbox",
-      "date": "2026-07-05T10:11:00Z",
-      "read": true,
-      "replied": true,
-      "bounced": false,
-      "threadId": "th_wayne_1",
-      "history": []
-    },
-    {
-      "id": "e_3",
-      "sender": "superadmin@crm.com",
-      "recipient": "clark@dailyplanet.com",
-      "subject": "Welcome to CRM - Auto Enrollment Code",
-      "body": "Hi Clark, congratulations on closing the deal! You are now auto-enrolled in our CRM Referral Program. Your referral code is REF-CLARK-99.",
-      "folder": "Sent",
-      "date": "2026-07-03T16:00:00Z",
-      "read": true,
-      "replied": false,
-      "bounced": false,
-      "threadId": "th_clark_ref_1",
-      "history": []
-    },
-    {
-      "id": "e_4",
-      "sender": "error-daemon@outlook.com",
-      "recipient": "user@crm.com",
-      "subject": "Delivery Status Notification (Failure)",
-      "body": "The mail system failed to deliver the message to bad-email@unknown-hospital.org because the domain does not exist.",
-      "folder": "Trash",
-      "date": "2026-07-04T18:22:00Z",
-      "read": true,
-      "replied": false,
-      "bounced": true,
-      "threadId": "th_bounce_1",
-      "history": []
-    }
+   
   ],
   "quotations": [
     {
@@ -622,12 +458,48 @@
     }
   ],
   "companyBranding": {
-    "name": "Global CRM",
+    "name": "",
     "primaryColor": "#2563EB",
     "secondaryColor": "#0F172A",
-    "logoText": "CRM "
+    "logoText": "CRM"
   },
   "auditLogs": [
+    {
+      "id": "log_1783663175066_o8a6d",
+      "timestamp": "2026-07-10T05:59:35.066Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_BRANDING",
+      "module": "Settings",
+      "details": "Updated company branding details."
+    },
+    {
+      "id": "log_1783660303817_5tulc",
+      "timestamp": "2026-07-10T05:11:43.817Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_BRANDING",
+      "module": "Settings",
+      "details": "Updated company branding details."
+    },
+    {
+      "id": "log_1783598729821_ks6vn",
+      "timestamp": "2026-07-09T12:05:29.821Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_BRANDING",
+      "module": "Settings",
+      "details": "Updated company branding details."
+    },
+    {
+      "id": "log_1783598654955_ufjdb",
+      "timestamp": "2026-07-09T12:04:14.955Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_BRANDING",
+      "module": "Settings",
+      "details": "Updated company branding details."
+    },
     {
       "id": "log_1783574357356_sc6wf",
       "timestamp": "2026-07-09T05:19:17.356Z",

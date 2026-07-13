@@ -50,4 +50,8 @@ router.delete("/:id/permanent", email.permanentDelete);
 
 router.delete("/:id", email.deleteMail);
 
+router.post("/draft", email.createDraft);
+router.patch("/draft/:id", email.updateDraft);
+router.post("/draft/:id/send", email.sendDraft);
+
 module.exports = router;
