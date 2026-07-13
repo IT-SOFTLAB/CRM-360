@@ -413,7 +413,8 @@ exports.outlookCallback = async (req, res) => {
 
     console.log("Connected Outlook:", me.mail || me.userPrincipalName);
 
-   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  //  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const frontendUrl = process.env.FRONTEND_URL || "https://crm-360-2.onrender.com";
 
 console.log("Redirecting to:", `${frontendUrl}/emails?connected=true`);
 

@@ -4,7 +4,8 @@ export const emailService = {
 
   connectOutlook: () => {
     window.location.href =
-      "http://localhost:5000/auth/login/outlook";
+      // "http://localhost:5000/auth/login/outlook";
+      "https://crm-360-wvd1.onrender.com/auth/login/outlook";
   },
 
   getInbox: async () => {
