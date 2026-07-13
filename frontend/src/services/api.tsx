@@ -1,9 +1,7 @@
 import axios from 'axios';
 
 const getBaseURL = () => {
-  if (typeof window !== "undefined") {
-    return `http://${window.location.hostname}:5000/api`;
-  }
+  
   // return "http://localhost:5000/api";
   return "https://crm-360-wvd1.onrender.com/api";
 };
