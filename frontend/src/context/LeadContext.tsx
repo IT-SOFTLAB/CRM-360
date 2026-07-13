@@ -54,13 +54,15 @@ export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     setLeads(prev => [...prev, tempLead as any]);
 
-    const res = await leadService.createLead(leadForm);
-    if (res) {
+    try {
+      const res = await leadService.createLead(leadForm);
       setLeads(prev => prev.map(l => l.id === tempId ? res : l));
       if (toastCtx) toastCtx.addToast('success', `Lead for ${res.contactName || res.name} created!`);
-    } else {
+    } catch (err: any) {
+      // Remove the optimistic lead on failure
       setLeads(prev => prev.filter(l => l.id !== tempId));
-      if (toastCtx) toastCtx.addToast('error', 'Failed to create lead');
+      const errMsg = err?.response?.data?.message || 'Failed to create lead';
+      if (toastCtx) toastCtx.addToast('error', errMsg);
     }
   };
 

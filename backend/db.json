@@ -37,7 +37,8 @@
     "Finance",
     "Logistics",
     "Hospitality",
-    "IT Services"
+    "IT Services",
+    "xyz"
   ],
   "serviceTypes": [
     "Service Based",
@@ -197,6 +198,21 @@
       "team": "Sales Team Beta",
       "city": "Seattle",
       "country": "United States"
+    },
+    {
+      "id": "cmrdqw84s0006o0oowvdg9431",
+      "name": "leadXYZ",
+      "contactName": "leadXYZ",
+      "company": "leadXYZ Ltd",
+      "source": "CSV/Excel Import",
+      "email": "lead@xyz.com",
+      "phone": "9876543210",
+      "category": "Healthcare",
+      "serviceType": "Service Based",
+      "assignedUser": "Sara Connor",
+      "status": "New",
+      "createdAt": "2026-07-09",
+      "createdDate": "2026-07-09"
     }
   ],
   "opportunities": [
@@ -628,6 +644,15 @@
     "logoText": "CRM "
   },
   "auditLogs": [
+    {
+      "id": "log_1783670013715_acs9s",
+      "timestamp": "2026-07-10T07:53:33.715Z",
+      "user": "System",
+      "role": "System",
+      "action": "CREATE_CATEGORY",
+      "module": "Settings",
+      "details": "Created project category: xyz"
+    },
     {
       "id": "log_1783574357356_sc6wf",
       "timestamp": "2026-07-09T05:19:17.356Z",
