@@ -140,19 +140,19 @@ exports.login = async (req, res) => {
     });
 
    
-    res.cookie('accessToken', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 15 * 60 * 1000 // 15 mins
-    });
+    res.cookie("accessToken", accessToken, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "None",
+  maxAge: 15 * 60 * 1000,
+});
 
-    res.cookie('refreshToken', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-    });
+res.cookie("refreshToken", refreshToken, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "None",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+});
 
     const { password: _, ...userWithoutPassword } = user;
     res.json({
@@ -259,8 +259,17 @@ exports.logout = async (req, res) => {
       await prisma.refreshToken.deleteMany({ where: { token } });
     }
 
-    res.clearCookie('accessToken');
-    res.clearCookie('refreshToken');
+   res.clearCookie("accessToken", {
+  httpOnly: true,
+  secure: true,
+  sameSite: "None",
+});
+
+res.clearCookie("refreshToken", {
+  httpOnly: true,
+  secure: true,
+  sameSite: "None",
+});
     res.json({ message: 'Logged out successfully' });
   } catch (err) {
     console.error('Logout error:', err);
