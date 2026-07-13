@@ -11,13 +11,8 @@ export const leadService = {
     }
   },
   createLead: async (leadForm: any) => {
-    try {
-      const res = await api.post('/leads', leadForm);
-      return res.data;
-    } catch (err) {
-      console.warn('API error creating lead, fallback to offline', err);
-      return null;
-    }
+    const res = await api.post('/leads', leadForm);
+    return res.data;
   },
   updateLead: async (leadId: string, leadData: any) => {
     try {

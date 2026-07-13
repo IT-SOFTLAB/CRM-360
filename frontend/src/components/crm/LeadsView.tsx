@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { leadService } from '../../services/lead.service';
+
 import { Trash2, X, Plus, Pencil } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -110,30 +110,17 @@ export default function LeadsView({
     if (!validateLeadForm()) {
       return;
     }
-    try {
-      const response = await leadService.createLead(leadForm);
-
-      console.log(response.data);
-
-      alert("Lead Created Successfully");
-
-      setLeadForm({
-        contactName: '',
-        company: '',
-        email: '',
-        phone: '',
-        source: 'Website',
-        serviceType: 'Service Based',
-        category: 'Healthcare',
-        assignedUser: user?.name || ''
-      });
-
-
-
-    } catch (error) {
-      console.error(error);
-      alert("Failed to create lead");
-    }
+    await onCreateLead(leadForm);
+    setLeadForm({
+      contactName: '',
+      company: '',
+      email: '',
+      phone: '',
+      source: 'Website',
+      serviceType: 'Service Based',
+      category: 'Healthcare',
+      assignedUser: user?.name || ''
+    });
   };
 
   const handleConvertSubmit = (e: React.FormEvent) => {
@@ -222,23 +209,9 @@ export default function LeadsView({
 
                   {/* Delete Button */}
                   <button
-                    onClick={async () => {
-
+                    onClick={() => {
                       if (!window.confirm("Delete this lead?")) return;
-
-                      try {
-
-                        await leadService.deleteLead(ld.id);
-
-                        alert("Lead deleted successfully");
-
-                        window.location.reload();
-
-                      } catch (error) {
-                        console.log(error);
-                        alert("Delete failed");
-                      }
-
+                      onDeleteLead(ld.id);
                     }}
                     className="text-red-500 hover:text-red-700 p-1 transition cursor-pointer"
                     title="Delete Lead"
@@ -359,27 +332,11 @@ export default function LeadsView({
                   Convert to Opportunity
                 </button>
                 <button
-                  onClick={async () => {
-
-                    try {
-
-                      await leadService.updateLead(selectedLead.id, selectedLead);
-
-                      alert("Lead updated successfully");
-
-                      window.location.reload();
-
-                    } catch (error) {
-
-                      console.log(error);
-
-
-                      alert("Update failed");
-
-                    }
-
+                  onClick={() => {
+                    onUpdateLead(selectedLead.id, selectedLead);
+                    setShowLeadDrawer(false);
                   }}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl"
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl cursor-pointer font-semibold"
                 >
                   Save Changes
                 </button>

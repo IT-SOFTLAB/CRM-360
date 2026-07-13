@@ -23,7 +23,7 @@ authority: "https://login.microsoftonline.com/common",
 const cca = new ConfidentialClientApplication(msalConfig);
 
 function getAuthUrl(){
-
+     
     return cca.getAuthCodeUrl({
 
         scopes:[
@@ -33,9 +33,9 @@ function getAuthUrl(){
             "Mail.Send",
             "offline_access"
         ],
-
+       
         redirectUri:process.env.REDIRECT_URI
-
+   
     });
 
 }

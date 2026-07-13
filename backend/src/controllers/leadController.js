@@ -21,6 +21,7 @@ const createLead = async (req, res) => {
         serviceType: req.body.serviceType,
         assignedUser: assignedUser || null,
         assignedUserId: assignedUserId || null,
+        status: 'New',
         createdAt: localDateZeroTime
       }
     });

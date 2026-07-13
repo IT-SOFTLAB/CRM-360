@@ -29,7 +29,8 @@ const bootstrapRoutes = require("./src/routes/bootstrapRoutes.js");
 const notificationRoutes = require("./src/routes/notificationRoutes.js");
 
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  // origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: ['https://crm-360-2.onrender.com', 'http://127.0.0.1:3000'],
   credentials: true
 }));
 app.use(bodyParser.json());

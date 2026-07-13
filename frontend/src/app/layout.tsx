@@ -4,7 +4,7 @@ import ClientLayout from "@/components/crm/ClientLayout";
 
 export const metadata: Metadata = {
   title: "CRM 360",
-  description: "Next-generation Odoo-style Enterprise CRM platform UI.",
+  description: "IT 360 CRM",
 };
 
 export default function RootLayout({
