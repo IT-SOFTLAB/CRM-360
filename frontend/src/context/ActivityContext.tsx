@@ -45,7 +45,7 @@ const [calendarEmail, setCalendarEmail] = useState("");
 
     return status;
   } catch (err) {
-    console.error("Calendar Status Error:", err);
+    console.warn("Calendar Status Error:", err);
 
     setCalendarConnected(false);
     setCalendarEmail("");

@@ -90,19 +90,25 @@ console.log(payload);
   // ==========================
 
   getCalendarStatus: async () => {
-console.log("Calling /calendar/status");
-    const res = await api.get("/calendar/status");
-
-    return res.data;
-
+    try {
+      console.log("Calling /calendar/status");
+      const res = await api.get("/calendar/status");
+      return res.data;
+    } catch (err) {
+      console.warn("Failed to get calendar status", err);
+      return { connected: false };
+    }
   },
 
   getCalendarEvents: async () => {
-console.log("Calling /calendar/events");
-    const res = await api.get("/calendar/events");
-
-    return res.data;
-
+    try {
+      console.log("Calling /calendar/events");
+      const res = await api.get("/calendar/events");
+      return res.data;
+    } catch (err) {
+      console.warn("Failed to get calendar events", err);
+      return [];
+    }
   },
 
 connectCalendar: () => {

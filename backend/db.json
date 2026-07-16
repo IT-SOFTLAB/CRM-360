@@ -398,9 +398,7 @@
       "done": false
     }
   ],
-  "emails": [
-   
-  ],
+  "emails": [],
   "quotations": [
     {
       "id": "q_1",
@@ -488,12 +486,21 @@
     }
   ],
   "companyBranding": {
-    "name": "",
+    "name": "IT",
     "primaryColor": "#2563EB",
     "secondaryColor": "#0F172A",
     "logoText": "CRM"
   },
   "auditLogs": [
+    {
+      "id": "log_1784199933102_q1nnq",
+      "timestamp": "2026-07-16T11:05:33.102Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_BRANDING",
+      "module": "Settings",
+      "details": "Updated company branding details."
+    },
     {
       "id": "log_1784021522685_0ou1d",
       "timestamp": "2026-07-14T09:32:02.685Z",
