@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ChevronRight, Trash2, Plus, X, Briefcase, Calendar, DollarSign, User, Mail, Phone, Tag, Clipboard, Info, CheckCircle2, List, LayoutGrid, Star, Clock, Download } from 'lucide-react';
+import { ChevronRight, Trash2, Plus, X, Briefcase, Calendar, DollarSign, User, Mail, Phone, Tag, Clipboard, Info, CheckCircle2, List, LayoutGrid, Star, Clock, Upload } from 'lucide-react';
 import QuotationForm from "./QuotationForm";
 import { emailService } from '../../services/email.service';
 import { useCRM } from '../../context/CRMContext';
@@ -433,7 +433,7 @@ const getTagColors = (tag?: string, isDark: boolean = false) => {
             className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-txt-primary hover:text-primary rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-border-crm/30"
             title="Export Opportunities to CSV"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Upload className="w-3.5 h-3.5" />
             <span>Export File</span>
           </button>
 

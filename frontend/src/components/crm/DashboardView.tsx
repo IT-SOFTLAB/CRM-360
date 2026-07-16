@@ -929,7 +929,7 @@ export default function DashboardView({
             { label: "Leads", val: teamKPIs.leads.toString(), sub: "Unconverted entries" },
             { label: "Opportunities", val: teamKPIs.opps.toString(), sub: "Active Pipeline" },
             { label: "Quotations", val: teamKPIs.quotes.toString(), sub: "Sent to clients" },
-            { label: "Customers", val: teamKPIs.cust.toString(), sub: "Converted accounts" },
+            { label: "Clients", val: teamKPIs.cust.toString(), sub: "Converted accounts" },
             { label: "Referrals", val: referrals.length.toLocaleString(), sub: "Total submissions" },
             { label: "Revenue", val: teamKPIs.rev, sub: "Total closed" }
           ].map((card, idx) => (

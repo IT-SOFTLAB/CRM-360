@@ -7,28 +7,57 @@ import api from '@/services/api';
 interface ActivitiesViewProps {
   activities: any[];
   user: any;
+
   onToggleActivityDone: (id: string, done: boolean) => void;
   onScheduleActivity: (activityForm: any) => void;
+
   showActivityModal: boolean;
   setShowActivityModal: (show: boolean) => void;
+
+  calendarConnected: boolean;
+  calendarEmail: string;
+  connectCalendar: () => void;
 }
 
 export default function ActivitiesView({
   activities,
   user,
+
   onToggleActivityDone,
   onScheduleActivity,
+
   showActivityModal,
-  setShowActivityModal
+  setShowActivityModal,
+
+  calendarConnected,
+  calendarEmail,
+  connectCalendar
+
 }: ActivitiesViewProps) {
   const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month'>('month');
   const [teams, setTeams] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState<'my' | 'team' | 'all' | 'overdue' | 'today'>('all');
+
   
-  const [activityForm, setActivityForm] = useState({
-    title: '', type: 'Meeting', date: '', time: '10:00', duration: '30',
-    description: '', salesperson: '', leadId: '', opportunityId: ''
-  });
+  
+ const [activityForm, setActivityForm] = useState({
+  title: "",
+  type: "Meeting",
+  date: "",
+  time: "10:00",
+  duration: "30",
+  description: "",
+  salesperson: "",
+  leadId: "",
+  opportunityId: "",
+
+  syncOutlook: false,
+  teamsMeeting: false,
+
+  location: "",
+  attendees: "",
+});
+
 
   const [selectedActivity, setSelectedActivity] = useState<any>(null);
   const hours = Array.from({ length: 24 }, (_, i) => i);
@@ -110,14 +139,47 @@ export default function ActivitiesView({
 
   const handleActivitySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onScheduleActivity({
-      ...activityForm,
-      salesperson: user?.name || 'Unassigned'
-    });
-    setActivityForm({
-      title: '', type: 'Meeting', date: '', time: '10:00', duration: '30',
-      description: '', salesperson: '', leadId: '', opportunityId: ''
-    });
+  const start = new Date(
+    `${activityForm.date}T${activityForm.time}:00`
+);
+
+const end = new Date(start);
+
+end.setMinutes(
+    end.getMinutes() + Number(activityForm.duration)
+);
+
+onScheduleActivity({
+    ...activityForm,
+
+    salesperson: user?.name || "Unassigned",
+
+    attendees: activityForm.attendees
+        .split(",")
+        .map(e => e.trim())
+        .filter(Boolean),
+
+    startTime: start.toISOString(),
+
+    endTime: end.toISOString()
+});
+   setActivityForm({
+  title:"",
+  type:"Meeting",
+  date:"",
+  time:"10:00",
+  duration:"30",
+  description:"",
+  salesperson:"",
+  leadId:"",
+  opportunityId:"",
+  syncOutlook:false,
+  teamsMeeting:false,
+  location:"",
+  attendees:""
+});
+setShowActivityModal(false);
+
   };
 
   // Dynamic calendar Helper values
@@ -232,6 +294,58 @@ export default function ActivitiesView({
         </div>
       )}
 
+<div className="bg-card border border-border-crm rounded-2xl p-5 flex justify-between items-center">
+
+    <div>
+
+        <h3 className="font-bold text-sm">
+
+            Outlook Calendar
+
+        </h3>
+
+        {calendarConnected ? (
+
+            <>
+                <p className="text-green-600 font-semibold mt-1">
+                    ✓ Connected
+                </p>
+
+                <p className="text-xs text-txt-secondary">
+                    {calendarEmail}
+                </p>
+            </>
+
+        ) : (
+
+            <p className="text-xs text-red-500 mt-1">
+
+                Not Connected
+
+            </p>
+
+        )}
+
+    </div>
+
+    {!calendarConnected && (
+
+        <button
+
+            onClick={connectCalendar}
+
+            className="bg-primary text-white px-4 py-2 rounded-xl"
+
+        >
+
+            Connect Outlook Calendar
+
+        </button>
+
+    )}
+
+</div>
+
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         
         {/* Calendar Controls & Lists */}
@@ -340,7 +454,25 @@ export default function ActivitiesView({
                             }`}
                           >
                             <div className="text-[8px] font-bold">🕒 {act.time}</div>
-                            <div className="text-[9px] font-semibold truncate">{act.title}</div>
+                         <div className="flex items-center justify-between gap-1">
+
+    <span className="text-[9px] font-semibold truncate">
+        {act.title}
+    </span>
+{act.location && (
+  <div className="text-[8px] opacity-70 truncate">
+    📍 {act.location}
+  </div>
+)}
+    {act.isOutlookSynced && (
+        <span
+            className="text-[8px] bg-blue-100 text-blue-700 px-1 rounded"
+        >
+            Outlook
+        </span>
+    )}
+
+</div>
                           </div>
                         ))}
                       </div>
@@ -477,14 +609,15 @@ export default function ActivitiesView({
                   className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition border border-transparent hover:border-border-crm"
                 >
                   <input
-                    type="checkbox"
-                    className="rounded text-primary border-slate-355 focus:ring-0 mt-0.5 cursor-pointer"
-                    checked={act.done}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      onToggleActivityDone(act.id, act.done);
-                    }}
-                  />
+  type="checkbox"
+  checked={act.done}
+  disabled={act.isOutlookSynced}
+  onChange={(e) => {
+    if (act.isOutlookSynced) return;
+    e.stopPropagation();
+    onToggleActivityDone(act.id, act.done);
+  }}
+/>
                   <div className="text-xs space-y-0.5">
                     <p className="font-bold text-txt-primary truncate max-w-[150px]">{act.title}</p>
                     <p className="text-[10px] text-txt-secondary">📅 {new Date(act.date).toLocaleDateString()}</p>
@@ -504,10 +637,22 @@ export default function ActivitiesView({
 
       {/* Create Activity Modal */}
       {showActivityModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-card border border-border-crm rounded-2xl shadow-2xl p-6 max-w-sm w-full text-txt-primary">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200 ">
+          <div className="
+bg-card
+border
+border-border-crm
+rounded-2xl
+shadow-2xl
+w-full
+max-w-2xl
+max-h-[90vh]
+overflow-hidden
+flex
+flex-col
+">
             <h4 className="font-bold text-sm tracking-tight mb-4 text-txt-primary">Schedule Activity Log</h4>
-            <form onSubmit={handleActivitySubmit} className="space-y-3 text-xs">
+            <form onSubmit={handleActivitySubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
               <div>
                 <label className="block text-slate-400 font-semibold mb-1">Title</label>
                 <input
@@ -570,6 +715,126 @@ export default function ActivitiesView({
                   onChange={e => setActivityForm({ ...activityForm, description: e.target.value })}
                 />
               </div>
+
+ 
+
+
+
+
+
+
+
+              {activityForm.type === "Meeting" && (
+ <div className="space-y-3 border border-border-crm rounded-xl p-4">
+
+<div>
+  <label className="block text-slate-400 font-semibold mb-1">
+    Location
+  </label>
+
+  <input
+    type="text"
+    placeholder="Conference Room / Client Office / Online"
+    className="w-full border border-border-crm bg-card rounded-xl px-3 py-2"
+    value={activityForm.location}
+    onChange={(e)=>
+      setActivityForm({
+        ...activityForm,
+        location:e.target.value
+      })
+    }
+  />
+</div>
+
+<div>
+  <label className="block text-slate-400 font-semibold mb-1">
+    Invite Attendees
+  </label>
+
+  <input
+    type="text"
+    placeholder="abc@gmail.com, xyz@gmail.com"
+    className="w-full border border-border-crm bg-card rounded-xl px-3 py-2"
+    value={activityForm.attendees}
+    onChange={(e)=>
+      setActivityForm({
+        ...activityForm,
+        attendees:e.target.value
+      })
+    }
+  />
+
+  <p className="text-[10px] text-txt-secondary mt-1">
+    Separate email addresses with commas.
+  </p>
+</div>
+
+  <div>
+    <p className="text-sm font-semibold text-primary">
+      Outlook Calendar
+    </p>
+
+    <p className="text-xs text-txt-secondary mt-1">
+      Sync this meeting with your connected Outlook Calendar.
+    </p>
+  </div>
+
+  {/* Sync Outlook */}
+  <label className="flex items-center justify-between border border-border-crm rounded-xl p-3 cursor-pointer hover:bg-muted/30 transition">
+
+    <div>
+      <p className="font-medium">
+        Sync with Outlook Calendar
+      </p>
+
+      <p className="text-[11px] text-txt-secondary">
+        Save this meeting to Outlook Calendar
+      </p>
+    </div>
+
+    <input
+      type="checkbox"
+      checked={activityForm.syncOutlook}
+      onChange={(e) =>
+        setActivityForm({
+          ...activityForm,
+          syncOutlook: e.target.checked
+        })
+      }
+      className="w-4 h-4"
+    />
+
+  </label>
+
+  {/* Teams Meeting */}
+  <label className="flex items-center justify-between border border-border-crm rounded-xl p-3 cursor-pointer hover:bg-muted/30 transition">
+
+    <div>
+      <p className="font-medium">
+        Create Microsoft Teams Meeting
+      </p>
+
+      <p className="text-[11px] text-txt-secondary">
+        Automatically generate a Teams meeting link
+      </p>
+    </div>
+
+    <input
+      type="checkbox"
+      checked={activityForm.teamsMeeting}
+      onChange={(e) =>
+        setActivityForm({
+          ...activityForm,
+          teamsMeeting: e.target.checked
+        })
+      }
+      className="w-4 h-4"
+    />
+
+  </label>
+
+</div>
+)}
               <div className="flex gap-2 pt-4">
                 <button
                   type="button" onClick={() => setShowActivityModal(false)}
@@ -581,7 +846,9 @@ export default function ActivitiesView({
                   type="submit"
                   className="flex-1 bg-primary hover:bg-primary/95 text-white rounded-xl py-2 font-semibold shadow cursor-pointer"
                 >
-                  Save Activity
+                {activityForm.type === "Meeting"
+    ? "Schedule Meeting"
+    : "Save Activity"}
                 </button>
               </div>
             </form>
@@ -591,8 +858,24 @@ export default function ActivitiesView({
 
       {/* Activity Details Modal */}
       {selectedActivity && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-card border border-border-crm rounded-2xl w-full max-w-sm p-6 shadow-2xl space-y-4 text-txt-primary">
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm overflow-y-auto p-4">
+    <div className="flex min-h-full items-center justify-center">
+      <div
+        className="
+          bg-card
+          border
+          border-border-crm
+          rounded-2xl
+          w-full
+          max-w-md
+          max-h-[90vh]
+          overflow-y-auto
+          p-6
+          shadow-2xl
+          space-y-4
+          text-txt-primary
+        "
+      >
             <div className="flex justify-between items-start">
               <h2 className="text-sm font-bold text-txt-primary">
                 {selectedActivity.title}
@@ -625,19 +908,63 @@ export default function ActivitiesView({
               </div>
               <div className="space-y-1 pt-1">
                 <span className="text-txt-secondary block font-semibold">Description</span>
-                <p className="text-txt-primary bg-bg-main border border-border-crm p-3 rounded-xl leading-relaxed whitespace-pre-wrap">{selectedActivity.description || 'No description provided'}</p>
+                <p className="text-txt-primary bg-bg-main border border-border-crm p-3 rounded-xl leading-relaxed whitespace-pre-wrap break-words">{selectedActivity.description || 'No description provided'}</p>
               </div>
+
+
+              
             </div>
 
-            <button
-              onClick={() => setSelectedActivity(null)}
-              className="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-350 dark:hover:bg-slate-650 text-txt-primary rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+            {selectedActivity.location && (
+  <div className="flex justify-between border-b border-border-crm pb-2">
+    <span className="text-txt-secondary">Location</span>
+    <span className="font-semibold">
+      {selectedActivity.location}
+    </span>
+  </div>
+)}
+
+{selectedActivity.attendees?.length > 0 && (
+  <div className="space-y-2">
+    <span className="text-txt-secondary font-semibold">
+      Attendees
+    </span>
+
+  <div className="space-y-1">
+  {selectedActivity.attendees.map((email: string) => (
+    <div
+      key={email}
+      className="text-xs bg-bg-main border border-border-crm rounded-lg p-2 break-all"
+    >
+      {email}
+    </div>
+  ))}
+</div>
+  </div>
+)}
+
+{selectedActivity.isOutlookSynced && (
+    <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 text-xs text-blue-700">
+
+        Outlook Calendar Event
+
+    </div>
+)}
+
+
+
+           <button
+  onClick={() => setSelectedActivity(null)}
+  className="w-full bg-slate-200 dark:bg-slate-700 hover:bg-slate-350 dark:hover:bg-slate-650 text-txt-primary rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
+>
+  Close
+</button>
+
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
+

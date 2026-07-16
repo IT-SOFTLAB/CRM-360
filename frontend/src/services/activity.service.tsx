@@ -1,31 +1,150 @@
-import api from './api';
+import api from "./api";
 
 export const activityService = {
+
+  // ==========================
+  // CRM Activities
+  // ==========================
+
   getActivities: async () => {
     try {
-      const res = await api.get('/activities');
+      const res = await api.get("/activities");
       return res.data;
     } catch (err) {
-      console.warn('API error fetching activities, fallback to offline', err);
-      return null;
+      console.warn("Failed to load CRM activities", err);
+      return [];
     }
   },
+
   createActivity: async (activityForm: any) => {
     try {
-      const res = await api.post('/activities', activityForm);
+
+      const payload = {
+
+        ...activityForm,
+
+        attendees: Array.isArray(activityForm.attendees)
+          ? activityForm.attendees
+          : String(activityForm.attendees || "")
+              .split(",")
+              .map((email: string) => email.trim())
+              .filter(Boolean),
+
+        duration: Number(activityForm.duration),
+
+        syncOutlook: !!activityForm.syncOutlook
+
+      };
+
+      console.log("===== ACTIVITY PAYLOAD =====");
+console.log(payload);
+
+
+      const res = await api.post("/activities", payload);
+
       return res.data;
+
     } catch (err) {
-      console.warn('API error creating activity, fallback to offline', err);
+
+      console.warn("Failed to create activity", err);
+
       return null;
+
     }
   },
-  updateActivity: async (activityId: string, activityData: any) => {
+
+  updateActivity: async (
+    activityId: string,
+    activityData: any
+  ) => {
+
     try {
-      const res = await api.put(`/activities/${activityId}`, activityData);
+
+      const res = await api.put(
+        `/activities/${activityId}`,
+        activityData
+      );
+
       return res.data;
+
     } catch (err) {
-      console.warn('API error updating activity, fallback to offline', err);
+
+      console.warn("Failed to update activity", err);
+
       return null;
+
     }
+
+  },
+
+  deleteActivity: async (id: string) => {
+
+    const res = await api.delete(`/activities/${id}`);
+
+    return res.data;
+
+  },
+
+  // ==========================
+  // Outlook Calendar
+  // ==========================
+
+  getCalendarStatus: async () => {
+console.log("Calling /calendar/status");
+    const res = await api.get("/calendar/status");
+
+    return res.data;
+
+  },
+
+  getCalendarEvents: async () => {
+console.log("Calling /calendar/events");
+    const res = await api.get("/calendar/events");
+
+    return res.data;
+
+  },
+
+connectCalendar: () => {
+  window.location.href =
+    "http://localhost:5000/auth/login/outlook?redirect=activities";
+},
+
+  createCalendarEvent: async (payload: any) => {
+
+    const res = await api.post(
+      "/calendar/events",
+      payload
+    );
+
+    return res.data;
+
+  },
+
+  updateCalendarEvent: async (
+    id: string,
+    payload: any
+  ) => {
+
+    const res = await api.patch(
+      `/calendar/events/${id}`,
+      payload
+    );
+
+    return res.data;
+
+  },
+
+  deleteCalendarEvent: async (
+    id: string
+  ) => {
+
+    const res = await api.delete(
+      `/calendar/events/${id}`
+    );
+
+    return res.data;
+
   }
+
 };

@@ -150,15 +150,15 @@ export default function LeadsView({
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-bg-main border-b border-border-crm text-xs font-bold text-txt-secondary uppercase tracking-wider select-none">
-              <th className="px-6 py-4">Lead Contact</th>
-              <th className="px-6 py-4">Company</th>
-              <th className="px-6 py-4">Category</th>
-              <th className="px-6 py-4">Service Type</th>
-              <th className="px-6 py-4">Assigned User</th>
-              <th className="px-6 py-4">Created Date</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-right">Actions</th>
+            <tr className="bg-bg-main border-b border-black  text-xs font-bold text-txt-secondary uppercase tracking-wider select-none">
+              <th className="px-6 py-4 text-black font-bold">Lead Contact</th>
+              <th className="px-6 py-4  text-black font-bold">Company</th>
+              <th className="px-6 py-4  text-black font-bold">Category</th>
+              <th className="px-6 py-4  text-black font-bold">Service Type</th>
+              <th className="px-6 py-4  text-black font-bold">Assigned User</th>
+              <th className="px-6 py-4  text-black font-bold">Created Date</th>
+              <th className="px-6 py-4  text-black font-bold">Status</th>
+              <th className="px-6 py-4 text-right  text-black font-bold">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border-crm text-xs">

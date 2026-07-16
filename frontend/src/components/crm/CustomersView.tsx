@@ -69,16 +69,16 @@ const CustomerView = () => {
                             <ListFilter className="w-5 h-5" />
                         </div>
                         <div>
-                            <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Manager Customer Filters</h4>
-                            <p className="text-[10px] text-txt-secondary mt-0.5">Filter customers list by assigned salesperson or team members</p>
+                            <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Manager Client Filters</h4>
+                            <p className="text-[10px] text-txt-secondary mt-0.5">Filter clients list by assigned salesperson or team members</p>
                         </div>
                     </div>
 
                     <div className="flex flex-wrap gap-2">
                         {[
-                            { id: 'all', label: 'All Customers' },
-                            { id: 'my', label: 'My Customers' },
-                            { id: 'team', label: 'Team Customers' }
+                            { id: 'all', label: 'All Clients' },
+                            { id: 'my', label: 'My Clients' },
+                            { id: 'team', label: 'Team Clients' }
                         ].map(f => (
                             <button
                                 key={f.id}
@@ -98,12 +98,12 @@ const CustomerView = () => {
 
             {!isManager && (
                 <div className="bg-card border border-border-crm rounded-2xl p-4 flex items-center space-x-2 text-txt-secondary select-none shadow-xs">
-                    <span className="font-bold text-xs">Viewing Customers Assigned To You ({filteredCustomers.length} customers)</span>
+                    <span className="font-bold text-xs">Viewing Clients Assigned To You ({filteredCustomers.length} clients)</span>
                 </div>
             )}
 
             <div>
-                <h2 className="text-xl font-bold text-txt-primary mb-4">Customers</h2>
+                <h2 className="text-xl font-bold text-txt-primary mb-4">Clients</h2>
 
                 <div className="bg-card border border-border-crm rounded-2xl shadow-xs overflow-hidden">
 
@@ -153,7 +153,7 @@ const CustomerView = () => {
                                                 setShowCustomerDrawer(true);
                                             }}
                                             className="text-blue-500 hover:text-blue-700 p-1 transition cursor-pointer"
-                                            title="Edit Customer"
+                                            title="Edit Client"
                                         >
                                             <Pencil className="w-5 h-5" />
                                         </button>
@@ -163,13 +163,13 @@ const CustomerView = () => {
 
                                             onClick={async () => {
 
-                                                if (!window.confirm("Delete this customer?")) return;
+                                                if (!window.confirm("Delete this client?")) return;
 
                                                 try {
 
                                                     await customerService.deleteCustomer(customer.id);
 
-                                                    alert("Customer deleted");
+                                                    alert("Client deleted");
 
                                                     window.location.reload();
 
@@ -196,7 +196,7 @@ const CustomerView = () => {
                             {filteredCustomers.length === 0 && (
                                 <tr>
                                     <td colSpan={7} className="text-center py-12 text-slate-400">
-                                        No customers found matching current filter query.
+                                        No clients found matching current filter query.
                                     </td>
                                 </tr>
                             )}
@@ -297,10 +297,10 @@ const CustomerView = () => {
                                                         await customerService.updateCustomer(selectedCustomer.id, selectedCustomer);
                                                         setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? selectedCustomer : c));
                                                         setShowCustomerDrawer(false);
-                                                        addToast('success', 'Customer updated successfully');
+                                                        addToast('success', 'Client updated successfully');
                                                     } catch (err) {
                                                         console.error(err);
-                                                        addToast('error', 'Failed to update customer');
+                                                        addToast('error', 'Failed to update client');
                                                     }
                                                 }}
                                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl cursor-pointer font-semibold transition"

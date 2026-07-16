@@ -140,20 +140,21 @@ exports.login = async (req, res) => {
     });
 
    
-    res.cookie("accessToken", accessToken, {
+ const isProduction = process.env.NODE_ENV === "production";
+
+res.cookie("accessToken", accessToken, {
   httpOnly: true,
-  secure: true,
-  sameSite: "None",
+  secure: isProduction,
+  sameSite: isProduction ? "None" : "Lax",
   maxAge: 15 * 60 * 1000,
 });
 
 res.cookie("refreshToken", refreshToken, {
   httpOnly: true,
-  secure: true,
-  sameSite: "None",
+  secure: isProduction,
+  sameSite: isProduction ? "None" : "Lax",
   maxAge: 7 * 24 * 60 * 60 * 1000,
 });
-
     const { password: _, ...userWithoutPassword } = user;
     res.json({
       user: userWithoutPassword,
@@ -414,20 +415,36 @@ exports.outlookCallback = async (req, res) => {
     // global.accessToken = token.accessToken;
     // global.refreshToken = token.refreshToken;
 
-    req.session.outlook = {
+   req.session.outlook = {
     accessToken: token.accessToken,
     refreshToken: token.refreshToken,
     email: me.mail || me.userPrincipalName
 };
 
-    console.log("Connected Outlook:", me.mail || me.userPrincipalName);
+console.log("Connected Outlook:", me.mail || me.userPrincipalName);
 
-  //  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-  const frontendUrl = process.env.FRONTEND_URL || "https://crm-360-2.onrender.com";
+const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+const redirectPage = req.session.oauthRedirect || "emails";
 
-console.log("Redirecting to:", `${frontendUrl}/emails?connected=true`);
+delete req.session.oauthRedirect;
 
-return res.redirect(`${frontendUrl}/emails?connected=true`);
+// Save session before redirect
+req.session.save((err) => {
+
+    if (err) {
+        console.error("Session save failed:", err);
+
+        return res.status(500).json({
+            success: false,
+            message: "Unable to save Outlook session."
+        });
+    }
+
+    return res.redirect(
+        `${frontendUrl}/${redirectPage}?connected=true`
+    );
+
+});
 
   } catch (err) {
 
@@ -440,22 +457,44 @@ return res.redirect(`${frontendUrl}/emails?connected=true`);
 
   }
 };
+// exports.outlookLogin = async (req, res) => {
+//   console.log("✅ outlookLogin route hit");
+//     try {
+
+//         const url = await getAuthUrl();
+
+//         res.redirect(url);
+
+//     } catch (err) {
+
+//         console.error(err);
+
+//         res.status(500).json({
+//             message: err.message
+//         });
+
+//     }
+
+// };
+
 exports.outlookLogin = async (req, res) => {
-  console.log("✅ outlookLogin route hit");
-    try {
+  try {
 
-        const url = await getAuthUrl();
+    const redirect = req.query.redirect || "emails";
 
-        res.redirect(url);
+    req.session.oauthRedirect = redirect;
 
-    } catch (err) {
+    const url = await getAuthUrl();
 
-        console.error(err);
+    res.redirect(url);
 
-        res.status(500).json({
-            message: err.message
-        });
+  } catch (err) {
 
-    }
+    console.error(err);
 
+    res.status(500).json({
+      message: err.message
+    });
+
+  }
 };

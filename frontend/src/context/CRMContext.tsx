@@ -121,6 +121,15 @@ connectedEmail: string;
 
 connectOutlook: () => void;
 
+// Outlook Calendar
+calendarConnected: boolean;
+
+calendarEmail: string;
+
+connectCalendar: () => void;
+
+checkCalendarStatus: () => Promise<void>;
+
 currentFolder: string;
 
 loadInbox: () => Promise<void>;
@@ -268,7 +277,7 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
         if (pipelines !== undefined) oppCtx.setPipelines(pipelines ?? []);
         if (referralPipelines !== undefined) oppCtx.setReferralPipelines(referralPipelines ?? []);
         if (customers !== undefined) customerCtx.setCustomers(customers ?? []);
-        if (activities !== undefined) activityCtx.setActivities(activities ?? []);
+       await activityCtx.loadActivities();
         if (quotations !== undefined) quoteCtx.setQuotations(quotations ?? []);
         if (referrals !== undefined) referralCtx.setReferrals(referrals ?? []);
         if (referralDashboard !== undefined) referralCtx.setDashboard(referralDashboard);
@@ -403,6 +412,7 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       setActivities: activityCtx.setActivities,
       emails: emailCtx.emails,
       setEmails: emailCtx.setEmails,
+      
       quotations: quoteCtx.quotations,
       setQuotations: quoteCtx.setQuotations,
       referrals: referralCtx.referrals,
@@ -461,6 +471,13 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       handleStageDelete: oppCtx.handleStageDelete,
       handleActivityCreate: activityCtx.handleActivityCreate,
       toggleActivityDone: activityCtx.toggleActivityDone,
+      calendarConnected: activityCtx.calendarConnected,
+
+calendarEmail: activityCtx.calendarEmail,
+
+connectCalendar: activityCtx.connectCalendar,
+
+checkCalendarStatus: activityCtx.checkCalendarStatus,
       handleSendEmail: emailCtx.handleSendEmail,
       isConnected: emailCtx.isConnected,
 
