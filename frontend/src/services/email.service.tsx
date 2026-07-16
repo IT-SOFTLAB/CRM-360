@@ -231,6 +231,11 @@ status: async () => {
 
     return res.data;
 
+  },
+
+  getEmailLogs: async () => {
+    const res = await api.get("/emails/logs");
+    return res.data;
   }
 
 

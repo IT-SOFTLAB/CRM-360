@@ -11,9 +11,13 @@ export default function EmailsPage() {
 
    <EmailsView
 
-  emails={crm.emails}
-  user={crm.user}
-  searchQuery={crm.searchQuery}
+      emails={crm.emails}
+      user={crm.user}
+      searchQuery={crm.searchQuery}
+      leads={crm.leads}
+      categories={crm.categories}
+      emailLogs={crm.emailLogs}
+      loadEmailLogs={crm.loadEmailLogs}
 
   isConnected={crm.isConnected}
   connectedEmail={crm.connectedEmail}

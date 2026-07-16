@@ -97,12 +97,16 @@ export default function ReferralCard({
               ).toLocaleString()}
             </div>
 
-            {referral.rewardApproved ? (
-              <span className="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full">
+            {referral.referralRewards?.some((r: any) => r.paid) ? (
+              <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-bold">
+                Paid
+              </span>
+            ) : referral.rewardApproved ? (
+              <span className="text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold">
                 Approved
               </span>
             ) : (
-              <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full">
+              <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full font-bold">
                 Pending
               </span>
             )}

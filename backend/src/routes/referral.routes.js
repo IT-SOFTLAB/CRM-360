@@ -22,6 +22,9 @@ router.delete("/:id", referralController.deleteReferral);
 // Reward approval
 router.put("/:id/approve", referralController.approveReward);
 
+// Reward payment
+router.put("/:id/pay", referralController.payReward);
+
 // Move Pipeline
 router.put("/:id/stage",  referralController.changeStage);
 

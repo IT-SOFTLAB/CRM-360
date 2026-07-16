@@ -114,7 +114,7 @@ export interface CRMContextType {
   handleStageDelete: (stageId: string) => Promise<void>;
   handleActivityCreate: (activityForm: any) => Promise<void>;
   toggleActivityDone: (activityId: string, currentStatus: boolean) => Promise<void>;
-  handleSendEmail: (replyText: string, emailObject: any) => Promise<void>;
+  handleSendEmail: (replyText: string, emailObject: any) => Promise<boolean>;
   isConnected: boolean;
 
 connectedEmail: string;
@@ -204,11 +204,13 @@ sendDraft: (
   updateQuoteStatus: (quoteId: string, status: string) => Promise<void>;
   handleReferralCreate: (referralForm: any) => Promise<void>;
   handleApproveReward: (refId: string) => Promise<void>;
+  handlePayReward: (refId: string) => Promise<void>;
   handleDeleteReferral: (id: string) => Promise<void>;
   handleAddCategory: (catName: string) => Promise<void>;
   handleDeleteCategory: (catName: string) => Promise<void>;
   handleBrandingSave: (e: React.FormEvent) => Promise<void>;
   handleDeleteUser: (id: string) => Promise<void>;
+  handleUpdateUser: (userId: string, name: string, email: string, role: string, status: string, adminId?: string) => Promise<void>;
   applyFilters: (data: any[], type: 'leads' | 'opportunities' | 'emails') => any[];
   handleSaveCustomFilter: () => void;
   clearAllFilters: () => void;
@@ -339,8 +341,8 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       dealValue: Number(dealValue) || 10000,
       expectedClosing: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       assignedSalesperson: salesperson,
-      priority: 'Medium',
-      tags: [leadObj.source, leadObj.category],
+      priority: 0,
+      tags: [],
       stageId: stageId,
       stage: newStage ? newStage.name : 'New',
       createdDate: new Date().toISOString().split('T')[0]
@@ -357,7 +359,7 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
     } else {
       oppCtx.setOpportunities(prev => prev.map(o => o.id === tempOppId ? { ...o, id: 'o_' + Date.now() } : o));
       leadsCtx.setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStage ? newStage.name : 'New' } : l));
-      toastCtx.addToast('success', 'Converted lead to Opportunity (Offline Mode)');
+      toastCtx.addToast('success', 'Converted lead to Opportunity');
     }
   };
 
@@ -533,12 +535,14 @@ sendDraft: emailCtx.sendDraft,
       updateQuoteStatus: quoteCtx.updateQuoteStatus,
       handleReferralCreate: referralCtx.handleReferralCreate,
       handleApproveReward: referralCtx.handleApproveReward,
+      handlePayReward: referralCtx.handlePayReward,
       handleDeleteReferral: referralCtx.handleDeleteReferral,
       handleMoveReferral: referralCtx.handleMoveReferral,
       handleAddCategory: settingsCtx.handleAddCategory,
       handleDeleteCategory: settingsCtx.handleDeleteCategory,
       handleBrandingSave: settingsCtx.handleBrandingSave,
       handleDeleteUser: settingsCtx.handleDeleteUser,
+      handleUpdateUser: settingsCtx.handleUpdateUser,
       applyFilters,
       handleSaveCustomFilter,
       clearAllFilters,

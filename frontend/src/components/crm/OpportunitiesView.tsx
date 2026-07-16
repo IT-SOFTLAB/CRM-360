@@ -22,7 +22,7 @@ interface OpportunitiesViewProps {
   setShowStageModal: (show: boolean) => void;
   addToast: (type: 'success' | 'error' | 'info', msg: string) => void;
   leads: any[];
-  onUpdateOpportunity: (oppId: string, oppData: any) => void;
+  onUpdateOpportunity: (oppId: string, oppData: any) => Promise<void> | void;
 }
 
 export default function OpportunitiesView({
@@ -58,29 +58,31 @@ export default function OpportunitiesView({
     return 0;
   };
 
-const getTagColors = (tag?: string, isDark: boolean = false) => {
-  const safeTag = tag?.trim() || "Default";
-
-  const hash = safeTag
-    .split("")
-    .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-
-  const hues = [0, 35, 145, 205, 270, 325]; // Red, Orange, Green, Blue, Purple, Pink
-  const hue = hues[hash % hues.length];
-
-  if (isDark) {
-    return {
-      bg: `hsla(${hue}, 70%, 35%, 0.25)`,
-      text: `hsla(${hue}, 85%, 70%, 1)`,
-    };
-  }
-
-  return {
-    bg: `hsla(${hue}, 85%, 92%, 0.9)`,
-    text: `hsla(${hue}, 90%, 30%, 1)`,
+  const getTagColors = (tag?: string, isDark: boolean = false) => {
+    const safeTag = (tag || '').trim().toLowerCase();
+    let hash = 0;
+    for (let i = 0; i < safeTag.length; i++) {
+      hash = safeTag.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const odooColors = [
+      { bg: '#FFD6D6', text: '#D63030', darkBg: '#5c1919', darkText: '#ff8a8a' }, // Red
+      { bg: '#FFEAD2', text: '#C46200', darkBg: '#592e00', darkText: '#ffb973' }, // Orange
+      { bg: '#FFF3D6', text: '#B58100', darkBg: '#4f3b00', darkText: '#ffd459' }, // Yellow
+      { bg: '#D4F8ED', text: '#0A976E', darkBg: '#004732', darkText: '#7af8cc' }, // Green
+      { bg: '#D1FBFB', text: '#008585', darkBg: '#003d3d', darkText: '#7bffff' }, // Teal
+      { bg: '#E2EFFF', text: '#1E6BD9', darkBg: '#09336d', darkText: '#9ac3ff' }, // Blue
+      { bg: '#ECE0FD', text: '#5119B5', darkBg: '#25085c', darkText: '#c9afff' }, // Purple
+      { bg: '#FDE2FA', text: '#BF26A8', darkBg: '#59094c', darkText: '#ff9be9' }, // Pink
+      { bg: '#D2F4EC', text: '#077E60', darkBg: '#02382a', darkText: '#6bf0d1' }, // Light Green
+      { bg: '#D3F8FF', text: '#007C9A', darkBg: '#003a49', darkText: '#7be5ff' }  // Cyan
+    ];
+    const index = Math.abs(hash) % odooColors.length;
+    const color = odooColors[index];
+    if (isDark) {
+      return { bg: color.darkBg, text: color.darkText };
+    }
+    return { bg: color.bg, text: color.text };
   };
-};
-
   const handleStarClick = (oppId: string, starIndex: number) => {
     const opp = opportunities.find(o => o.id === oppId);
     if (!opp) return;
@@ -217,6 +219,65 @@ const getTagColors = (tag?: string, isDark: boolean = false) => {
   const [showQuotationForm, setShowQuotationForm] = useState(false);
   const [quotationOpportunity, setQuotationOpportunity] = useState<any>(null);
 
+  const [oppDescription, setOppDescription] = useState('');
+  const [saveNotesLoading, setSaveNotesLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (selectedOpp) {
+      setOppDescription(selectedOpp.description || '');
+    } else {
+      setOppDescription('');
+    }
+  }, [selectedOpp]);
+
+  const handleSaveNotes = async () => {
+    if (!selectedOpp) return;
+    setSaveNotesLoading(true);
+    try {
+      await onUpdateOpportunity(selectedOpp.id, { description: oppDescription });
+      setSelectedOpp((prev: any) => prev ? { ...prev, description: oppDescription } : null);
+      // addToast('success', 'Notes saved successfully!');
+    } catch (err: any) {
+      addToast('error', 'Failed to save notes');
+    } finally {
+      setSaveNotesLoading(false);
+    }
+  };
+
+  const [newTagInput, setNewTagInput] = useState('');
+
+  const handleAddTag = async () => {
+    const trimmed = newTagInput.trim();
+    if (!trimmed || !selectedOpp) return;
+    const currentTags = selectedOpp.tags || [];
+    if (currentTags.includes(trimmed)) {
+      addToast('info', 'Tag already exists on this opportunity');
+      return;
+    }
+    const updatedTags = [...currentTags, trimmed];
+    try {
+      await onUpdateOpportunity(selectedOpp.id, { tags: updatedTags });
+      setSelectedOpp((prev: any) => prev ? { ...prev, tags: updatedTags } : null);
+      setNewTagInput('');
+      
+    } catch (err: any) {
+      addToast('error', 'Failed to add tag');
+    }
+  };
+
+  const handleRemoveTag = async (tagToRemove: string) => {
+    if (!selectedOpp) return;
+    const currentTags = selectedOpp.tags || [];
+    const updatedTags = currentTags.filter((t: string) => t !== tagToRemove);
+    try {
+      await onUpdateOpportunity(selectedOpp.id, { tags: updatedTags });
+      setSelectedOpp((prev: any) => prev ? { ...prev, tags: updatedTags } : null);
+      
+    } catch (err: any) {
+      addToast('error', 'Failed to remove tag');
+    }
+  };
+
   const [viewMode, setViewMode] = useState<'kanban' | 'list'>('kanban');
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailForm, setEmailForm] = useState({ to: '', subject: '', body: '' });
@@ -274,13 +335,17 @@ const getTagColors = (tag?: string, isDark: boolean = false) => {
 
       const payload = {
         sender: user?.email || 'superadmin@crm.com',
-        recipient: resolvedEmail,
+        to: resolvedEmail,
         subject: bulkEmailForm.subject,
         body: bulkEmailForm.body,
         folder: 'Sent'
       };
-      const res = await emailService.sendEmail(payload);
-      if (res) successCount++;
+      try {
+        const res = await emailService.sendEmail(payload);
+        if (res) successCount++;
+      } catch (err) {
+        console.error("Bulk email send failed for recipient:", resolvedEmail, err);
+      }
     }
 
     if (successCount > 0) {
@@ -317,19 +382,26 @@ const getTagColors = (tag?: string, isDark: boolean = false) => {
     setEmailLoading(true);
     const payload = {
       sender: user?.email || 'superadmin@crm.com',
-      recipient: emailForm.to,
+      to: emailForm.to,
       subject: emailForm.subject,
       body: emailForm.body,
       folder: 'Sent'
     };
-    const res = await emailService.sendEmail(payload);
-    if (res) {
-      addToast('success', `Email sent successfully to ${emailForm.to}!`);
-      setShowEmailModal(false);
-    } else {
-      addToast('error', 'Failed to send email.');
+    try {
+      const res = await emailService.sendEmail(payload);
+      if (res) {
+        addToast('success', `Email sent successfully to ${emailForm.to}!`);
+        setShowEmailModal(false);
+      } else {
+        addToast('error', 'Failed to send email.');
+      }
+    } catch (err: any) {
+      console.warn("Error sending email:", err);
+      const errMsg = err.response?.data?.message || err.message || 'Failed to send email.';
+      addToast('error', errMsg);
+    } finally {
+      setEmailLoading(false);
     }
-    setEmailLoading(false);
   };
 
   const formatCreatedOn = (opp: any) => {
@@ -646,6 +718,7 @@ const getTagColors = (tag?: string, isDark: boolean = false) => {
                   <th className="py-3 px-4">Email</th>
                   <th className="py-3 px-4">Salesperson</th>
                   <th className="py-3 px-4">Expected Revenue</th>
+                  <th className="py-3 px-4">Tags</th>
                   <th className="py-3 px-4">Stage</th>
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
@@ -698,6 +771,26 @@ const getTagColors = (tag?: string, isDark: boolean = false) => {
                       </td>
                       <td className="py-3.5 px-4 font-extrabold text-primary whitespace-nowrap">
                         ₹{opp.dealValue.toLocaleString()}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-wrap gap-1 max-w-[160px]">
+                          {opp.tags && opp.tags.length > 0 ? (
+                            opp.tags.map((tag: string, idx: number) => {
+                              const colors = getTagColors(tag, isDark);
+                              return (
+                                <span
+                                  key={idx}
+                                  className="text-[9.5px] px-1.5 py-0.5 rounded font-bold select-none whitespace-nowrap"
+                                  style={{ backgroundColor: colors.bg, color: colors.text }}
+                                >
+                                  {tag}
+                                </span>
+                              );
+                            })
+                          ) : (
+                            <span className="text-slate-400 italic text-[10px]">None</span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <span className="bg-blue-50 dark:bg-blue-950/40 text-primary border border-blue-100 dark:border-blue-900 text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">
@@ -816,11 +909,11 @@ const getTagColors = (tag?: string, isDark: boolean = false) => {
             onClick={() => setSelectedOpp(null)}
           >
             <div
-              className="relative w-full max-w-sm bg-card shadow-2xl border border-border-crm rounded-2xl p-5 flex flex-col z-10 text-txt-primary animate-in fade-in zoom-in-95 duration-200"
+              className="relative w-full max-w-3xl bg-card shadow-2xl border border-border-crm rounded-2xl p-5 flex flex-col z-10 text-txt-primary animate-in fade-in zoom-in-95 duration-200"
               onClick={e => e.stopPropagation()}
             >
               {/* Modal Header */}
-              <div className="flex justify-between items-center pb-3.5 border-b border-border-crm shrink-0 mb-4">
+              <div className="flex justify-between items-center pb-3 border-b border-border-crm shrink-0 mb-3.5">
                 <h3 className="font-extrabold text-xs tracking-tight text-txt-primary flex items-center gap-2">
                   <Briefcase className="w-4 h-4 text-primary" /> Opportunity Profile
                 </h3>
@@ -832,79 +925,168 @@ const getTagColors = (tag?: string, isDark: boolean = false) => {
                 </button>
               </div>
 
-              {/* Modal Body */}
-              <div className="space-y-4 flex-1 overflow-y-auto">
-                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-150 dark:border-border-crm rounded-xl p-3 space-y-1.5">
-                  <div className="space-y-1">
-                    <p className="text-slate-400 font-semibold uppercase text-[9px]">Contact Name</p>
-                    <input
-                      type="text"
-                      value={contactName}
-                      readOnly
-                      className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 font-bold text-xs focus:outline-none"
-                    />
+              {/* Modal Body: 2-Column Grid for wider and shorter layout */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 flex-1 overflow-y-auto max-h-[60vh] py-1 pr-1">
+                
+                {/* Column 1: Contact Details & Metadata */}
+                <div className="space-y-3.5">
+                  <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-150 dark:border-border-crm rounded-xl p-3 space-y-2">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <p className="text-slate-400 font-semibold uppercase text-[9px]">Contact Name</p>
+                        <input
+                          type="text"
+                          value={contactName}
+                          readOnly
+                          className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 font-bold text-xs focus:outline-none"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-slate-400 font-semibold uppercase text-[9px]">Company</p>
+                        <input
+                          type="text"
+                          value={company}
+                          readOnly
+                          className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      <span className="bg-blue-50 dark:bg-blue-950/40 text-primary border border-blue-100 dark:border-blue-900 text-[9px] px-2 py-0.5 rounded font-semibold">
+                        {category}
+                      </span>
+                      <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[9px] px-2 py-0.5 rounded font-semibold">
+                        {associatedLead.source || 'Opportunity'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-slate-400 font-semibold uppercase text-[9px]">Company</p>
-                    <input
-                      type="text"
-                      value={company}
-                      readOnly
-                      className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
-                    />
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    <span className="bg-blue-50 dark:bg-blue-950/40 text-primary border border-blue-100 dark:border-blue-900 text-[9px] px-2 py-0.5 rounded font-semibold">
-                      {category}
-                    </span>
-                    <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[9px] px-2 py-0.5 rounded font-semibold">
-                      {associatedLead.source || 'Opportunity'}
-                    </span>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="col-span-2 sm:col-span-1">
+                      <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">Email</p>
+                      <input
+                        type="email"
+                        value={email}
+                        readOnly
+                        className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">Phone</p>
+                      <input
+                        type="text"
+                        value={phone}
+                        readOnly
+                        className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Assigned Rep</p>
+                      <p className="font-bold text-txt-primary text-xs">{assignedUser}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Service Type</p>
+                      <p className="font-bold text-txt-primary text-xs">{serviceType}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Lead Sync</p>
+                      <p className="font-bold text-txt-primary text-xs flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-success shrink-0" />
+                        {status}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Created At</p>
+                      <p className="font-bold text-txt-primary text-xs flex items-center gap-1">
+                        <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
+                        {createdAt}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="col-span-2 sm:col-span-1">
-                    <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">Email</p>
-                    <input
-                      type="email"
-                      value={email}
-                      readOnly
-                      className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                {/* Column 2: Tags & Notes */}
+                <div className="flex flex-col justify-between space-y-4">
+                  {/* Opportunity Tags Section */}
+                  <div className="space-y-1.5">
+                    <p className="text-slate-400 font-semibold uppercase text-[9px]">Opportunity Tags</p>
+                    
+                    {/* Current Tags List */}
+                    <div className="flex flex-wrap gap-1.5 min-h-[20px] max-h-[70px] overflow-y-auto pr-1">
+                      {selectedOpp.tags && selectedOpp.tags.length > 0 ? (
+                        selectedOpp.tags.map((tag: string, idx: number) => {
+                          const colors = getTagColors(tag, isDark);
+                          return (
+                            <span
+                              key={idx}
+                              className="text-[10px] px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 select-none transition-all"
+                              style={{ backgroundColor: colors.bg, color: colors.text }}
+                            >
+                              <span>{tag}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveTag(tag)}
+                                className="hover:bg-black/10 dark:hover:bg-white/10 rounded-full p-0.5 shrink-0 transition cursor-pointer"
+                                style={{ color: colors.text }}
+                              >
+                                <X className="w-2 h-2" />
+                              </button>
+                            </span>
+                          );
+                        })
+                      ) : (
+                        <span className="text-[11px] text-slate-400 ">No tags added yet.</span>
+                      )}
+                    </div>
+
+                    {/* Add Tag Input */}
+                    <div className="flex gap-2 mt-1">
+                      <input
+                        type="text"
+                        placeholder="Add tag (e.g. urgent, retail)..."
+                        value={newTagInput}
+                        onChange={e => setNewTagInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddTag();
+                          }
+                        }}
+                        className="flex-grow border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-primary"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddTag}
+                        className="bg-primary hover:bg-primary-hover text-white text-[10px] font-bold px-3 py-1 rounded-lg transition-all cursor-pointer whitespace-nowrap"
+                      >
+                        Add Tag
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Description / Notes Section */}
+                  <div className="space-y-1.5 pt-3 border-t border-border-crm/30">
+                    <div className="flex justify-between items-center">
+                      <p className="text-slate-400 font-semibold uppercase text-[9px]">Description / Notes</p>
+                      <button
+                        type="button"
+                        disabled={saveNotesLoading}
+                        onClick={handleSaveNotes}
+                        className="bg-primary hover:bg-primary-hover text-white text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all shrink-0 cursor-pointer disabled:opacity-50"
+                      >
+                        {saveNotesLoading ? 'Saving...' : 'Save Notes'}
+                      </button>
+                    </div>
+                    <textarea
+                      rows={3}
+                      value={oppDescription}
+                      onChange={e => setOppDescription(e.target.value)}
+                      placeholder="Enter notes or description about this opportunity..."
+                      className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary resize-none mt-1"
                     />
-                  </div>
-                  <div className="col-span-2 sm:col-span-1">
-                    <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">Phone</p>
-                    <input
-                      type="text"
-                      value={phone}
-                      readOnly
-                      className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Assigned Rep</p>
-                    <p className="font-bold text-txt-primary text-xs">{assignedUser}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Service Type</p>
-                    <p className="font-bold text-txt-primary text-xs">{serviceType}</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Lead Sync</p>
-                    <p className="font-bold text-txt-primary text-xs flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3 text-success shrink-0" />
-                      {status}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Created At</p>
-                    <p className="font-bold text-txt-primary text-xs flex items-center gap-1">
-                      <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
-                      {createdAt}
-                    </p>
                   </div>
                 </div>
+
               </div>
 
               <div className="border-t border-border-crm pt-3.5 mt-5 flex gap-2 justify-end">

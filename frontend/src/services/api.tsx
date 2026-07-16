@@ -39,10 +39,13 @@ api.interceptors.response.use(
     const originalRequest = error.config;
 
     // Only handle 401 errors with TOKEN_EXPIRED code, and only retry once
+    const hasUserSession = typeof window !== 'undefined' && localStorage.getItem('crm_user');
     const isTokenExpired =
       error.response?.status === 401 &&
-      error.response?.data?.code === 'TOKEN_EXPIRED' &&
-      !originalRequest._retry;
+      !originalRequest._retry &&
+      !!hasUserSession &&
+      !originalRequest.url?.includes('/auth/login') &&
+      !originalRequest.url?.includes('/auth/refresh');
 
     if (isTokenExpired) {
       if (isRefreshing) {

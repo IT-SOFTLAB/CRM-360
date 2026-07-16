@@ -1,10 +1,13 @@
 const express = require("express");
 const router = express.Router();
+const authenticateJWT = require("../middlewares/authMiddleware");
 
 const email = require("../controllers/emailController");
 
-// ---------- Static Routes ----------
 router.get("/status", email.getConnectionStatus);
+
+// Secure subsequent email routes
+router.use(authenticateJWT);
 
 router.get("/profile/me", email.getProfile);
 
@@ -19,6 +22,8 @@ router.get("/sent", email.getSent);
 router.get("/drafts", email.getDrafts);
 
 router.get("/trash", email.getTrash);
+
+router.get("/logs", email.getEmailLogs);
 
 router.get("/conversation/:id", email.getConversation);
 

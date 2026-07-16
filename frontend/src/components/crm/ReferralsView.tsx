@@ -24,6 +24,7 @@ interface ReferralsViewProps {
   onSubmitReferral:(form:any)=>void;
 
   onApproveReward:(id:string)=>void;
+  onPayReward:(id:string)=>void;
 
   onDeleteReferral:(id:string)=>void;
 
@@ -72,6 +73,7 @@ export default function ReferralsView({
     onSubmitReferral,
 
     onApproveReward,
+    onPayReward,
 
     onDeleteReferral,
 
@@ -160,6 +162,7 @@ dashboard?.qualifiedLeads ?? 0
     onClose={() => setSelectedReferral(null)}
 
     onApproveReward={onApproveReward}
+    onPayReward={onPayReward}
 
     onDeleteReferral={onDeleteReferral}
 

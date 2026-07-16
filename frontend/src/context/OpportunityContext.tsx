@@ -86,7 +86,7 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
 
     if (res) {
-      if (toastCtx) toastCtx.addToast('success', `Opportunity moved to stage`);
+      // if (toastCtx) toastCtx.addToast('success', `Opportunity moved to stage`);
       await loadOpportunities();
     } else {
       if (stage) {
@@ -119,7 +119,7 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
           if (toastCtx) toastCtx.addToast('success', `${opp.customerName} enrolled in Referral Program!`);
         }
       }
-      if (toastCtx) toastCtx.addToast('success', 'Opportunity moved (Offline Mode)');
+      // if (toastCtx) toastCtx.addToast('success', 'Opportunity moved');
     }
   };
 
@@ -132,7 +132,7 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } else {
       const mockStage = { id: 'p_' + Date.now(), name: stageName, order: pipelines.length + 1 };
       setPipelines(prev => [...prev, mockStage]);
-      if (toastCtx) toastCtx.addToast('success', `Created stage: ${stageName} (Offline)`);
+      if (toastCtx) toastCtx.addToast('success', `Created stage: ${stageName}`);
     }
     await loadOpportunities();
   };
@@ -156,7 +156,7 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setPipelines(res);
     } else {
       setPipelines(updated.sort((a, b) => a.order - b.order));
-      if (toastCtx) toastCtx.addToast('success', 'Reordered stages (Offline)');
+      if (toastCtx) toastCtx.addToast('success', 'Reordered stages');
     }
   };
 
@@ -172,7 +172,7 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setPipelines(prev => prev.filter(p => p.id !== stageId));
         const fallback = pipelines[0]?.id || '';
         setOpportunities(prev => prev.map(o => o.stageId === stageId ? { ...o, stageId: fallback } : o));
-        if (toastCtx) toastCtx.addToast('success', `Deleted stage ${stage.name} (Offline)`);
+        if (toastCtx) toastCtx.addToast('success', `Deleted stage ${stage.name}`);
       }
     }
   };
@@ -183,7 +183,7 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
       await loadOpportunities();
     } else {
       setOpportunities(prev => prev.filter(o => o.id !== oppId));
-      if (toastCtx) toastCtx.addToast('success', 'Deleted opportunity (Offline)');
+      if (toastCtx) toastCtx.addToast('success', 'Deleted opportunity');
     }
   };
 
@@ -196,7 +196,7 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // Merge with server response state
       setOpportunities(prev => prev.map(o => o.id === oppId ? { ...o, ...res } : o));
     } else {
-      if (toastCtx) toastCtx.addToast('success', 'Opportunity updated (Offline Mode)');
+      if (toastCtx) toastCtx.addToast('success', 'Opportunity updated');
     }
   };
 

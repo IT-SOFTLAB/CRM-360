@@ -17,7 +17,9 @@ export const DEFAULT_ACTIVE_FILTERS = {
   expectedClosingStart: '',
   expectedClosingEnd: '',
   closedDateStart: '',
-  closedDateEnd: ''
+  closedDateEnd: '',
+  hasTags: false,
+  tag: ''
 };
 
 export const DEFAULT_AUTH_FORM = {

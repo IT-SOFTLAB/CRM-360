@@ -30,6 +30,7 @@ loadDashboard:()=>Promise<void>;
   handleReferralCreate: (form: any) => Promise<void>;
 
   handleApproveReward: (id: string) => Promise<void>;
+  handlePayReward: (id: string) => Promise<void>;
 
   handleDeleteReferral: (id: string) => Promise<void>;
 
@@ -140,6 +141,23 @@ const handleReferralCreate = async (form: any) => {
 
 };
 
+const handlePayReward = async (id: string) => {
+  try {
+    await referralService.payReward(id);
+    await loadReferrals();
+    toastCtx?.addToast(
+      "success",
+      "Reward Paid successfully!"
+    );
+  } catch (err) {
+    console.warn(err);
+    toastCtx?.addToast(
+      "error",
+      "Unable to pay reward."
+    );
+  }
+};
+
 const handleDeleteReferral = async (id: string) => {
 
   try {
@@ -163,26 +181,30 @@ const handleDeleteReferral = async (id: string) => {
 };
 
 const handleMoveReferral = async (
-
   id: string,
-
   stageId: string
-
 ) => {
+  const originalReferrals = [...referrals];
+
+  // Optimistically update the list stage
+  setReferrals((prev) =>
+    prev.map((ref) =>
+      ref.id === id ? { ...ref, currentStageId: stageId } : ref
+    )
+  );
 
   try {
-
     await referralService.moveReferral(id, stageId);
-
-await loadReferrals();
+    await loadDashboard();
   } catch (err) {
     console.warn(err);
+    // Rollback on error
+    setReferrals(originalReferrals);
     toastCtx?.addToast(
       "error",
       "Unable to move referral"
     );
   }
-
 };
 
 
@@ -207,6 +229,7 @@ await loadReferrals();
   handleReferralCreate,
 
   handleApproveReward,
+  handlePayReward,
 
   handleDeleteReferral,
 

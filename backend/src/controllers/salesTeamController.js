@@ -38,7 +38,7 @@ exports.createTeam = async (req, res) => {
 
     res.status(201).json(fullTeam);
   } catch (err) {
-    console.error('Create sales team error:', err);
+    console.error('Create team error:', err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -55,7 +55,7 @@ exports.getTeams = async (req, res) => {
     });
     res.json(teams);
   } catch (err) {
-    console.error('Get sales teams error:', err);
+    console.error('Get teams error:', err);
     res.status(500).json({ message: err.message });
   }
 };

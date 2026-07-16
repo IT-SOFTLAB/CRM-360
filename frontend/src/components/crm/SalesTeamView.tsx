@@ -21,7 +21,7 @@ export default function SalesTeamView() {
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<any | null>(null);
-  const [activeTab, setActiveTab] = useState<'performance' | 'leads' | 'activities'>('performance');
+  const [activeTab, setActiveTab] = useState<'performance' | 'leads'>('performance');
   const [kanbanDeals, setKanbanDeals] = useState<any[]>([]);
 
   // Form State
@@ -39,7 +39,7 @@ export default function SalesTeamView() {
       const res = await api.get('/salesteam');
       setTeams(res.data);
     } catch (err) {
-      console.warn('Error loading sales teams', err);
+      console.warn('Error loading teams', err);
     } finally {
       setLoading(false);
     }
@@ -156,7 +156,7 @@ export default function SalesTeamView() {
       });
       loadTeams();
     } catch (err: any) {
-      crm.addToast('error', err?.response?.data?.message || 'Failed to create sales team');
+      crm.addToast('error', err?.response?.data?.message || 'Failed to create team');
     }
   };
 
@@ -323,7 +323,7 @@ export default function SalesTeamView() {
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-txt-primary font-inter">Sales Teams</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-txt-primary font-inter">Teams</h1>
             <p className="text-xs text-txt-secondary mt-0.5">View complete pipeline stages and performance dashboards per sales team.</p>
           </div>
         </div>
@@ -333,14 +333,14 @@ export default function SalesTeamView() {
           className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 text-xs font-semibold transition flex items-center space-x-1.5 shadow-lg shadow-indigo-500/10 cursor-pointer"
         >
           <Plus className="w-4 h-4" />
-          <span>Create Sales Team</span>
+          <span>Create Team</span>
         </button>
       </div>
 
       {/* Team Select Dropdown Toolbar */}
       <div className="bg-card border border-border-crm rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center space-x-2">
-          <span className="text-xs font-bold text-txt-secondary uppercase tracking-wider">Select Sales Team:</span>
+          <span className="text-xs font-bold text-txt-secondary uppercase tracking-wider">Select Team:</span>
           <select
             value={selectedTeam?.id || 'all'}
             onChange={(e) => handleTeamSelectChange(e.target.value)}
@@ -372,7 +372,7 @@ export default function SalesTeamView() {
           ) : teams.length === 0 ? (
             <div className="text-center py-20 bg-card rounded-2xl border border-border-crm">
               <Users className="w-12 h-12 text-txt-secondary mx-auto mb-3" />
-              <h3 className="text-sm font-semibold text-txt-primary font-inter">No Sales Teams found</h3>
+              <h3 className="text-sm font-semibold text-txt-primary font-inter">No Teams found</h3>
               <p className="text-xs text-txt-secondary mt-1">Create teams to bundle salesperson users and route categories (e.g. Healthcare, Retail)</p>
             </div>
           ) : (
@@ -516,12 +516,6 @@ export default function SalesTeamView() {
                 >
                   Team Leads & Pipeline
                 </button>
-                <button
-                  onClick={() => setActiveTab('activities')}
-                  className={`py-3 px-4 font-bold text-xs border-b-2 transition-colors ${activeTab === 'activities' ? 'border-primary text-primary' : 'border-transparent text-txt-secondary hover:text-txt-primary'}`}
-                >
-                  Team Activities
-                </button>
               </div>
 
               {/* Tab Contents */}
@@ -612,26 +606,6 @@ export default function SalesTeamView() {
 
                 {activeTab === 'leads' && (
                   <div className="space-y-6">
-                    {/* Pipeline Stage Summary counts */}
-                    <div className="bg-bg-main border border-border-crm p-5 rounded-xl space-y-2">
-                      <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary flex items-center gap-1.5">
-                        <BarChart3 className="w-4 h-4 text-primary" />
-                        <span>Team Pipeline Breakdown</span>
-                      </h4>
-                      <div className="flex flex-wrap gap-2.5 pt-2">
-                        {Object.keys(metrics.stageCounts).length === 0 ? (
-                          <p className="text-xs text-txt-secondary italic">No opportunities in the pipeline stages yet.</p>
-                        ) : (
-                          Object.entries(metrics.stageCounts).map(([stage, count], idx) => (
-                            <div key={idx} className="bg-card border border-border-crm rounded-xl px-4 py-2 text-xs flex items-center space-x-2">
-                              <span className="font-bold text-txt-primary">{stage}:</span>
-                              <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded font-extrabold">{count}</span>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </div>
-
                     {/* Leads List */}
                     <div className="bg-card border border-border-crm rounded-xl p-5 space-y-3">
                       <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary flex items-center gap-1.5">
@@ -645,7 +619,6 @@ export default function SalesTeamView() {
                             <tr className="border-b border-border-crm text-[10px] text-txt-secondary font-bold uppercase">
                               <th className="py-2.5">Lead Title</th>
                               <th className="py-2.5">Contact Name</th>
-                              <th className="py-2.5">Pipeline Stage</th>
                               <th className="py-2.5">Assigned To</th>
                               <th className="py-2.5 text-right">Value</th>
                             </tr>
@@ -654,21 +627,14 @@ export default function SalesTeamView() {
                             {metrics.leadsList.map((lead: any) => (
                               <tr key={lead.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition">
                                 <td className="py-3 font-bold text-blue-600 dark:text-blue-400">{lead.title || lead.company || 'Unnamed Lead'}</td>
-                                <td className="py-3 text-txt-secondary">{lead.name || lead.contactName || 'N/A'}</td>
-                                <td className="py-3">
-                                  <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-                                    (lead.stageId || '').toLowerCase() === 'won' ? 'bg-emerald-950 text-emerald-400' : 'bg-slate-700 text-slate-300'
-                                  }`}>
-                                    {lead.stageName || lead.stageId || 'New'}
-                                  </span>
-                                </td>
-                                <td className="py-3 font-semibold">{lead.assignedUser || 'Unassigned'}</td>
+                                <td className="py-3 text-txt-secondary">{lead.customerName || lead.contactName || lead.name || 'N/A'}</td>
+                                <td className="py-3 font-semibold">{lead.assignedUser || lead.assignedSalesperson || 'Unassigned'}</td>
                                 <td className="py-3 text-right font-extrabold text-txt-primary">₹{(parseFloat(lead.dealValue) || 0).toLocaleString()}</td>
                               </tr>
                             ))}
                             {metrics.leadsList.length === 0 && (
                               <tr>
-                                <td colSpan={5} className="text-center py-6 text-txt-secondary italic">No active leads associated with this team.</td>
+                                <td colSpan={4} className="text-center py-6 text-txt-secondary italic">No active leads associated with this team.</td>
                               </tr>
                             )}
                           </tbody>
@@ -678,35 +644,7 @@ export default function SalesTeamView() {
                   </div>
                 )}
 
-                {activeTab === 'activities' && (
-                  <div className="bg-card border border-border-crm rounded-xl p-5 space-y-4">
-                    <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary flex items-center gap-1.5">
-                      <Calendar className="w-4 h-4 text-primary" />
-                      <span>Recent logged activities</span>
-                    </h4>
 
-                    <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2 divide-y divide-border-crm">
-                      {metrics.activities.map((act: any) => (
-                        <div key={act.id} className="pt-3 first:pt-0 space-y-1 text-xs">
-                          <div className="flex justify-between items-start font-bold">
-                            <span className="text-blue-500 dark:text-blue-400 flex items-center gap-1">
-                              {act.type === 'Call' && <Phone className="w-3.5 h-3.5" />}
-                              {act.type === 'Email' && <Mail className="w-3.5 h-3.5" />}
-                              {act.type === 'Meeting' && <Calendar className="w-3.5 h-3.5" />}
-                              <span>{act.type} Call log</span>
-                            </span>
-                            <span className="text-txt-secondary font-medium text-[10px]">{new Date(act.date).toLocaleDateString()}</span>
-                          </div>
-                          <p className="text-txt-primary font-medium">{act.summary}</p>
-                          {act.notes && <p className="text-[11px] text-txt-secondary bg-bg-main p-2.5 rounded-lg border border-border-crm">{act.notes}</p>}
-                        </div>
-                      ))}
-                      {metrics.activities.length === 0 && (
-                        <div className="text-center py-10 text-txt-secondary italic">No recent activities logged on this team's leads.</div>
-                      )}
-                    </div>
-                  </div>
-                )}
 
               </div>
             </div>
@@ -721,7 +659,7 @@ export default function SalesTeamView() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-card border border-border-crm rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl">
             <div className="bg-bg-main px-5 py-3 border-b border-border-crm flex justify-between items-center">
-              <h3 className="font-bold text-txt-primary text-xs">Create Sales Team</h3>
+              <h3 className="font-bold text-txt-primary text-xs">Create Team</h3>
               <button onClick={() => setShowCreateModal(false)} className="text-txt-secondary hover:text-txt-primary cursor-pointer">
                 <X className="w-4 h-4" />
               </button>

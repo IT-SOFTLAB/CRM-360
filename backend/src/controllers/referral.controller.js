@@ -408,3 +408,44 @@ if (reward) {
 
 } 
 
+exports.payReward = async (req, res) => {
+  try {
+    const reward = await prisma.referralReward.findFirst({
+      where: {
+        referralId: req.params.id
+      }
+    });
+
+    if (!reward) {
+      return res.status(404).json({
+        message: "Reward not found for this referral. Approve the reward first."
+      });
+    }
+
+    if (reward.paid) {
+      return res.status(400).json({
+        message: "Reward is already paid"
+      });
+    }
+
+    const updatedReward = await prisma.referralReward.update({
+      where: {
+        id: reward.id
+      },
+      data: {
+        paid: true,
+        paidDate: new Date()
+      }
+    });
+
+    res.json({
+      message: "Reward Paid successfully",
+      reward: updatedReward
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: err.message
+    });
+  }
+};
+

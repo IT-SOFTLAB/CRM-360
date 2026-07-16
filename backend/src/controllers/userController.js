@@ -7,9 +7,11 @@ exports.getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
       include: {
-        salesTeam: { select: { id: true, name: true } }
+        admin: {
+          select: { id: true, name: true }
+        }
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { name: 'asc' }
     });
 
     // Strip passwords
@@ -29,11 +31,35 @@ exports.getAllUsers = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, role, status, isLocked, department, category, salesTeamId } = req.body;
-
+    const { name, email, role, status, isLocked, department, category, salesTeamId, adminId } = req.body;
+    
     const existing = await prisma.user.findUnique({ where: { id } });
     if (!existing) {
       return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (name) {
+      const existingName = await prisma.user.findFirst({
+        where: {
+          name: { equals: name.trim(), mode: 'insensitive' },
+          id: { not: id }
+        }
+      });
+      if (existingName) {
+        return res.status(400).json({ message: 'User with this name already exists' });
+      }
+    }
+
+    if (email) {
+      const existingEmail = await prisma.user.findFirst({
+        where: {
+          email: { equals: email.toLowerCase().trim(), mode: 'insensitive' },
+          id: { not: id }
+        }
+      });
+      if (existingEmail) {
+        return res.status(400).json({ message: 'User with this email already exists' });
+      }
     }
 
     // Role check: Admins cannot update other users to SUPER_ADMIN, and cannot update SUPER_ADMINs
@@ -50,10 +76,16 @@ exports.updateUser = async (req, res) => {
     if (department !== undefined) dataToUpdate.department = department;
     if (category !== undefined) dataToUpdate.category = category;
     if (salesTeamId !== undefined) dataToUpdate.salesTeamId = salesTeamId || null;
+    if (adminId !== undefined) dataToUpdate.adminId = adminId || null;
 
     const updatedUser = await prisma.user.update({
       where: { id },
-      data: dataToUpdate
+      data: dataToUpdate,
+      include: {
+        admin: {
+          select: { id: true, name: true }
+        }
+      }
     });
 
     const { password, ...clean } = updatedUser;

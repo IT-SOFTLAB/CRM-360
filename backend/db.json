@@ -37,8 +37,7 @@
     "Finance",
     "Logistics",
     "Hospitality",
-    "IT Services",
-    "xyz"
+    "IT Services"
   ],
   "serviceTypes": [
     "Service Based",
@@ -213,6 +212,21 @@
       "status": "New",
       "createdAt": "2026-07-09",
       "createdDate": "2026-07-09"
+    },
+    {
+      "id": "cmrn64aw6000io0fo9q4e5ir1",
+      "name": "John Doe",
+      "contactName": "John Doe",
+      "company": "Apex Ltd",
+      "source": "CSV/Excel Import",
+      "email": "john@apex.com",
+      "phone": "9876543210",
+      "category": "Healthcare",
+      "serviceType": "Service Based",
+      "assignedUser": "Sarah Connor",
+      "status": "New",
+      "createdAt": "2026-07-16",
+      "createdDate": "2026-07-16"
     }
   ],
   "opportunities": [
@@ -481,40 +495,13 @@
   },
   "auditLogs": [
     {
-      "id": "log_1783663175066_o8a6d",
-      "timestamp": "2026-07-10T05:59:35.066Z",
+      "id": "log_1784021522685_0ou1d",
+      "timestamp": "2026-07-14T09:32:02.685Z",
       "user": "System",
       "role": "System",
-      "action": "UPDATE_BRANDING",
+      "action": "DELETE_CATEGORY",
       "module": "Settings",
-      "details": "Updated company branding details."
-    },
-    {
-      "id": "log_1783660303817_5tulc",
-      "timestamp": "2026-07-10T05:11:43.817Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_BRANDING",
-      "module": "Settings",
-      "details": "Updated company branding details."
-    },
-    {
-      "id": "log_1783598729821_ks6vn",
-      "timestamp": "2026-07-09T12:05:29.821Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_BRANDING",
-      "module": "Settings",
-      "details": "Updated company branding details."
-    },
-    {
-      "id": "log_1783598654955_ufjdb",
-      "timestamp": "2026-07-09T12:04:14.955Z",
-      "user": "System",
-      "role": "System",
-      "action": "UPDATE_BRANDING",
-      "module": "Settings",
-      "details": "Updated company branding details."
+      "details": "Deleted project category: xyz"
     },
     {
       "id": "log_1783670013715_acs9s",
@@ -632,6 +619,173 @@
       "action": "UPDATE_BRANDING",
       "module": "Settings",
       "details": "Updated company branding details."
+    }
+  ],
+  "emailLogs": [
+    {
+      "id": "elog_1784099607092_a4a46",
+      "recipientEmail": "yashika.chaturvedi@itsoftlab.com",
+      "subject": "Re: Following Up on Our Previous Conversation",
+      "leadId": null,
+      "opportunityId": null,
+      "sentByUserId": "cmr8t1zrp0003o0b061ssd7rs",
+      "status": "Sent",
+      "errorMessage": null,
+      "attachments": null,
+      "emailBody": "Hi ,\n\nI hope you're doing well.\n\nI wanted to follow up regarding our previous discussion.\n\nPlease let us know if you have any questions or require additional information.\n\nLooking forward to your response.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "sentAt": "2026-07-15T07:13:27.092Z",
+      "createdAt": "2026-07-15T07:13:27.092Z",
+      "updatedAt": "2026-07-15T07:13:27.092Z"
+    },
+    {
+      "id": "elog_1784101039125_ibp78",
+      "recipientEmail": "trupti.mandloi@itsoftlab.com",
+      "subject": "Re: Meeting Request",
+      "leadId": null,
+      "opportunityId": null,
+      "sentByUserId": "cmr8t1zrp0003o0b061ssd7rs",
+      "status": "Sent",
+      "errorMessage": null,
+      "attachments": null,
+      "emailBody": "Hi ,\n\nI hope you're doing well.\n\nWe would appreciate the opportunity to meet with you to discuss your business requirements and demonstrate how CRM-360 can help your organization.\n\nPlease let us know a suitable date and time.\n\nLooking forward to meeting with you.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "sentAt": "2026-07-15T07:37:19.126Z",
+      "createdAt": "2026-07-15T07:37:19.126Z",
+      "updatedAt": "2026-07-15T07:37:19.126Z"
+    },
+    {
+      "id": "elog_1784101134567_krizc",
+      "recipientEmail": "trupti.mandloi@itsoftlab.com",
+      "subject": "Re: Meeting Request",
+      "leadId": null,
+      "opportunityId": null,
+      "sentByUserId": "cmr8t1zrp0003o0b061ssd7rs",
+      "status": "Sent",
+      "errorMessage": null,
+      "attachments": null,
+      "emailBody": "Hi ,\n\nI hope you're doing well.\n\nWe would appreciate the opportunity to meet with you to discuss your business requirements and demonstrate how CRM-360 can help your organization.\n\nPlease let us know a suitable date and time.\n\nLooking forward to meeting with you.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "sentAt": "2026-07-15T07:38:54.567Z",
+      "createdAt": "2026-07-15T07:38:54.567Z",
+      "updatedAt": "2026-07-15T07:38:54.567Z"
+    },
+    {
+      "id": "elog_1784101143473_37sm5",
+      "recipientEmail": "trupti.mandloi@itsoftlab.com",
+      "subject": "Re: Meeting Request",
+      "leadId": null,
+      "opportunityId": null,
+      "sentByUserId": "cmr8t1zrp0003o0b061ssd7rs",
+      "status": "Failed",
+      "errorMessage": "Outlook account is not connected.",
+      "attachments": null,
+      "emailBody": "Hi ,\n\nI hope you're doing well.\n\nWe would appreciate the opportunity to meet with you to discuss your business requirements and demonstrate how CRM-360 can help your organization.\n\nPlease let us know a suitable date and time.\n\nLooking forward to meeting with you.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "sentAt": "2026-07-15T07:39:03.473Z",
+      "createdAt": "2026-07-15T07:39:03.473Z",
+      "updatedAt": "2026-07-15T07:39:03.473Z"
+    },
+    {
+      "id": "elog_1784119327179_kdea5",
+      "recipientEmail": "yashika.chaturvedi@itsoftlab.com",
+      "subject": "Re: Welcome to CRM-360",
+      "leadId": null,
+      "opportunityId": null,
+      "sentByUserId": "cmrlwmzr30006ur50bv9ubmb9",
+      "status": "Sent",
+      "errorMessage": null,
+      "attachments": null,
+      "emailBody": "Hi ,\n\nWelcome to CRM-360.\n\nThank you for connecting with us.\n\nWe look forward to helping your organization streamline customer relationship management and improve sales productivity.\n\nIf you have any questions, feel free to contact us.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "sentAt": "2026-07-15T12:42:07.179Z",
+      "createdAt": "2026-07-15T12:42:07.179Z",
+      "updatedAt": "2026-07-15T12:42:07.179Z"
+    },
+    {
+      "id": "elog_1784119453488_o28ct",
+      "recipientEmail": "yashika@itsoftlab.com",
+      "subject": "Re: Meeting Request",
+      "leadId": null,
+      "opportunityId": null,
+      "sentByUserId": "cmrlwmzr30006ur50bv9ubmb9",
+      "status": "Sent",
+      "errorMessage": null,
+      "attachments": null,
+      "emailBody": "Hi ,\n\nI hope you're doing well.\n\nWe would appreciate the opportunity to meet with you to discuss your business requirements and demonstrate how CRM-360 can help your organization.\n\nPlease let us know a suitable date and time.\n\nLooking forward to meeting with you.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "sentAt": "2026-07-15T12:44:13.488Z",
+      "createdAt": "2026-07-15T12:44:13.488Z",
+      "updatedAt": "2026-07-15T12:44:13.488Z"
+    },
+    {
+      "id": "elog_1784191446530_aj4qy",
+      "recipientEmail": "yashikagmail",
+      "subject": "Re: Thank You",
+      "leadId": null,
+      "opportunityId": null,
+      "sentByUserId": "cmrlwmzr30006ur50bv9ubmb9",
+      "status": "Invalid",
+      "errorMessage": "Recipient email address is invalid.",
+      "attachments": null,
+      "emailBody": "Hi ,\n\nThank you for taking the time to connect with us.\n\nWe truly appreciate the opportunity to work with you.\n\nIf there is anything else we can assist you with, please don't hesitate to reach out.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "sentAt": "2026-07-16T08:44:06.530Z",
+      "createdAt": "2026-07-16T08:44:06.530Z",
+      "updatedAt": "2026-07-16T08:44:06.530Z"
+    },
+    {
+      "id": "elog_1784192020844_xrqt9",
+      "recipientEmail": "yashika",
+      "subject": "Re: Introducing CRM-360",
+      "leadId": null,
+      "opportunityId": null,
+      "sentByUserId": "cmrlwmzr30006ur50bv9ubmb9",
+      "status": "Invalid",
+      "errorMessage": "Recipient email address is invalid.",
+      "attachments": null,
+      "emailBody": "Hi ,\n\nI hope you're doing well.\n\nI'd like to introduce CRM-360, a complete CRM platform designed to manage leads, opportunities, customer interactions, quotations, and sales activities efficiently.\n\nWe would love to demonstrate how CRM-360 can benefit your organization.\n\nPlease let us know if you'd like to schedule a demo.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "sentAt": "2026-07-16T08:53:40.844Z",
+      "createdAt": "2026-07-16T08:53:40.844Z",
+      "updatedAt": "2026-07-16T08:53:40.844Z"
+    },
+    {
+      "id": "elog_1784192202356_vhf3y",
+      "recipientEmail": "yashika",
+      "subject": "Re: Following Up on Our Previous Conversation",
+      "leadId": null,
+      "opportunityId": null,
+      "sentByUserId": "cmrlwmzr30006ur50bv9ubmb9",
+      "status": "Invalid",
+      "errorMessage": "Recipient email address is invalid.",
+      "attachments": null,
+      "emailBody": "Hi ,\n\nI hope you're doing well.\n\nI wanted to follow up regarding our previous discussion.\n\nPlease let us know if you have any questions or require additional information.\n\nLooking forward to your response.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "sentAt": "2026-07-16T08:56:42.356Z",
+      "createdAt": "2026-07-16T08:56:42.356Z",
+      "updatedAt": "2026-07-16T08:56:42.357Z"
+    },
+    {
+      "id": "elog_1784192337004_3kfe6",
+      "recipientEmail": "yashika@",
+      "subject": "Re: Following Up on Our Previous Conversation",
+      "leadId": null,
+      "opportunityId": null,
+      "sentByUserId": "cmrlwmzr30006ur50bv9ubmb9",
+      "status": "Invalid",
+      "errorMessage": "Recipient email address is invalid.",
+      "attachments": null,
+      "emailBody": "Hi ,\n\nI hope you're doing well.\n\nI wanted to follow up regarding our previous discussion.\n\nPlease let us know if you have any questions or require additional information.\n\nLooking forward to your response.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "sentAt": "2026-07-16T08:58:57.004Z",
+      "createdAt": "2026-07-16T08:58:57.004Z",
+      "updatedAt": "2026-07-16T08:58:57.004Z"
+    },
+    {
+      "id": "elog_1784192544187_uvlny",
+      "recipientEmail": "yashika",
+      "subject": "Re: Thank You",
+      "leadId": null,
+      "opportunityId": null,
+      "sentByUserId": "cmrlwmzr30006ur50bv9ubmb9",
+      "status": "Invalid",
+      "errorMessage": "Recipient email address is invalid.",
+      "attachments": null,
+      "emailBody": "Hi ,\n\nThank you for taking the time to connect with us.\n\nWe truly appreciate the opportunity to work with you.\n\nIf there is anything else we can assist you with, please don't hesitate to reach out.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "sentAt": "2026-07-16T09:02:24.187Z",
+      "createdAt": "2026-07-16T09:02:24.187Z",
+      "updatedAt": "2026-07-16T09:02:24.187Z"
     }
   ]
 }
