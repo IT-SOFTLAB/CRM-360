@@ -4,8 +4,8 @@ export const emailService = {
 
   connectOutlook: () => {
     window.location.href =
-      // "http://localhost:5000/auth/login/outlook";
-      "https://crm-360-wvd1.onrender.com/auth/login/outlook";
+      "http://localhost:5000/auth/login/outlook";
+      //"https://crm-360-wvd1.onrender.com/auth/login/outlook";
   },
 
   getInbox: async () => {
@@ -41,8 +41,24 @@ export const emailService = {
   },
 
   sendEmail: async (payload: any) => {
-    const res = await api.post("/emails/send", payload);
-    return res.data;
+    try {
+      const res = await api.post("/emails/send", payload);
+      return res.data;
+    } catch (err: any) {
+      if (err.response) {
+        return {
+          success: false,
+          error: true,
+          message: err.response.data?.message || `Request failed with status code ${err.response.status}`,
+          status: err.response.status
+        };
+      }
+      return {
+        success: false,
+        error: true,
+        message: err.message || "Network Error"
+      };
+    }
   },
 
   replyEmail: async (
@@ -196,6 +212,11 @@ status: async () => {
 
     return res.data;
 
+  },
+
+  getEmailLogs: async () => {
+    const res = await api.get("/emails/logs");
+    return res.data;
   }
 
 

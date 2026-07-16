@@ -21,6 +21,7 @@ model User {
   isLocked          Boolean        @default(false)
   salesTeamId       String?
   status            String         @default("Active")
+  adminId           String?
   customers         Customer[]
   leads             Lead[]
   notifications     Notification[]
@@ -29,6 +30,8 @@ model User {
   ledTeams          SalesTeam[]    @relation("TeamLeader")
   tasksCreated      Task[]         @relation("TasksCreated")
   tasksAssigned     Task[]         @relation("TasksAssigned")
+  admin             User?          @relation("AdminUsers", fields: [adminId], references: [id])
+  subordinates      User[]         @relation("AdminUsers")
   salesTeam         SalesTeam?     @relation("TeamMembers", fields: [salesTeamId], references: [id])
 }
 
@@ -49,19 +52,26 @@ model Lead {
 }
 
 model Activity {
-  id            String   @id @default(cuid())
-  title         String
-  type          String
-  date          DateTime
-  time          String
-  duration      Int
-  description   String?
-  salesperson   String?
-  leadId        String?
-  opportunityId String?
-  done          Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String    @id @default(cuid())
+  title           String
+  description     String?
+  type            String    @default("Task")
+  date            DateTime
+  time            String
+  duration        Int
+  startTime       DateTime?
+  endTime         DateTime?
+  salesperson     String?
+  leadId          String?
+  opportunityId   String?
+  location        String?
+  attendees       Json?
+  isOutlookSynced Boolean   @default(false)
+  outlookEventId  String?
+  meetingUrl      String?
+  done            Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model ReferralPipeline {
@@ -138,6 +148,7 @@ model Opportunity {
   assignedSalespersonId  String?
   priority               Int       @default(0)
   tags                   String[]
+  description            String?
   assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
 }
 
@@ -159,27 +170,39 @@ model Customer {
 }
 
 model Quotation {
-  id              String          @id @default(uuid())
-  quotationNumber String          @unique
-  opportunityId   String
-  customerId      String
-  customerName    String
-  company         String
-  email           String
-  phone           String
-  salesperson     String
-  quotationDate   DateTime
-  expirationDate  DateTime
-  paymentTerms    String
-  currency        String
-  subtotal        Float
-  tax             Float
-  total           Float
-  notes           String?
-  status          String          @default("Draft")
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  items           QuotationItem[]
+  id                          String          @id @default(uuid())
+  quotationNumber             String          @unique
+  opportunityId               String
+  customerId                  String
+  customerNameSnapshot        String
+  customerCompanyNameSnapshot String
+  customerEmailSnapshot       String
+  customerPhoneSnapshot       String
+  salesperson                 String
+  quotationDate               DateTime
+  expirationDate              DateTime
+  paymentTerms                String
+  currency                    String
+  subtotal                    Float
+  tax                         Float
+  total                       Float
+  notes                       String?
+  status                      String          @default("Draft")
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @updatedAt
+  customerGstinSnapshot       String?
+  billingAddressSnapshot      String?
+  shippingAddressSnapshot     String?
+  discountPercent             Float           @default(0.0)
+  cgst                        Float           @default(0.0)
+  sgst                        Float           @default(0.0)
+  igst                        Float           @default(0.0)
+  shippingCharge              Float           @default(0.0)
+  otherCharges                Float           @default(0.0)
+  roundOff                    Float           @default(0.0)
+  termsConditions             String?
+  internalNotes               String?
+  items                       QuotationItem[]
 }
 
 model QuotationItem {
@@ -281,4 +304,20 @@ model AuditLog {
   details   String
   ipAddress String?
   createdAt DateTime @default(now())
+}
+
+model EmailLog {
+  id             String   @id @default(cuid())
+  recipientEmail String
+  subject        String
+  leadId         String?
+  opportunityId  String?
+  sentByUserId   String
+  status         String   @default("Sent")
+  errorMessage   String?
+  attachments    String?
+  emailBody      String
+  sentAt         DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }

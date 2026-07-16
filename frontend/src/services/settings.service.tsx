@@ -46,6 +46,15 @@ export const settingsService = {
       return null;
     }
   },
+  updateUser: async (userId: string, userData: any) => {
+    try {
+      const res = await api.put(`/users/${userId}`, userData);
+      return res.data;
+    } catch (err) {
+      console.warn('API error updating user, fallback to offline', err);
+      return null;
+    }
+  },
   getBranding: async () => {
     try {
       const res = await api.get('/settings/branding');

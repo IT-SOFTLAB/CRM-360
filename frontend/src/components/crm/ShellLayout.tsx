@@ -55,6 +55,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -188,7 +189,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     { id: 'quotations', label: 'Quotations', icon: FileText, href: '/quotations', roles: ['ADMIN', 'USER'] },
     { id: 'customers', label: 'Customers', icon: Building2, href: '/customers', roles: ['ADMIN', 'USER'] },
     { id: 'referrals', label: 'Retention', icon: TrendingUp, href: '/referrals', roles: ['ADMIN', 'USER'] },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon, href: '/settings', roles: ['SUPER_ADMIN', 'ADMIN'] },
+    { id: 'settings', label: 'Settings', icon: SettingsIcon, href: '/settings', roles: ['SUPER_ADMIN', 'ADMIN', 'USER'] },
   ];
 
   const handleLogoutClick = async () => {
@@ -196,6 +197,8 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     await crm.handleLogout();
     router.push('/login');
   };
+
+  const userRole = (crm.user?.role || '').trim().toUpperCase().replace(/[\s_]+/g, '_');
 
   const hasActiveFilters = 
     crm.activeFilters.myPipeline || 
@@ -219,7 +222,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     crm.activeFilters.closedDateEnd;
 
   return (
-    <div className="flex flex-col min-h-screen bg-bg-main transition-colors duration-300">
+    <div className="flex min-h-screen bg-bg-main transition-colors duration-300">
     
       <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
         {crm.toasts.map(t => (
@@ -238,451 +241,291 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         ))}
       </div>
 
-      {/* Top Navbar / Odoo-inspired App Switcher Menu */}
-      <header className="bg-card  shadow-sm border-b border-border-crm shrink-0 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 flex items-center justify-between h-14">
-          
-          {/* Conditional layout check based on role */}
-          {((crm.user?.role || '').toUpperCase().replace(/[\s_]+/g, '_') === 'SUPER_ADMIN') ? (
-            <>
-              {/* Logo & Platform Title (Left-aligned) */}
-              <div className="flex items-center space-x-4 shrink-0">
-                {/* Hamburger button visible only below xl breakpoint */}
-                <button
-                  onClick={() => setShowMobileMenu(!showMobileMenu)}
-                  className="xl:hidden p-2 rounded-xl text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary transition cursor-pointer"
-                  title="Open Navigation Menu"
-                >
-                  <Menu className="w-4.5 h-4.5" />
-                </button>
-
-                <div className="bg-primary p-2 rounded-xl text-white">
-                  <Briefcase className="w-5 h-5" />
-                </div>
-                <span className="font-bold text-lg tracking-tight select-none text-txt-primary">
-                  {crm.companyBranding.logoText}
-                </span>
+      {/* 1. Sidebar for Desktop (md and above) */}
+      <aside className={`hidden md:flex flex-col bg-card border-r border-border-crm h-screen sticky top-0 shrink-0 transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-60'}`}>
+        {/* Sidebar Header - Logo & Branding + Collapse Toggle */}
+        <div className={`h-14 border-b border-border-crm flex items-center px-3 justify-between ${sidebarCollapsed ? 'justify-center' : 'px-4'}`}>
+          {!sidebarCollapsed && (
+            <div className="flex items-center space-x-3 truncate">
+              <div className="bg-primary p-2 rounded-xl text-white">
+                <Briefcase className="w-5 h-5" />
               </div>
-
-              {/* Module Links - Centered for Super Admin */}
-              <nav className="hidden xl:flex space-x-1 justify-center flex-1">
-                {tabs.map(tab => {
-                  const Icon = tab.icon;
-                  const userRole = (crm.user?.role || '').toUpperCase().replace(' ', '_');
-                  if (tab.roles && !tab.roles.includes(userRole)) return null;
-
-                  if (tab.id === 'salesteam') {
-                    return (
-                      <div 
-                        key={tab.id} 
-                        className="relative group shrink-0"
-                        onMouseEnter={() => setShowTeamsDropdown(true)}
-                        onMouseLeave={() => setShowTeamsDropdown(false)}
-                      >
-                        <Link
-                          href={tab.href}
-                          className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
-                            currentTab === tab.id
-                              ? 'bg-primary text-white'
-                              : 'text-txt-secondary hover:bg-slate-200 blue:hover:bg-slate-800 '
-                          }`}
-                        >
-                          <Icon className="w-3.5 h-3.5" />
-                          <span>{tab.label}</span>
-                          <span className="text-[8px] opacity-70 ml-1">▼</span>
-                        </Link>
-
-                        {showTeamsDropdown && navTeams.length > 0 && (
-                          <div className="absolute top-full left-0 mt-1 bg-card border border-border-crm rounded-xl shadow-lg py-1.5 min-w-44 z-50 animate-fade-in text-txt-primary">
-                            <Link 
-                              href="/salesteam" 
-                              className="block px-4 py-2 text-xs font-bold hover:bg-slate-150 dark:hover:bg-slate-800 transition"
-                            >
-                              🌍 Teams Overview
-                            </Link>
-                            <div className="border-t border-border-crm/45 my-1"></div>
-                            {navTeams.map(team => (
-                              <Link 
-                                key={team.id}
-                                href={`/salesteam?team=${team.id}`}
-                                className="block px-4 py-2 text-xs font-medium hover:bg-slate-150 dark:hover:bg-slate-800 transition"
-                              >
-                                👥 {team.name}
-                              </Link>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <Link
-                      key={tab.id}
-                      href={tab.href}
-                      className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition shrink-0 ${
-                        currentTab === tab.id
-                          ? 'bg-primary text-white'
-                          : 'text-txt-secondary hover:bg-slate-200 blue:hover:bg-slate-800 '
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{tab.label}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
-            </>
-          ) : (
-            /* Left Side: Logo & Navigation Tabs Grouped for Admin/User (Left-aligned & Scrollable) */
-            <div className="flex items-center space-x-6 flex-1 min-w-0">
-              {/* Logo & Platform Title */}
-              <div className="flex items-center space-x-4 shrink-0">
-                {/* Hamburger button visible only below xl breakpoint */}
-                <button
-                  onClick={() => setShowMobileMenu(!showMobileMenu)}
-                  className="xl:hidden p-2 rounded-xl text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary transition cursor-pointer"
-                  title="Open Navigation Menu"
-                >
-                  <Menu className="w-4.5 h-4.5" />
-                </button>
-
-                <div className="bg-primary p-2 rounded-xl text-white">
-                  <Briefcase className="w-5 h-5" />
-                </div>
-                <span className="font-bold text-lg tracking-tight select-none text-txt-primary">
-                  {crm.companyBranding.logoText}
-                </span>
-              </div>
-              
-              {/* Module Links - Horizontal Navigation */}
-              <nav className="hidden xl:flex space-x-1 overflow-x-auto">
-                {tabs.map(tab => {
-                  const Icon = tab.icon;
-                  const userRole = (crm.user?.role || '').toUpperCase().replace(' ', '_');
-                  if (tab.roles && !tab.roles.includes(userRole)) return null;
-
-                  if (tab.id === 'salesteam') {
-                    return (
-                      <div 
-                        key={tab.id} 
-                        className="relative group shrink-0"
-                        onMouseEnter={() => setShowTeamsDropdown(true)}
-                        onMouseLeave={() => setShowTeamsDropdown(false)}
-                      >
-                        <Link
-                          href={tab.href}
-                          className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition ${
-                            currentTab === tab.id
-                              ? 'bg-primary text-white'
-                              : 'text-txt-secondary hover:bg-slate-200 blue:hover:bg-slate-800 '
-                          }`}
-                        >
-                          <Icon className="w-3.5 h-3.5" />
-                          <span>{tab.label}</span>
-                          {/* <span className="text-[8px] opacity-70 ml-1">▼</span> */}
-                        </Link>
-
-                        {showTeamsDropdown && navTeams.length > 0 && (
-                          <div className="absolute top-full left-0 mt-1 bg-card border border-border-crm rounded-xl shadow-lg py-1.5 min-w-44 z-50 animate-fade-in text-txt-primary">
-                            <Link 
-                              href="/salesteam" 
-                              className="block px-4 py-2 text-xs font-bold hover:bg-slate-150 dark:hover:bg-slate-800 transition"
-                            >
-                              🌍 Teams Overview
-                            </Link>
-                            <div className="border-t border-border-crm/45 my-1"></div>
-                            {navTeams.map(team => (
-                              <Link 
-                                key={team.id}
-                                href={`/salesteam?team=${team.id}`}
-                                className="block px-4 py-2 text-xs font-medium hover:bg-slate-150 dark:hover:bg-slate-800 transition"
-                              >
-                                👥 {team.name}
-                              </Link>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <Link
-                      key={tab.id}
-                      href={tab.href}
-                      className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition shrink-0 ${
-                        currentTab === tab.id
-                          ? 'bg-primary text-white'
-                          : 'text-txt-secondary hover:bg-slate-200 blue:hover:bg-slate-800 '
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{tab.label}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
+              <span className="font-bold text-base tracking-tight select-none text-txt-primary truncate">
+                {crm.companyBranding.logoText}
+              </span>
             </div>
           )}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-txt-secondary hover:text-txt-primary transition cursor-pointer"
+            title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        </div>
 
-          {/* Right Accessories */}
-          <div className="flex items-center space-x-3 shrink-0">
-            
-            {/* Dark Mode toggle */}
-            <button
-              onClick={crm.toggleTheme}
-              className="p-2 rounded-xl text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary transition cursor-pointer"
-              title="Toggle Dark Mode"
-            >
-              {crm.theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            </button>
+        {/* Sidebar Navigation Links (Scrollable) */}
+        <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+          {tabs.map(tab => {
+            const Icon = tab.icon;
+            if (tab.roles && !tab.roles.includes(userRole)) return null;
 
-            {/* Notifications Button */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowNotifications(!showNotifications);
-                  setShowProfileMenu(false);
-                }}
-                className="p-2 rounded-xl text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary transition relative cursor-pointer"
-                title="Notifications"
+            return (
+              <Link
+                key={tab.id}
+                href={tab.href}
+                className={`flex items-center rounded-xl text-xs font-semibold transition ${
+                  sidebarCollapsed ? 'justify-center p-2.5' : 'space-x-2 px-3 py-2'
+                } ${
+                  currentTab === tab.id
+                    ? 'bg-primary text-white font-bold'
+                    : 'text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary'
+                }`}
+                title={sidebarCollapsed ? tab.label : undefined}
               >
-                <div className="relative w-5 h-5 flex items-center justify-center">
-                  <MessageSquare className="w-5 h-5 text-txt-secondary" />
-                  <MessageSquare className="w-3.5 h-3.5 text-txt-secondary absolute -bottom-1 -right-1 bg-card border border-card rounded" style={{ transform: 'translate(1px, 1px)' }} />
-                </div>
-                {unreadCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 bg-rose-500 text-white rounded-full text-[9px] font-bold h-4 min-w-4 px-1 flex items-center justify-center border-2 border-card">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
+                <Icon className="w-4 h-4 shrink-0" />
+                {!sidebarCollapsed && <span className="truncate">{tab.label}</span>}
+              </Link>
+            );
+          })}
+        </nav>
 
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-card border border-border-crm rounded-xl shadow-lg z-50 text-txt-primary flex flex-col max-h-[480px]">
-                  {/* Dropdown Header */}
-                  <div className="px-4 py-3 border-b border-border-crm flex items-center justify-between">
-                    <span className="font-semibold text-xs text-txt-primary flex items-center space-x-1.5">
-                      <span>Notifications</span>
-                    </span>
-                    {unreadCount > 0 && (
+        {/* Sidebar Footer - User Profile Info / Logout */}
+        <div className="border-t border-border-crm p-3 bg-slate-50/50 dark:bg-slate-900/10">
+          {sidebarCollapsed ? (
+            <button
+              onClick={handleLogoutClick}
+              className="w-full py-2.5 flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-rose-500 hover:text-rose-600 rounded-xl transition cursor-pointer"
+              title="Sign Out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          ) : (
+            <div className="flex items-center justify-between gap-2 p-1.5 rounded-xl bg-card border border-border-crm/30 shadow-xs">
+              <div className="w-8 h-8 rounded-full bg-bg-main text-txt-primary border border-border-crm flex items-center justify-center font-bold uppercase text-xs shrink-0">
+                {crm.user?.name ? crm.user.name.substr(0, 2) : 'US'}
+              </div>
+              <div className="flex-1 min-w-0 text-left text-[10px]">
+                <p className="font-bold text-txt-primary truncate">{crm.user?.name || 'Guest'}</p>
+                <p className="text-txt-secondary truncate">{crm.user?.role || ''}</p>
+              </div>
+              <button
+                onClick={handleLogoutClick}
+                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-rose-500 hover:text-rose-600 rounded-lg transition cursor-pointer shrink-0"
+                title="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      </aside>
+
+      {/* 2. Main content container (holds Top Bar and page content) */}
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
+        
+        {/* Main Sticky Header (Combined controls, breadcrumbs & notifications) */}
+        <header className="bg-card border-b border-border-crm shadow-sm sticky top-0 z-40 shrink-0 min-h-[58px] md:min-h-[64px] flex items-center">
+          <div className="max-w-7xl mx-auto px-4 py-2.5 md:py-3 flex flex-col md:flex-row md:items-center justify-between gap-3 w-full">
+            
+            {/* Breadcrumbs, Mobile Toggle & Primary Actions */}
+            <div className="flex items-center space-x-3 flex-wrap gap-y-2">
+              {/* Mobile menu trigger */}
+              <button
+                onClick={() => setShowMobileMenu(true)}
+                className="md:hidden p-2 rounded-xl text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary transition cursor-pointer shrink-0"
+                title="Open Menu"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+              
+              <div className="text-sm font-semibold tracking-tight flex items-center space-x-1">
+                <span className="text-txt-secondary select-none">CRM</span>
+                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                <span className="capitalize text-txt-primary">{currentTab}</span>
+              </div>
+
+              {/* Action CTAs depending on active route */}
+              <div className="flex items-center space-x-2">
+                {currentTab === 'leads' && (
+                  <>
+                    <button
+                      onClick={() => crm.setShowLeadCreateModal(true)}
+                      className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Create Lead</span>
+                    </button>
+                    <button
+                      onClick={() => setShowImportModal(true)}
+                      disabled={isUploading}
+                      className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer disabled:opacity-50"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      <span>{isUploading ? 'Uploading...' : 'Import CSV'}</span>
+                    </button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept=".csv, .xlsx, .xls"
+                      className="hidden"
+                    />
+                  </>
+                )}
+                
+                {currentTab === 'opportunities' && (
+                  <button
+                    onClick={() => crm.setShowStageModal(true)}
+                    className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add Stage</span>
+                  </button>
+                )}
+                {currentTab === 'activities' && (
+                  <button
+                    onClick={() => crm.setShowActivityModal(true)}
+                    className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Schedule Activity</span>
+                  </button>
+                )}
+             
+                {currentTab === 'referrals' && (
+                  <button
+                    onClick={() => crm.setShowReferralModal(true)}
+                    className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Submit Referral</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Search, Filters & Notifications Bar */}
+            <div className="flex items-center space-x-2 w-full md:w-auto shrink-0 justify-end flex-wrap gap-y-2">
+              {/* Search Input, Filters and Clear triggers shown ONLY in leads and pipeline/opportunities */}
+              {(currentTab === 'leads' || currentTab === 'opportunities') && (
+                <>
+                  {/* Search Input */}
+                  <div className="relative flex-1 md:w-64">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      placeholder={`Search ${currentTab === 'opportunities' ? 'pipeline' : currentTab}...`}
+                      className="w-full bg-bg-main border border-border-crm rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-primary transition text-txt-primary"
+                      value={crm.searchQuery}
+                      onChange={e => crm.setSearchQuery(e.target.value)}
+                    />
+                    {crm.searchQuery && (
                       <button
-                        onClick={markAllAsRead}
-                        className="text-[10px] text-primary hover:underline font-semibold flex items-center space-x-1 cursor-pointer"
+                        onClick={() => crm.setSearchQuery('')}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                       >
-                        <CheckCheck className="w-3 h-3" />
-                        <span>Mark all read</span>
+                        <X className="w-3 h-3" />
                       </button>
                     )}
                   </div>
 
-                  {/* Dropdown List */}
-                  <div className="overflow-y-auto flex-1 py-1 max-h-[300px] divide-y divide-border-crm">
-                    {notifications.length === 0 ? (
-                      <div className="px-4 py-8 text-center text-txt-secondary text-xs">
-                        No notifications
-                      </div>
-                    ) : (
-                      notifications.map((notif) => (
-                        <div
-                          key={notif.id}
-                          onClick={() => {
-                            if (!notif.read) markAsRead(notif.id);
-                          }}
-                          className={`px-4 py-2.5 text-left text-xs transition cursor-pointer flex gap-2 items-start relative ${
-                            !notif.read ? 'bg-slate-50 dark:bg-slate-900/40' : 'hover:bg-slate-50 dark:hover:bg-slate-900/20'
-                          }`}
-                        >
-                          {/* Unread dot */}
-                          {!notif.read && (
-                            <span className="w-1.5 h-1.5 bg-primary rounded-full absolute left-1.5 top-4 mt-0.5 shrink-0" />
-                          )}
-                          <div className={`flex-1 ${!notif.read ? 'pl-1' : ''}`}>
-                            <p className="font-semibold text-txt-primary mb-0.5 leading-tight">{notif.title}</p>
-                            <p className="text-txt-secondary text-[11px] leading-snug">{notif.message}</p>
-                            <p className="text-[10px] text-slate-400 mt-1">
-                              {new Date(notif.createdAt).toLocaleDateString()} {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteNotification(notif.id);
-                            }}
-                            className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-txt-secondary hover:text-rose-500 transition cursor-pointer self-start"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))
+                  {/* Filter Drawer Trigger */}
+                  <button
+                    onClick={() => crm.setShowFilterDrawer(true)}
+                    className="bg-bg-main border border-border-crm hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl px-3 py-2 flex items-center space-x-1.5 text-xs font-semibold text-txt-secondary transition cursor-pointer shrink-0"
+                    title="Filters & Grouping"
+                  >
+                    <Filter className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Filters</span>
+                    {hasActiveFilters && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block"></span>
                     )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Profile Dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => {
-                  setShowProfileMenu(!showProfileMenu);
-                  setShowNotifications(false);
-                }}
-                className="flex items-center space-x-2 p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
-              >
-                <div className="w-8 h-8 rounded-full bg-bg-main text-txt-primary border border-border-crm flex items-center justify-center font-bold uppercase text-xs">
-                  {crm.user?.name ? crm.user.name.substr(0, 2) : 'US'}
-                </div>
-                <div className="hidden md:block text-left text-xs">
-                  <p className="font-semibold leading-none text-txt-primary">{crm.user?.name || 'Guest'}</p>
-                 
-                </div>
-                <ChevronDown className="w-3.5 h-3.5 text-txt-secondary" />
-              </button>
-
-              {showProfileMenu && (
-                <div className="absolute right-0 mt-2 w-56 bg-card border border-border-crm rounded-xl shadow-lg py-1 z-50 text-txt-primary">
-                  <div className="px-4 py-3 border-b border-border-crm text-xs">
-                    <p className="font-semibold text-txt-primary">{crm.user?.name || 'Guest'}</p>
-                    <p className="text-txt-secondary">{crm.user?.email || ''}</p>
-                    <p className="text-txt-secondary leading-none mt-0.5 text-[10px]">{crm.user?.company || 'Company'}</p>
-                  </div>
-                  <div className="border-t border-border-crm mt-1"></div>
-                  <button
-                    onClick={handleLogoutClick}
-                    className="w-full text-left px-4 py-2 text-xs text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center space-x-2 cursor-pointer"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span>Sign Out</span>
                   </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
 
-
-      <section className="bg-card border-b border-border-crm shadow-sm sticky top-14 z-30 shrink-0">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
-          
-          {/* Breadcrumbs & Primary Actions */}
-          <div className="flex items-center space-x-4">
-            <div className="text-sm font-semibold tracking-tight flex items-center space-x-1">
-              <span className="text-txt-secondary select-none">CRM</span>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-              <span className="capitalize text-txt-primary">{currentTab}</span>
-            </div>
-
-            {/* Action CTAs depending on active route */}
-            <div className="flex items-center space-x-2">
-              {currentTab === 'leads' && (
-                <>
-                  <button
-                    onClick={() => crm.setShowLeadCreateModal(true)}
-                    className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Create Lead</span>
-                  </button>
-                  <button
-                    onClick={() => setShowImportModal(true)}
-                    disabled={isUploading}
-                    className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer disabled:opacity-50"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>{isUploading ? 'Uploading...' : 'Import CSV'}</span>
-                  </button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileChange}
-                    accept=".csv, .xlsx, .xls"
-                    className="hidden"
-                  />
+                  {/* Reset Button */}
+                  {(crm.searchQuery || hasActiveFilters) && (
+                    <button
+                      onClick={crm.clearAllFilters}
+                      className="text-xs text-rose-500 hover:underline px-1 cursor-pointer shrink-0"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </>
               )}
-              
-              {currentTab === 'opportunities' && (
-                <button
-                  onClick={() => crm.setShowStageModal(true)}
-                  className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Add Stage</span>
-                </button>
-              )}
-              {currentTab === 'activities' && (
-                <button
-                  onClick={() => crm.setShowActivityModal(true)}
-                  className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Schedule Activity</span>
-                </button>
-              )}
-           
-              {currentTab === 'referrals' && (
-                <button
-                  onClick={() => crm.setShowReferralModal(true)}
-                  className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Submit Referral</span>
-                </button>
+
+              {/* Notifications shifted from 1st navbar - hidden for SUPER_ADMIN */}
+              {userRole !== 'SUPER_ADMIN' && (
+                <div className="relative shrink-0">
+                  <button
+                    onClick={() => {
+                      setShowNotifications(!showNotifications);
+                      setShowProfileMenu(false);
+                    }}
+                    className="p-2 rounded-xl text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary transition relative cursor-pointer flex items-center justify-center border border-border-crm bg-bg-main"
+                    title="Notifications"
+                  >
+                    <div className="relative w-4 h-4 flex items-center justify-center">
+                      <MessageSquare className="w-4 h-4 text-txt-secondary" />
+                      <MessageSquare className="w-3 h-3 text-txt-secondary absolute -bottom-0.5 -right-0.5 bg-card border border-card rounded" style={{ transform: 'translate(1px, 1px)' }} />
+                    </div>
+                    {unreadCount > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full text-[8px] font-bold h-3.5 min-w-3.5 px-0.5 flex items-center justify-center border border-card">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {showNotifications && (
+                    <div className="absolute right-0 mt-2 w-80 bg-card border border-border-crm rounded-xl shadow-lg z-50 text-txt-primary flex flex-col max-h-[480px]">
+                      <div className="px-4 py-3 border-b border-border-crm flex items-center justify-between">
+                        <span className="font-semibold text-xs text-txt-primary">Notifications</span>
+                        {unreadCount > 0 && (
+                          <button onClick={markAllAsRead} className="text-[10px] text-primary hover:underline font-semibold flex items-center space-x-1 cursor-pointer">
+                            <CheckCheck className="w-3 h-3" />
+                            <span>Mark all read</span>
+                          </button>
+                        )}
+                      </div>
+                      <div className="overflow-y-auto flex-1 py-1 max-h-[300px] divide-y divide-border-crm">
+                        {notifications.length === 0 ? (
+                          <div className="px-4 py-8 text-center text-txt-secondary text-xs">No notifications</div>
+                        ) : (
+                          notifications.map(notif => (
+                            <div
+                              key={notif.id}
+                              onClick={() => { if (!notif.read) markAsRead(notif.id); }}
+                              className={`px-4 py-2.5 text-left text-xs transition cursor-pointer flex gap-2 items-start relative ${
+                                !notif.read ? 'bg-slate-50 dark:bg-slate-950' : 'hover:bg-slate-50 dark:hover:bg-slate-900/20'
+                              }`}
+                            >
+                              {!notif.read && <span className="w-1.5 h-1.5 bg-primary rounded-full absolute left-1.5 top-4 mt-0.5 shrink-0" />}
+                              <div className={`flex-1 ${!notif.read ? 'pl-1' : ''}`}>
+                                <p className="font-semibold text-txt-primary mb-0.5 leading-tight">{notif.title}</p>
+                                <p className="text-txt-secondary text-[11px] leading-snug">{notif.message}</p>
+                                <p className="text-[10px] text-slate-400 mt-1">
+                                  {new Date(notif.createdAt).toLocaleDateString()} {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
+                              <button
+                                onClick={e => { e.stopPropagation(); deleteNotification(notif.id); }}
+                                className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-txt-secondary hover:text-rose-500 transition cursor-pointer self-start"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
-
-          {/* Search, Filters Bar */}
-          <div className="flex items-center space-x-2 w-full md:w-auto">
-            {/* Search Input */}
-            <div className="relative flex-1 md:w-64">
-              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder={`Search ${currentTab}...`}
-                className="w-full bg-bg-main border border-border-crm rounded-xl pl-9 pr-4 py-2 text-xs focus:outline-none focus:border-primary transition text-txt-primary"
-                value={crm.searchQuery}
-                onChange={e => crm.setSearchQuery(e.target.value)}
-              />
-              {crm.searchQuery && (
-                <button
-                  onClick={() => crm.setSearchQuery('')}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-
-            {/* Filter Drawer Trigger */}
-            <button
-              onClick={() => crm.setShowFilterDrawer(true)}
-              className="bg-bg-main border border-border-crm hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl px-3 py-2 flex items-center space-x-1.5 text-xs font-semibold text-txt-secondary transition cursor-pointer"
-              title="Filters & Grouping"
-            >
-              <Filter className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Filters</span>
-              {hasActiveFilters && (
-                <span className="w-2 h-2 rounded-full bg-primary inline-block"></span>
-              )}
-            </button>
-
-            {/* Reset Button */}
-            {(crm.searchQuery || hasActiveFilters) && (
-              <button
-                onClick={crm.clearAllFilters}
-                className="text-xs text-rose-500 hover:underline px-1 cursor-pointer"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
+        </header>
 
       {/* FILTER DRAWER SLIDE-IN */}
       {crm.showFilterDrawer && (
@@ -748,6 +591,14 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                     />
                     <span className="truncate">Lost Deals Only</span>
                   </label>
+                  <label className="flex items-center space-x-1.5 p-1.5 hover:bg-slate-100/50 dark:hover:bg-slate-800 rounded-lg cursor-pointer text-xs col-span-2">
+                    <input
+                      type="checkbox" className="rounded text-primary border-slate-300 focus:ring-0 w-3.5 h-3.5"
+                      checked={crm.activeFilters.hasTags}
+                      onChange={e => crm.setActiveFilters({ ...crm.activeFilters, hasTags: e.target.checked })}
+                    />
+                    <span className="truncate">Tagged Deals Only</span>
+                  </label>
                 </div>
               </div>
 
@@ -766,6 +617,17 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                       <option value="">All Categories</option>
                       {crm.categories.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-0.5">Filter by Tag</label>
+                    <input
+                      type="text"
+                      className="w-full border border-border-crm bg-bg-main rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:border-primary text-txt-primary bg-white dark:bg-slate-800"
+                      placeholder="e.g. Retail, Urgent..."
+                      value={crm.activeFilters.tag || ''}
+                      onChange={e => crm.setActiveFilters({ ...crm.activeFilters, tag: e.target.value })}
+                    />
                   </div>
 
                   <div>
@@ -984,6 +846,8 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         <p>© 2026 {crm.companyBranding.name}. All rights reserved.</p>
       </footer>
 
+      </div> {/* Closing the right content container */}
+
       {/* CSV Import Terms & Conditions Modal */}
       {showImportModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 text-xs">
@@ -1075,7 +939,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
 
       {/* Mobile Drawer Menu */}
       {showMobileMenu && (
-        <div className="fixed inset-0 z-50 flex xl:hidden">
+        <div className="fixed inset-0 z-50 flex md:hidden">
           {/* Overlay backdrop */}
           <div 
             onClick={() => setShowMobileMenu(false)} 
@@ -1104,7 +968,6 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
             <nav className="flex-1 overflow-y-auto space-y-1">
               {tabs.map(tab => {
                 const Icon = tab.icon;
-                const userRole = (crm.user?.role || '').toUpperCase().replace(' ', '_');
                 if (tab.roles && !tab.roles.includes(userRole)) return null;
 
                 return (

@@ -1,12 +1,83 @@
 const {
-
     getGraphClient
-
 }=require("../services/graphService");
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
+const fs = require('fs');
+const path = require('path');
+const DB_FILE = path.join(__dirname, '../../db.json');
+
+function readJSONDB() {
+  try {
+    if (fs.existsSync(DB_FILE)) {
+      const data = fs.readFileSync(DB_FILE, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (e) {
+    console.error("Error reading JSON DB:", e);
+  }
+  return {};
+}
+
+function writeJSONDB(db) {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+  } catch (e) {
+    console.error("Error writing JSON DB:", e);
+  }
+}
+
+const logOutgoingEmail = async (logData) => {
+  try {
+    // 1. Save to Prisma
+    await prisma.emailLog.create({
+      data: {
+        recipientEmail: logData.recipientEmail,
+        subject: logData.subject,
+        leadId: logData.leadId || null,
+        opportunityId: logData.opportunityId || null,
+        sentByUserId: logData.sentByUserId,
+        status: logData.status,
+        errorMessage: logData.errorMessage || null,
+        attachments: logData.attachments || null,
+        emailBody: logData.emailBody,
+        sentAt: new Date()
+      }
+    });
+  } catch (err) {
+    console.error("Failed to save email log to Prisma:", err);
+  }
+
+  // 2. Save to db.json
+  try {
+    const db = readJSONDB();
+    if (!db.emailLogs) {
+      db.emailLogs = [];
+    }
+    db.emailLogs.push({
+      id: 'elog_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      recipientEmail: logData.recipientEmail,
+      subject: logData.subject,
+      leadId: logData.leadId || null,
+      opportunityId: logData.opportunityId || null,
+      sentByUserId: logData.sentByUserId,
+      status: logData.status,
+      errorMessage: logData.errorMessage || null,
+      attachments: logData.attachments || null,
+      emailBody: logData.emailBody,
+      sentAt: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
+    writeJSONDB(db);
+  } catch (err) {
+    console.error("Failed to save email log to db.json:", err);
+  }
+};
 
 async function getFolderMessages(req, folderName) {
   if (!req.session?.outlook?.accessToken) {
-    throw new Error("Outlook account is not connected.");
+    return [];
 }
     const client = getGraphClient(req.session.outlook.accessToken)
 
@@ -181,62 +252,124 @@ if (!req.session?.outlook?.accessToken) {
 
 };
 
-exports.sendMail=async(req,res)=>{
+exports.sendMail = async (req, res) => {
+  const recipientEmail = req.body.to;
+  const subject = req.body.subject || "(No Subject)";
+  const body = req.body.body || "";
+  const attachments = req.body.attachments ? JSON.stringify(req.body.attachments) : null;
+  const userId = req.user?.id || "System";
 
-    try{
+  // Validate email address
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isValidEmail = emailRegex.test(recipientEmail);
 
-        const client=getGraphClient(req.session.outlook.accessToken)
+  // Dynamic Lead/Opportunity Lookup
+  let leadId = req.body.leadId || null;
+  let opportunityId = req.body.opportunityId || null;
+  
+  try {
+    if (!leadId) {
+      const leadObj = await prisma.lead.findFirst({
+        where: { email: { equals: recipientEmail, mode: 'insensitive' } }
+      });
+      if (leadObj) leadId = leadObj.id;
+    }
+    if (!opportunityId) {
+      const oppObj = await prisma.opportunity.findFirst({
+        where: { email: { equals: recipientEmail, mode: 'insensitive' } }
+      });
+      if (oppObj) opportunityId = oppObj.id;
+    }
+  } catch (err) {
+    console.error("Prisma error during lead/opp lookup:", err);
+  }
 
+  if (!isValidEmail) {
+    // Log as Invalid
+    const logData = {
+      recipientEmail,
+      subject,
+      leadId,
+      opportunityId,
+      sentByUserId: userId,
+      status: "Invalid",
+      errorMessage: "Recipient email address is invalid.",
+      attachments,
+      emailBody: body
+    };
+    await logOutgoingEmail(logData);
+    return res.status(400).json({
+      success: false,
+      message: "Recipient email address is invalid."
+    });
+  }
+
+  try {
+    let status = "Sent";
+    let errorMessage = null;
+
+    if (req.session?.outlook?.accessToken) {
+      // Send via real Microsoft Graph API
+      try {
+        const client = getGraphClient(req.session.outlook.accessToken);
         await client.api("/me/sendMail").post({
-
-            message:{
-
-                subject:req.body.subject,
-
-                body:{
-
-                    contentType:"HTML",
-
-                    content:req.body.body
-
-                },
-
-                toRecipients:[
-
-                    {
-
-                        emailAddress:{
-
-                            address:req.body.to
-
-                        }
-
-                    }
-
-                ]
-
-            }
-
+          message: {
+            subject: subject,
+            body: {
+              contentType: "HTML",
+              content: body
+            },
+            toRecipients: [
+              {
+                emailAddress: {
+                  address: recipientEmail
+                }
+              }
+            ]
+          }
         });
-
-        res.json({
-
-            success:true
-
-        });
-
+      } catch (graphErr) {
+        console.error("Microsoft Graph send failed, marking as Failed:", graphErr);
+        status = "Failed";
+        errorMessage = graphErr.message;
+      }
+    } else {
+      // Simulating email send (mock fallback)
+      console.log("Outlook not connected. Simulating email send (mock).");
+      status = "Sent";
     }
 
-    catch (err) {
-    console.error("Send Mail Error:", err);
+    const logData = {
+      recipientEmail,
+      subject,
+      leadId,
+      opportunityId,
+      sentByUserId: userId,
+      status,
+      errorMessage,
+      attachments,
+      emailBody: body
+    };
+    await logOutgoingEmail(logData);
 
-    res.status(500).json({
+    if (status === "Failed") {
+      return res.status(500).json({
         success: false,
-        message: err.message,
-        error: err.response?.body || err
-    });
-}
+        message: errorMessage
+      });
+    }
 
+    res.json({
+      success: true
+    });
+
+  } catch (err) {
+    console.error("Send Mail Error:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
 };
 
 exports.deleteMail = async (req, res) => {
@@ -709,4 +842,33 @@ exports.getConnectionStatus = async (req, res) => {
 
     });
 
+};
+
+exports.getEmailLogs = async (req, res) => {
+  try {
+    const userId = req.user?.id || "System";
+    
+    // Fetch logs sent by this user from Prisma
+    const logs = await prisma.emailLog.findMany({
+      where: { sentByUserId: userId },
+      orderBy: { sentAt: 'desc' }
+    });
+    
+    res.json(logs);
+  } catch (err) {
+    console.error("Error fetching email logs from Prisma:", err);
+    
+    // Fallback to db.json
+    try {
+      const db = readJSONDB();
+      const userId = req.user?.id || "System";
+      const logs = (db.emailLogs || []).filter(log => log.sentByUserId === userId);
+      // Sort desc
+      logs.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+      res.json(logs);
+    } catch (dbErr) {
+      console.error("Error reading JSON fallback logs:", dbErr);
+      res.status(500).json({ success: false, message: err.message });
+    }
+  }
 };

@@ -29,8 +29,8 @@ const bootstrapRoutes = require("./src/routes/bootstrapRoutes.js");
 const notificationRoutes = require("./src/routes/notificationRoutes.js");
 
 app.use(cors({
-  // origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
-  origin: ['https://crm-360-2.onrender.com', 'http://127.0.0.1:3000'],
+ origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  //origin: ['https://crm-360-2.onrender.com', 'http://127.0.0.1:3000'],
   credentials: true
 }));
 app.use(bodyParser.json());
@@ -449,8 +449,8 @@ app.post('/api/leads/:id/convert', async (req, res) => {
     dealValue: Number(dealValue) || 10000,
     expectedClosing: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     assignedSalesperson: salesperson || finalLead.assignedUser || 'Kyle Reese',
-    priority: 'Medium',
-    tags: [finalLead.source || 'CSV/Excel Import', finalLead.category || 'IT Services'],
+    priority: 0,
+    tags: [],
     stageId: stageId, // Starts at the dynamic "New" pipeline stage
     createdDate: new Date().toISOString().split('T')[0]
   };

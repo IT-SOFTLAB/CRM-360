@@ -259,28 +259,26 @@ exports.convertLeadToOpportunity = async (req, res) => {
       });
     }
 
-    // Create Opportunity
     const opportunity = await prisma.opportunity.create({
-  data: {
-    leadId: lead.id,
-    customerName: lead.contactName,
-    company: lead.company,
-    email: lead.email,
-    phone: lead.phone,
-    dealValue: Number(dealValue),
-
-    assignedSalesperson:
-      salesperson ||
-      lead.assignedUser ||
-      "Unassigned",
-
-    stage: "New",
-
-    expectedClosing: new Date(
-      Date.now() + 30 * 24 * 60 * 60 * 1000
-    ),
-  },
-});
+      data: {
+        leadId: lead.id,
+        customerName: lead.contactName,
+        company: lead.company,
+        email: lead.email,
+        phone: lead.phone,
+        dealValue: Number(dealValue),
+        assignedSalesperson:
+          salesperson ||
+          lead.assignedUser ||
+          "Unassigned",
+        stage: "New",
+        priority: 0,
+        tags: [],
+        expectedClosing: new Date(
+          Date.now() + 30 * 24 * 60 * 60 * 1000
+        ),
+      },
+    });
 
     // Update Lead Status
     await prisma.lead.update({

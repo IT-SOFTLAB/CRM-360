@@ -204,10 +204,12 @@ exports.getBootstrapData = async (req, res) => {
           _count: { select: { referrals: true } }
         }
       }),
-      // Users list (Admin / Super Admin only)
       (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN')
         ? prisma.user.findMany({
-            include: { salesTeam: { select: { id: true, name: true } } },
+            include: {
+              salesTeam: { select: { id: true, name: true } },
+              admin: { select: { id: true, name: true } }
+            },
             orderBy: { createdAt: 'desc' }
           })
         : Promise.resolve(null),

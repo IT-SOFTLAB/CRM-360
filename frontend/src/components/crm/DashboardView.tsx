@@ -39,6 +39,98 @@ const formatCRMRevenue = (val: number) => {
   return `₹${crVal % 1 === 0 ? crVal.toFixed(0) : crVal.toFixed(1)} Crore`;
 };
 
+const PIE_COLORS = ['#2563EB', '#10B981', '#F43F5E'];
+const PIE_LABELS = ['Open Deals', 'Won Deals', 'Lost Deals'];
+
+function buildPieSegs(values: number[], total: number) {
+  const r = 15.915;
+  const circ = 2 * Math.PI * r;
+  let offset = 0;
+  return values.map(v => {
+    const dash = (v / total) * circ;
+    const gap  = circ - dash;
+    const seg  = { dash, gap, offset };
+    offset += dash;
+    return seg;
+  });
+}
+
+// Combined pie chart: pie sized by revenue, legend shows both revenue (₹) AND deal count
+function PipelinePieChart({
+  label, openRev, wonRev, lostRev, openCnt, wonCnt, lostCnt
+}: {
+  label: string;
+  openRev: number; wonRev: number; lostRev: number;
+  openCnt: number; wonCnt: number; lostCnt: number;
+}) {
+  const revValues = [openRev, wonRev, lostRev];
+  const cntValues = [openCnt, wonCnt, lostCnt];
+  const totalRev  = openRev + wonRev + lostRev || 1;
+  const totalDeals = openCnt + wonCnt + lostCnt;
+  const segments  = buildPieSegs(revValues, totalRev);
+
+  return (
+    <div className="flex flex-col items-center w-full">
+      {/* Period label */}
+      <span className="mb-3 text-[10px] font-extrabold uppercase tracking-widest text-txt-secondary">{label}</span>
+
+      {/* Donut pie — slices sized by revenue */}
+      <div className="relative w-32 h-32 shrink-0">
+        <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+          <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F1F5F9" strokeWidth="3.5" />
+          {segments.map((seg, i) => (
+            <circle
+              key={i}
+              cx="18" cy="18" r="15.915"
+              fill="none"
+              stroke={revValues[i] === 0 ? 'transparent' : PIE_COLORS[i]}
+              strokeWidth="4.5"
+              strokeDasharray={`${seg.dash} ${seg.gap}`}
+              strokeDashoffset={-seg.offset}
+              style={{ transition: 'stroke-dasharray 0.7s ease' }}
+            />
+          ))}
+        </svg>
+        {/* Center: Won revenue + won count */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+          <span className="text-[9px] font-extrabold text-txt-primary leading-tight">{formatCRMRevenue(wonRev)}</span>
+          <span className="text-[7px] text-emerald-600 font-bold uppercase mt-0.5">{wonCnt} Won</span>
+        </div>
+      </div>
+
+      {/* Combined legend: one row per deal type — shows revenue + count */}
+      <div className="w-full mt-4 space-y-2">
+        {PIE_LABELS.map((lbl, i) => {
+          const revPct = Math.round((revValues[i] / totalRev) * 100);
+          return (
+            <div key={i} className="flex items-center gap-1.5 text-[9px] px-0.5">
+              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i] }} />
+              <span className="text-txt-primary font-semibold flex-1 truncate">{lbl}</span>
+              <span className="font-bold" style={{ color: PIE_COLORS[i] }}>{formatCRMRevenue(revValues[i])}</span>
+              <span className="text-txt-secondary mx-0.5">·</span>
+              <span className="text-txt-secondary font-semibold">{cntValues[i]}</span>
+              <span className="bg-slate-100 dark:bg-slate-800/60 text-txt-secondary rounded px-1 py-0.5 font-bold ml-0.5">{revPct}%</span>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Bottom summary: total revenue + total deals */}
+      <div className="w-full mt-3 rounded-xl border border-border-crm/50 bg-slate-50 dark:bg-slate-900/40 px-3 py-2 grid grid-cols-2 gap-2">
+        <div className="text-center border-r border-border-crm/40 pr-2">
+          <p className="text-[8px] font-bold uppercase text-txt-secondary tracking-wider">Total Rev</p>
+          <p className="text-[9px] font-extrabold text-primary truncate">{formatCRMRevenue(openRev + wonRev + lostRev)}</p>
+        </div>
+        <div className="text-center pl-2">
+          <p className="text-[8px] font-bold uppercase text-txt-secondary tracking-wider">Total Deals</p>
+          <p className="text-[9px] font-extrabold text-primary">{totalDeals} deals</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 interface DashboardViewProps {
   leads: any[];
   opportunities: any[];
@@ -74,6 +166,9 @@ export default function DashboardView({
  
   const [usersList, setUsersList] = useState<any[]>([]);
   const [teamsList, setTeamsList] = useState<any[]>([]);
+  const [finFilter, setFinFilter] = useState<'year' | 'month' | 'week'>('month');
+  const [adminFinFilter, setAdminFinFilter] = useState<'year' | 'month' | 'week'>('month');
+
 
   useEffect(() => {
     if (isManager) {
@@ -83,7 +178,7 @@ export default function DashboardView({
         
       api.get('/salesteam')
         .then(res => setTeamsList(res.data || []))
-        .catch(err => console.warn('Failed loading sales teams for dashboard', err));
+        .catch(err => console.warn('Failed loading teams for dashboard', err));
     }
   }, [isManager]);
 
@@ -561,7 +656,7 @@ export default function DashboardView({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: "Total Users", val: usersList.length.toString(), change: "Active across platform", icon: Users, isPrimary: false },
-            { label: "Total Sales Teams", val: teamsList.length.toString(), change: "Active divisions", icon: Briefcase, isPrimary: false },
+            { label: "Total Teams", val: teamsList.length.toString(), change: "Active divisions", icon: Briefcase, isPrimary: false },
             { label: "Total Customers", val: customers.length.toLocaleString(), change: "Accounts registered", icon: UserCheck, isPrimary: false },
             { label: "Total Leads", val: activeLeads.length.toLocaleString(), change: "Unconverted entries", icon: Layers, isPrimary: false },
             { label: "Total Opportunities", val: opportunities.length.toLocaleString(), change: "Active deals", icon: ClipboardList, isPrimary: false },
@@ -596,184 +691,218 @@ export default function DashboardView({
           ))}
         </div>
 
-        {/* 2. Funnel and Pipeline Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          {/* Left Column - Revenue Pipeline Chart */}
-          <div className="bg-card border border-border-crm rounded-2xl p-6 flex flex-col justify-between">
-            <div>
-              <h3 className="font-extrabold text-sm tracking-tight text-txt-primary mb-1">Pipeline Revenue Overview</h3>
-              <p className="text-[10px] text-txt-secondary mb-6">Comparative view of active pipeline revenue vs closed won deals.</p>
-            </div>
+        {/* 2. Financial Performance Section */}
+        {(() => {
+          const now = new Date();
 
-            {(() => {
-              const openRevenue = filteredOpps
-                .filter(o => o.stageId !== 'p_6' && o.stageId !== 'p_7')
-                .reduce((sum, o) => sum + (o.dealValue || 0), 0);
-              
-              const closedRevenue = filteredOpps
+          // Build bar chart data depending on active filter
+          let chartBars: { name: string; val: number }[] = [];
+
+          if (finFilter === 'year') {
+            // Last 6 years
+            for (let i = 5; i >= 0; i--) {
+              const yr = now.getFullYear() - i;
+              const val = filteredOpps
                 .filter(o => o.stageId === 'p_6')
-                .reduce((sum, o) => sum + (o.dealValue || 0), 0);
-              
-              const totalRevenue = openRevenue + closedRevenue || 1;
-              
-              const openPct = Math.round((openRevenue / totalRevenue) * 100);
-              const closedPct = Math.round((closedRevenue / totalRevenue) * 100);
-              
-              return (
-                <div className="flex flex-col space-y-6 py-2">
-                  <div className="flex justify-around items-end h-32 px-4">
-                    {/* Open Revenue vertical gauge */}
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-16 bg-slate-100 dark:bg-slate-800/60 border border-border-crm/40 h-28 rounded-2xl relative overflow-hidden flex items-end animate-pulse-once">
-                        <div 
-                          style={{ height: `${Math.max(openPct, 6)}%` }} 
-                          className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-b-xl transition-all duration-700"
-                        />
+                .filter(o => {
+                  const d = new Date(o.closedDate || o.createdDate || o.createdAt || now);
+                  return d.getFullYear() === yr;
+                })
+                .reduce((s, o) => s + (o.dealValue || 0), 0);
+              chartBars.push({ name: String(yr), val });
+            }
+          } else if (finFilter === 'month') {
+            // Last 6 months
+            for (let i = 5; i >= 0; i--) {
+              const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+              const yr = d.getFullYear(); const mo = d.getMonth();
+              const val = filteredOpps
+                .filter(o => o.stageId === 'p_6')
+                .filter(o => {
+                  const cd = new Date(o.closedDate || o.createdDate || o.createdAt || now);
+                  return cd.getFullYear() === yr && cd.getMonth() === mo;
+                })
+                .reduce((s, o) => s + (o.dealValue || 0), 0);
+              chartBars.push({ name: d.toLocaleString('default', { month: 'short' }), val });
+            }
+          } else {
+            // Last 7 days
+            for (let i = 6; i >= 0; i--) {
+              const day = new Date(now); day.setDate(now.getDate() - i); day.setHours(0,0,0,0);
+              const dayEnd = new Date(day); dayEnd.setHours(23,59,59,999);
+              const val = filteredOpps
+                .filter(o => o.stageId === 'p_6')
+                .filter(o => {
+                  const cd = new Date(o.closedDate || o.createdDate || o.createdAt || now);
+                  return cd >= day && cd <= dayEnd;
+                })
+                .reduce((s, o) => s + (o.dealValue || 0), 0);
+              chartBars.push({ name: day.toLocaleString('default', { weekday: 'short' }), val });
+            }
+          }
+
+          const maxBarVal = Math.max(...chartBars.map(b => b.val)) || 1;
+
+          // Summary stats for current vs previous period
+          const curVal  = chartBars[chartBars.length - 1]?.val || 0;
+          const prevVal = chartBars[chartBars.length - 2]?.val || 0;
+          const curLabel  = finFilter === 'year' ? 'This Year'  : finFilter === 'month' ? 'This Month'  : 'Today';
+          const prevLabel = finFilter === 'year' ? 'Last Year'  : finFilter === 'month' ? 'Last Month'  : 'Yesterday';
+
+          const growthPct = prevVal > 0 ? Math.round(((curVal - prevVal) / prevVal) * 100) : (curVal > 0 ? 100 : 0);
+          const growthPos = growthPct >= 0;
+
+          return (
+            <div className="bg-card border border-border-crm rounded-2xl p-4 space-y-3">
+              {/* Simple Header */}
+              <div className="border-b border-border-crm/30 pb-2">
+                <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">Financial Performance</h3>
+                <p className="text-[9px] text-txt-secondary">Closed won revenue vs deal status breakdown.</p>
+              </div>
+
+              {/* Bar chart + Pie chart side by side */}
+              <div className="flex gap-4 items-stretch">
+
+                {/* Bar chart — 3/4 width with absolute positioned stats & filter tabs */}
+                <div className="relative flex-1 h-56 bg-bg-main border border-border-crm/40 rounded-xl p-4 flex flex-col justify-between">
+                  {/* Top bar inside container holding stats (left) and filter tabs (right) */}
+                  <div className="flex justify-between items-center w-full z-10">
+                    {/* Inline Summary Metrics (Top Left) */}
+                    <div className="flex items-center gap-3 text-xs font-semibold bg-bg-main/70 backdrop-blur-xs px-2 py-1 rounded-lg border border-border-crm/20">
+                      <div>
+                        <span className="text-txt-secondary text-[9px] uppercase font-bold mr-1">{curLabel}:</span>
+                        <span className="text-txt-primary font-bold text-xs">{formatCRMRevenue(curVal)}</span>
                       </div>
-                      <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400">{openPct}%</span>
-                    </div>
-
-                    {/* Closed Revenue vertical gauge */}
-                    <div className="flex flex-col items-center space-y-2">
-                      <div className="w-16 bg-slate-100 dark:bg-slate-800/60 border border-border-crm/40 h-28 rounded-2xl relative overflow-hidden flex items-end animate-pulse-once">
-                        <div 
-                          style={{ height: `${Math.max(closedPct, 6)}%` }} 
-                          className="w-full bg-gradient-to-t from-emerald-600 to-emerald-400 rounded-b-xl transition-all duration-700"
-                        />
+                      <div className="border-l border-border-crm/30 pl-2">
+                        <span className="text-txt-secondary text-[9px] uppercase font-bold mr-1">{prevLabel}:</span>
+                        <span className="text-txt-primary font-bold text-xs">{formatCRMRevenue(prevVal)}</span>
                       </div>
-                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">{closedPct}%</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5 border leading-none ${
+                        growthPos
+                          ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          : 'bg-rose-50 border-rose-200 text-rose-700'
+                      }`}>
+                        <TrendingUp className="w-2.5 h-2.5" />
+                        {growthPos ? '+' : ''}{growthPct}%
+                      </span>
+                    </div>
+
+                    {/* Filter tabs (top right) */}
+                    <div className="flex items-center bg-bg-main/90 backdrop-blur-xs border border-border-crm/40 rounded-lg p-0.5 gap-0.5 shrink-0">
+                      {(['year', 'month', 'week'] as const).map(f => (
+                        <button
+                          key={f}
+                          onClick={() => setFinFilter(f)}
+                          className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide transition-all duration-200 cursor-pointer ${
+                            finFilter === f
+                              ? 'bg-primary text-white shadow-xs'
+                              : 'text-txt-secondary hover:text-txt-primary hover:bg-slate-100 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          {f === 'year' ? 'Year' : f === 'month' ? 'Month' : 'Week'}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Summary details */}
-                  <div className="grid grid-cols-2 gap-4 pt-2">
-                    <div className="text-center p-3 bg-slate-50 dark:bg-slate-900/40 border border-border-crm/60 rounded-2xl">
-                      <p className="text-[9px] font-bold text-txt-secondary uppercase tracking-wider mb-1">Open Pipeline</p>
-                      <h4 className="text-sm font-extrabold text-blue-600 dark:text-blue-400">{formatCRMRevenue(openRevenue)}</h4>
-                    </div>
-                    <div className="text-center p-3 bg-slate-50 dark:bg-slate-900/40 border border-border-crm/60 rounded-2xl">
-                      <p className="text-[9px] font-bold text-txt-secondary uppercase tracking-wider mb-1">Closed Won</p>
-                      <h4 className="text-sm font-extrabold text-emerald-600 dark:text-emerald-400">{formatCRMRevenue(closedRevenue)}</h4>
-                    </div>
+                  <div className="flex-1 flex items-end justify-around w-full pt-4">
+                    {chartBars.map((bar, idx) => {
+                      const heightPct = maxBarVal > 0 ? (bar.val / maxBarVal) * 80 : 0;
+                      const isLatest = idx === chartBars.length - 1;
+                      return (
+                        <div key={idx} className="flex flex-col items-center group relative h-full justify-end" style={{ width: `${100 / chartBars.length}%` }}>
+                          {/* Bar */}
+                          <div className={`w-8 border rounded-t-lg h-36 flex items-end overflow-hidden ${
+                            isLatest
+                              ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300/50'
+                              : 'bg-slate-100 dark:bg-slate-800/40 border-border-crm/30'
+                          }`}>
+                            <div
+                              style={{ height: `${Math.max(heightPct, bar.val > 0 ? 4 : 0)}%` }}
+                              className={`w-full rounded-t-md transition-all duration-500 cursor-pointer ${
+                                isLatest
+                                  ? 'bg-gradient-to-t from-blue-700 to-blue-500 hover:from-blue-600 hover:to-blue-400'
+                                  : 'bg-gradient-to-t from-blue-600 to-blue-400 hover:from-blue-500 hover:to-blue-300'
+                              }`}
+                            />
+                          </div>
+                          {/* Label */}
+                          <span className={`text-[9px] font-extrabold uppercase mt-2 select-none ${
+                            isLatest ? 'text-primary' : 'text-slate-400 dark:text-slate-500'
+                          }`}>{bar.name}</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-              );
-            })()}
-            
-           
-          </div>
 
-          {/* Right Column - Opportunity Pipeline */}
-          <div className="bg-card border border-border-crm rounded-2xl p-6 flex flex-col justify-between">
-            <div>
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-extrabold text-sm tracking-tight text-txt-primary mb-1">Opportunity Pipeline</h3>
-                  <p className="text-[10px] text-txt-secondary">Pipeline state count for active opportunities.</p>
-                </div>
-                <span className="bg-emerald-50 border border-emerald-200 text-success text-[10px] px-2.5 py-1 rounded-md font-bold shrink-0">
-                  Active
-                </span>
+                {/* Deal Status Pie — 2/4 width equivalent (w-72) */}
+                {(() => {
+                  const openN  = filteredOpps.filter(o => o.stageId !== 'p_6' && o.stageId !== 'p_7').length;
+                  const wonN   = filteredOpps.filter(o => o.stageId === 'p_6').length;
+                  const lostN  = filteredOpps.filter(o => o.stageId === 'p_7').length;
+                  const totalN = openN + wonN + lostN || 1;
+
+                  const pieSegs = buildPieSegs([openN, wonN, lostN], totalN);
+                  const DEAL_COLORS = ['#2563EB', '#10B981', '#F43F5E'];
+                  const DEAL_LABELS = [
+                    { label: 'Open', count: openN, color: DEAL_COLORS[0] },
+                    { label: 'Won',  count: wonN,  color: DEAL_COLORS[1] },
+                    { label: 'Lost', count: lostN, color: DEAL_COLORS[2] },
+                  ];
+
+                  return (
+                    <div className="w-72 shrink-0 h-56 bg-bg-main border border-border-crm/40 rounded-xl p-3.5 flex flex-col items-center justify-between">
+                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-txt-secondary text-center w-full">Deal Status</p>
+
+                      {/* Donut chart - centered and occupying full container width */}
+                      <div className="relative w-28 h-28 my-0.5">
+                        <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                          <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F1F5F9" strokeWidth="4" />
+                          {pieSegs.map((seg, i) => (
+                            <circle
+                              key={i}
+                              cx="18" cy="18" r="15.915"
+                              fill="none"
+                              stroke={[openN, wonN, lostN][i] === 0 ? 'transparent' : DEAL_COLORS[i]}
+                              strokeWidth="5"
+                              strokeDasharray={`${seg.dash} ${seg.gap}`}
+                              strokeDashoffset={-seg.offset}
+                              style={{ transition: 'stroke-dasharray 0.6s ease' }}
+                            />
+                          ))}
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                          <span className="text-lg font-extrabold text-txt-primary">{openN + wonN + lostN}</span>
+                          <span className="text-[10px] text-txt-secondary font-bold uppercase">total</span>
+                        </div>
+                      </div>
+
+                      {/* Legend displaying count and percentage breakdown at the bottom */}
+                      <div className="flex flex-row justify-around w-full border-t border-border-crm/30 pt-2.5">
+                        {DEAL_LABELS.map((d, i) => {
+                          const pct = Math.round((d.count / totalN) * 100);
+                          return (
+                            <div key={i} className="flex flex-col items-center text-[10px] font-semibold">
+                              <div className="flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: d.color }} />
+                                <span className="text-txt-secondary text-[9px]">{d.label}</span>
+                              </div>
+                              <span className="font-extrabold text-[10px] mt-0.5" style={{ color: d.color }}>
+                                {d.count} <span className="text-[8px] opacity-75 font-normal">({pct}%)</span>
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
               </div>
             </div>
-
-            {/* Custom SVG Pipeline Chart */}
-            <div className="py-6 flex flex-col items-center">
-              <div className="w-full max-w-sm space-y-4">
-                {[
-                  { name: "Open Deals", count: pipelineChartData.open, color: "bg-primary", pct: Math.round((pipelineChartData.open / (pipelineChartData.open + pipelineChartData.won + pipelineChartData.lost || 1)) * 100) },
-                  { name: "Won Deals", count: pipelineChartData.won, color: "bg-emerald-500", pct: Math.round((pipelineChartData.won / (pipelineChartData.open + pipelineChartData.won + pipelineChartData.lost || 1)) * 100) },
-                  { name: "Lost Deals", count: pipelineChartData.lost, color: "bg-rose-500", pct: Math.round((pipelineChartData.lost / (pipelineChartData.open + pipelineChartData.won + pipelineChartData.lost || 1)) * 100) }
-                ].map((deal, idx) => (
-                  <div key={idx} className="space-y-1.5">
-                    <div className="flex justify-between text-xs font-semibold">
-                      <span className="text-txt-primary">{deal.name}</span>
-                      <span className="text-txt-secondary">{deal.count} ({deal.pct}%)</span>
-                    </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-3.5 rounded-full overflow-hidden">
-                      <div 
-                        style={{ width: `${deal.pct}%` }} 
-                        className={`${deal.color} h-full rounded-full transition-all duration-700`}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Total Pipeline Callout */}
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 flex justify-between items-center mt-4">
-              <div className="flex items-center space-x-2">
-                <div className="bg-primary text-white p-2 rounded-lg">
-                  <IndianRupee className="w-4.5 h-4.5" />
-                </div>
-                <span className="text-xs font-bold text-txt-primary">Total Pipeline Value</span>
-              </div>
-              <span className="text-lg font-extrabold text-primary">{displayRevenueStr}</span>
-            </div>
-          </div>
-
-        </div>
-
-        {/* 3. Financial Performance Section */}
-        <div className="bg-card border border-border-crm rounded-2xl p-6 space-y-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h3 className="font-extrabold text-sm tracking-tight text-txt-primary mb-1">Financial Performance</h3>
-              <p className="text-[10px] text-txt-secondary">Monthly sales revenue growth statistics and trends.</p>
-            </div>
-            
-            {(() => {
-              const thisMonthVal = monthlyRevenueData[monthlyRevenueData.length - 1]?.val || 0;
-              const lastMonthVal = monthlyRevenueData[monthlyRevenueData.length - 2]?.val || 0;
-              
-              return (
-                <div className="flex items-center gap-6 text-xs font-semibold">
-                  <div className="text-left">
-                    <p className="text-txt-secondary text-[10px] uppercase font-bold">This Month</p>
-                    <p className="text-txt-primary font-extrabold text-sm">{formatCRMRevenue(thisMonthVal)}</p>
-                  </div>
-                  <div className="text-left border-l border-border-crm pl-6">
-                    <p className="text-txt-secondary text-[10px] uppercase font-bold">Last Month</p>
-                    <p className="text-txt-primary font-extrabold text-sm">{formatCRMRevenue(lastMonthVal)}</p>
-                  </div>
-                  <span className="bg-emerald-50 border border-emerald-200 text-success text-[10px] px-2.5 py-1 rounded-md font-bold flex items-center gap-1">
-                    <TrendingUp className="w-3.5 h-3.5" /> +18% Growth
-                  </span>
-                </div>
-              );
-            })()}
-          </div>
-
-          {/* Revenue Trend Column Chart */}
-          <div className="relative w-full h-44 bg-bg-main border border-border-crm/40 rounded-xl p-4 flex flex-col justify-end">
-            <div className="flex-1 flex items-end justify-around h-32 w-full pt-2">
-              {monthlyRevenueData.map((m, idx) => {
-                const heightPct = maxMonthlyVal > 0 ? (m.val / maxMonthlyVal) * 85 : 0;
-                return (
-                  <div key={idx} className="flex flex-col items-center w-1/8 group relative h-full justify-end">
-                    {/* Tooltip on Hover */}
-                    <div className="absolute bottom-full mb-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-slate-900 dark:bg-slate-950 text-white text-[9px] font-bold px-2.5 py-1.5 rounded-lg shadow-lg pointer-events-none whitespace-nowrap z-50 border border-slate-800">
-                      {m.name}: {formatCRMRevenue(m.val)}
-                    </div>
-                    
-                    {/* Column Bar */}
-                    <div className="w-10 bg-slate-100 dark:bg-slate-800/40 border border-border-crm/30 rounded-t-lg h-24 flex items-end overflow-hidden">
-                      <div 
-                        style={{ height: `${Math.max(heightPct, 4)}%` }} 
-                        className="w-full bg-gradient-to-t from-blue-600 to-blue-400 rounded-t-md hover:from-blue-500 hover:to-blue-300 transition-all duration-350 cursor-pointer"
-                      />
-                    </div>
-                    
-                    {/* Label */}
-                    <span className="text-[9px] font-extrabold text-slate-400 dark:text-slate-500 uppercase mt-2 select-none">{m.name}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+          );
+        })()}
 
         {/* 4. Enterprise Performance Visualizations */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1064,34 +1193,107 @@ export default function DashboardView({
               )}
             </div>
             
-            {/* Dynamic Team Monthly Revenue Bar Chart */}
-            <div className="pt-4 border-t border-border-crm/50">
-              <span className="text-[10px] font-bold text-txt-secondary uppercase tracking-wider block mb-3">Team Monthly Revenue Chart</span>
-              <div className="relative w-full h-36 bg-bg-main border border-border-crm/40 rounded-xl overflow-hidden p-4 flex items-end justify-around">
-                {monthlyRevenueData.map((bar, idx) => {
-                  const heightPercent = maxMonthlyVal > 0 ? (bar.val / maxMonthlyVal) * 80 : 20;
-                  const displayAmt = bar.val >= 10000000 
-                    ? `₹${(bar.val / 10000000).toFixed(1)}C` 
-                    : bar.val >= 100000 
-                    ? `₹${(bar.val / 100000).toFixed(0)}L` 
-                    : `₹${(bar.val / 1000).toFixed(0)}k`;
-                  
-                  return (
-                    <div key={idx} className="flex flex-col items-center space-y-1.5 w-10">
-                      <span className="text-[8px] font-bold text-primary">{displayAmt}</span>
-                      <div 
-                        style={{ height: `${heightPercent}px` }} 
-                        className="w-5 bg-primary hover:bg-primary/95 rounded-t-sm transition-all duration-300 shadow-xs relative group cursor-pointer"
-                      >
-                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-30">
-                          {bar.val.toLocaleString()}
-                        </div>
+            {/* Entire Revenue Chart with Filters (Weekly, Monthly, Yearly) */}
+            <div className="pt-4 border-t border-border-crm/50 space-y-3">
+              {(() => {
+                const now = new Date();
+                let chartBars: { name: string; val: number }[] = [];
+
+                if (adminFinFilter === 'year') {
+                  for (let i = 5; i >= 0; i--) {
+                    const yr = now.getFullYear() - i;
+                    const val = opportunities
+                      .filter(o => o.stageId === 'p_6')
+                      .filter(o => {
+                        const d = new Date(o.closedDate || o.createdDate || o.createdAt || now);
+                        return d.getFullYear() === yr;
+                      })
+                      .reduce((s, o) => s + (o.dealValue || 0), 0);
+                    chartBars.push({ name: String(yr), val });
+                  }
+                } else if (adminFinFilter === 'month') {
+                  for (let i = 5; i >= 0; i--) {
+                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+                    const yr = d.getFullYear(); const mo = d.getMonth();
+                    const val = opportunities
+                      .filter(o => o.stageId === 'p_6')
+                      .filter(o => {
+                        const cd = new Date(o.closedDate || o.createdDate || o.createdAt || now);
+                        return cd.getFullYear() === yr && cd.getMonth() === mo;
+                      })
+                      .reduce((s, o) => s + (o.dealValue || 0), 0);
+                    chartBars.push({ name: d.toLocaleString('default', { month: 'short' }), val });
+                  }
+                } else {
+                  for (let i = 6; i >= 0; i--) {
+                    const day = new Date(now); day.setDate(now.getDate() - i); day.setHours(0,0,0,0);
+                    const dayEnd = new Date(day); dayEnd.setHours(23,59,59,999);
+                    const val = opportunities
+                      .filter(o => o.stageId === 'p_6')
+                      .filter(o => {
+                        const cd = new Date(o.closedDate || o.createdDate || o.createdAt || now);
+                        return cd >= day && cd <= dayEnd;
+                      })
+                      .reduce((s, o) => s + (o.dealValue || 0), 0);
+                    chartBars.push({ name: day.toLocaleString('default', { weekday: 'short' }), val });
+                  }
+                }
+
+                const maxBarVal = Math.max(...chartBars.map(b => b.val)) || 1;
+
+                return (
+                  <>
+                    <div className="flex justify-between items-center w-full">
+                      <span className="text-[10px] font-bold text-txt-secondary uppercase tracking-wider block">Closed Won Revenue Chart</span>
+                      
+                      {/* Filter tabs */}
+                      <div className="flex items-center bg-bg-main border border-border-crm rounded-lg p-0.5 gap-0.5 shrink-0">
+                        {(['year', 'month', 'week'] as const).map(f => (
+                          <button
+                            key={f}
+                            onClick={() => setAdminFinFilter(f)}
+                            className={`px-2 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wide transition-all duration-200 cursor-pointer ${
+                              adminFinFilter === f
+                                ? 'bg-primary text-white shadow-xs'
+                                : 'text-txt-secondary hover:text-txt-primary hover:bg-slate-100 dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            {f === 'year' ? 'Year' : f === 'month' ? 'Month' : 'Week'}
+                          </button>
+                        ))}
                       </div>
-                      <span className="text-[8px] font-bold text-slate-400 uppercase">{bar.name}</span>
                     </div>
-                  );
-                })}
-              </div>
+
+                    <div className="relative w-full h-48 bg-bg-main border border-border-crm/40 rounded-xl overflow-hidden p-4 flex items-end justify-around">
+                      {chartBars.map((bar, idx) => {
+                        const heightPercent = maxBarVal > 0 ? (bar.val / maxBarVal) * 80 : 20;
+                        const isLatest = idx === chartBars.length - 1;
+                        
+                        return (
+                          <div key={idx} className="flex flex-col items-center group relative h-full justify-end" style={{ width: `${100 / chartBars.length}%` }}>
+                            {/* Label of value */}
+                            <span className="text-[8px] font-bold text-primary mb-1">{formatCRMRevenue(bar.val)}</span>
+                            
+                            {/* Bar Graphic */}
+                            <div className={`w-5 border rounded-t-sm transition-all duration-300 relative group cursor-pointer ${
+                              isLatest
+                                ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300/50'
+                                : 'bg-slate-100 dark:bg-slate-800/40 border-border-crm/30'
+                            }`} style={{ height: `${Math.max(heightPercent, bar.val > 0 ? 4 : 0)}%` }}>
+                              <div className="w-full h-full bg-primary hover:bg-primary/95 rounded-t-sm" />
+                            </div>
+
+                            {/* Period label */}
+                            <span className={`text-[8px] font-bold uppercase mt-1.5 ${
+                              isLatest ? 'text-primary' : 'text-slate-400'
+                            }`}>{bar.name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 
@@ -1100,7 +1302,7 @@ export default function DashboardView({
             <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">Upcoming Activities</h3>
             <div className="space-y-3">
               {filteredActivities.length > 0 ? (
-                filteredActivities.slice(0, 3).map((act, idx) => (
+                filteredActivities.slice(0, 5).map((act, idx) => (
                   <div key={idx} className="bg-slate-50 dark:bg-slate-900/50 border border-slate-150 dark:border-border-crm p-3.5 rounded-xl space-y-1 text-txt-primary text-xs">
                     <div className="flex justify-between items-start">
                       <span className="font-bold text-primary">{act.salesperson || "Unassigned"}</span>

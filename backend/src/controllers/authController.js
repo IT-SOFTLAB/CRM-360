@@ -140,19 +140,20 @@ exports.login = async (req, res) => {
     });
 
    
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie("accessToken", accessToken, {
-  httpOnly: true,
-  secure: true,
-  sameSite: "None",
-  maxAge: 15 * 60 * 1000,
-});
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "lax",
+      maxAge: 15 * 60 * 1000,
+    });
 
-res.cookie("refreshToken", refreshToken, {
-  httpOnly: true,
-  secure: true,
-  sameSite: "None",
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-});
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     const { password: _, ...userWithoutPassword } = user;
     res.json({
@@ -223,17 +224,18 @@ exports.refresh = async (req, res) => {
       }
     });
 
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('accessToken', nextAccessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'None' : 'lax',
       maxAge: 15 * 60 * 1000
     });
 
     res.cookie('refreshToken', nextRefreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProduction,
+      sameSite: isProduction ? 'None' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
@@ -259,17 +261,18 @@ exports.logout = async (req, res) => {
       await prisma.refreshToken.deleteMany({ where: { token } });
     }
 
-   res.clearCookie("accessToken", {
-  httpOnly: true,
-  secure: true,
-  sameSite: "None",
-});
+    const isProduction = process.env.NODE_ENV === 'production';
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "lax",
+    });
 
-res.clearCookie("refreshToken", {
-  httpOnly: true,
-  secure: true,
-  sameSite: "None",
-});
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "lax",
+    });
     res.json({ message: 'Logged out successfully' });
   } catch (err) {
     console.error('Logout error:', err);
@@ -312,13 +315,12 @@ exports.changePassword = async (req, res) => {
 
 exports.inviteUser = async (req, res) => {
   try {
-    const { name, email, role, salesTeamId, password } = req.body;
+    const { name, email, role, salesTeamId, password, adminId } = req.body;
     const inviter = req.user;
 
     if (!name || !email || !role || !password) {
       return res.status(400).json({ message: 'Name, email, role, and password are required' });
     }
-
 
     const inviterRole = (inviter.role || '').toUpperCase().replace(/[\s_]+/g, '_');
     const targetRole = (role || '').toUpperCase().replace(/[\s_]+/g, '_');
@@ -327,10 +329,28 @@ exports.inviteUser = async (req, res) => {
       return res.status(403).json({ message: 'Admins cannot create other Admin accounts' });
     }
 
- 
-    const existing = await prisma.user.findUnique({ where: { email } });
+    // Determine assigned adminId
+    let assignedAdminId = null;
+    if (inviterRole === 'ADMIN') {
+      assignedAdminId = inviter.id;
+    } else if (inviterRole === 'SUPER_ADMIN') {
+      assignedAdminId = adminId || null;
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const existingName = await prisma.user.findFirst({
+      where: {
+        name: { equals: name.trim(), mode: 'insensitive' }
+      }
+    });
+    if (existingName) {
+      return res.status(400).json({ message: 'User with this name already exists' });
+    }
+
+    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
     if (existing) {
-      return res.status(400).json({ message: 'Email already registered' });
+      return res.status(400).json({ message: 'User with this email already exists' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -338,13 +358,14 @@ exports.inviteUser = async (req, res) => {
     const newUser = await prisma.user.create({
       data: {
         name,
-        email,
+        email: normalizedEmail,
         role,
         salesTeamId: salesTeamId || null,
         password: hashedPassword, 
         status: 'Active',
         invitationToken: null,
-        invitationExpires: null
+        invitationExpires: null,
+        adminId: assignedAdminId
       }
     });
 
@@ -422,8 +443,8 @@ exports.outlookCallback = async (req, res) => {
 
     console.log("Connected Outlook:", me.mail || me.userPrincipalName);
 
-  //  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-  const frontendUrl = process.env.FRONTEND_URL || "https://crm-360-2.onrender.com";
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+ // const frontendUrl = process.env.FRONTEND_URL || "https://crm-360-2.onrender.com";
 
 console.log("Redirecting to:", `${frontendUrl}/emails?connected=true`);
 

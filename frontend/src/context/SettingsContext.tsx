@@ -19,6 +19,7 @@ export interface SettingsContextType {
   handleDeleteCategory: (catName: string) => Promise<void>;
   handleBrandingSave: (e: React.FormEvent) => Promise<void>;
   handleDeleteUser: (userId: string) => Promise<void>;
+  handleUpdateUser: (userId: string, name: string, email: string, role: string, status: string, adminId?: string) => Promise<void>;
 }
 
 export const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
@@ -52,7 +53,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } else {
       if (!categories.includes(catName)) {
         setCategories(prev => [...prev, catName]);
-        if (toastCtx) toastCtx.addToast('success', `Category "${catName}" added (Offline)`);
+        if (toastCtx) toastCtx.addToast('success', `Category "${catName}" `);
       }
     }
   };
@@ -64,7 +65,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (toastCtx) toastCtx.addToast('success', `Category "${catName}" deleted`);
     } else {
       setCategories(prev => prev.filter(c => c !== catName));
-      if (toastCtx) toastCtx.addToast('success', `Category "${catName}" deleted (Offline)`);
+      if (toastCtx) toastCtx.addToast('success', `Category "${catName}"`);
     }
   };
 
@@ -101,7 +102,27 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (toastCtx) toastCtx.addToast('success', 'User account deactivated and deleted');
     } else {
       setSettingsUsers(prev => prev.filter(u => u.id !== userId));
-      if (toastCtx) toastCtx.addToast('success', 'User deleted (Offline)');
+      if (toastCtx) toastCtx.addToast('success', 'User deleted');
+    }
+  };
+
+  const handleUpdateUser = async (userId: string, name: string, email: string, role: string, status: string, adminId?: string) => {
+    const user = authCtx?.user;
+    const currentRole = (user?.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+    if (currentRole !== 'SUPER_ADMIN') {
+      if (toastCtx) toastCtx.addToast('error', 'Only Super Admin can update users');
+      return;
+    }
+    const res = await settingsService.updateUser(userId, { name, email, role, status, adminId });
+    const chosenAdmin = settingsUsers.find(u => u.id === adminId);
+    const adminObj = chosenAdmin ? { id: chosenAdmin.id, name: chosenAdmin.name } : null;
+
+    if (res) {
+      setSettingsUsers(prev => prev.map(u => u.id === userId ? { ...u, ...res } : u));
+      if (toastCtx) toastCtx.addToast('success', 'User account updated successfully');
+    } else {
+      setSettingsUsers(prev => prev.map(u => u.id === userId ? { ...u, name, email, role, status, adminId, admin: adminObj } : u));
+      if (toastCtx) toastCtx.addToast('success', 'User account updated locally ');
     }
   };
 
@@ -118,7 +139,8 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       handleAddCategory,
       handleDeleteCategory,
       handleBrandingSave,
-      handleDeleteUser
+      handleDeleteUser,
+      handleUpdateUser
     }}>
       {children}
     </SettingsContext.Provider>

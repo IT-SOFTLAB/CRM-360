@@ -5,25 +5,26 @@ export const applyFilters = (
   activeFilters: any,
   user: any
 ): any[] => {
-  let filtered = [...data];
+  let filtered = data.filter(item => item !== null && item !== undefined);
 
   if (searchQuery) {
     const q = searchQuery.toLowerCase();
     filtered = filtered.filter(item => {
+      if (!item) return false;
       if (type === 'leads') {
-        const contactName = item.contactName || item.name || '';
-        const company = item.company || '';
-        const email = item.email || '';
+        const contactName = String(item.contactName || item.name || '');
+        const company = String(item.company || '');
+        const email = String(item.email || '');
         return contactName.toLowerCase().includes(q) || company.toLowerCase().includes(q) || email.toLowerCase().includes(q);
       } else if (type === 'opportunities') {
-        const customerName = item.customerName || '';
-        const company = item.company || '';
-        const priority = item.priority || '';
+        const customerName = String(item.customerName || '');
+        const company = String(item.company || '');
+        const priority = String(item.priority || '');
         return customerName.toLowerCase().includes(q) || company.toLowerCase().includes(q) || priority.toLowerCase().includes(q);
       } else if (type === 'emails') {
-        const subject = item.subject || '';
-        const sender = item.sender || '';
-        const body = item.body || '';
+        const subject = String(item.subject || '');
+        const sender = String(item.sender || '');
+        const body = String(item.body || '');
         return subject.toLowerCase().includes(q) || sender.toLowerCase().includes(q) || body.toLowerCase().includes(q);
       }
       return false;
@@ -130,6 +131,18 @@ export const applyFilters = (
   if (activeFilters.closedDateEnd) {
     if (type === 'opportunities') {
       filtered = filtered.filter(o => o.closedDate && o.closedDate <= activeFilters.closedDateEnd);
+    }
+  }
+
+  // Tags filter
+  if (activeFilters.hasTags) {
+    if (type === 'opportunities') {
+      filtered = filtered.filter(o => o.tags && o.tags.length > 0);
+    }
+  }
+  if (activeFilters.tag) {
+    if (type === 'opportunities') {
+      filtered = filtered.filter(o => o.tags && o.tags.some((t: string) => t.toLowerCase().includes(activeFilters.tag.toLowerCase())));
     }
   }
 

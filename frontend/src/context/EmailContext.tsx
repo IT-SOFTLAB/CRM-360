@@ -38,7 +38,7 @@ export interface EmailContextType {
   handleSendEmail: (
     replyText: string,
     emailObject: any
-  ) => Promise<void>;
+  ) => Promise<boolean>;
 
 deleteEmail: (id: string) => Promise<void>;
 
@@ -85,6 +85,8 @@ getProfile: () => Promise<any>;
 getAttachments: (
     id: string
 ) => Promise<any>;
+  emailLogs: any[];
+  loadEmailLogs: () => Promise<void>;
 }
 export const EmailContext = createContext<EmailContextType | undefined>(undefined);
 
@@ -92,6 +94,7 @@ export const EmailProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 const [isConnected, setIsConnected] = useState(false);
 const [connectedEmail, setConnectedEmail] = useState("");
 const [emails, setEmails] = useState<Email[]>([]);
+const [emailLogs, setEmailLogs] = useState<any[]>([]);
 const [currentFolder, setCurrentFolder] = useState("Inbox");
   const toastCtx = useContext(ToastContext);
   const authCtx = useContext(AuthContext);
@@ -186,6 +189,11 @@ const loadInbox = async () => {
 
     setCurrentFolder("Inbox");
 
+    if (!isConnected) {
+      setEmails([]);
+      return;
+    }
+
     const emails = await emailService.getInbox();
 
     setEmails(emails || []);
@@ -195,6 +203,11 @@ const loadInbox = async () => {
 const loadSent = async () => {
 
     setCurrentFolder("Sent");
+
+    if (!isConnected) {
+      setEmails([]);
+      return;
+    }
 
     const emails = await emailService.getSent();
 
@@ -206,6 +219,11 @@ const loadDrafts = async () => {
 
     setCurrentFolder("Drafts");
 
+    if (!isConnected) {
+      setEmails([]);
+      return;
+    }
+
     const emails = await emailService.getDrafts();
 
     setEmails(emails || []);
@@ -215,6 +233,11 @@ const loadDrafts = async () => {
 const loadTrash = async () => {
 
     setCurrentFolder("Trash");
+
+    if (!isConnected) {
+      setEmails([]);
+      return;
+    }
 
     const emails = await emailService.getTrash();
 
@@ -368,32 +391,47 @@ const getAttachments = async (
 
 
 
-  const handleSendEmail = async (replyText: string, emailObject: any) => {
-   // const user = authCtx?.user;
- const payload = {
+  const handleSendEmail = async (replyText: string, emailObject: any): Promise<boolean> => {
+    try {
+      const payload = {
+        to: emailObject.sender,
+        subject: emailObject.subject.startsWith('Re:') ? emailObject.subject : `Re: ${emailObject.subject}`,
+        body: replyText
+      };
 
-    to: emailObject.sender,
+      const res = await emailService.sendEmail(payload);
+      if (res && (res.error === true || res.success === false)) {
+        console.warn("Error sending email:", res);
+        toastCtx?.addToast('error', res.message || "Failed to send email");
+        await loadEmailLogs();
+        return false;
+      }
 
-    subject: `Re: ${emailObject.subject}`,
+      toastCtx?.addToast(
+          "success",
+          "Email sent successfully!"
+      );
+      
+      if (isConnected) {
+        await refreshInbox();
+      }
+      await loadEmailLogs();
+      return true;
+    } catch (err: any) {
+      console.warn("Error sending email:", err);
+      const errMsg = err.response?.data?.message || err.message || "Failed to send email";
+      toastCtx?.addToast('error', errMsg);
+      await loadEmailLogs();
+      return false;
+    }
+  };
 
-    body: replyText
-
-};
-
-
-
-    const res = await emailService.sendEmail(payload);
-    if (res) {
-
-    toastCtx?.addToast(
-        "success",
-        "Reply sent via Outlook!"
-    );
-
-    await refreshInbox();
-
-} else {
-      if (toastCtx) toastCtx.addToast('error', 'Failed to send email');
+  const loadEmailLogs = async () => {
+    try {
+      const logs = await emailService.getEmailLogs();
+      setEmailLogs(logs || []);
+    } catch (err) {
+      console.error("Failed to load email logs:", err);
     }
   };
 
@@ -444,6 +482,8 @@ searchEmails,
 getProfile,
 
 getAttachments,
+    emailLogs,
+    loadEmailLogs,
    
 }}
 >

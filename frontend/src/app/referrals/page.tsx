@@ -17,6 +17,7 @@ export default function ReferralsPage() {
       setReferralForm={crm.setReferralForm}
       onSubmitReferral={crm.handleReferralCreate}
       onApproveReward={crm.handleApproveReward}
+      onPayReward={crm.handlePayReward}
     onDeleteReferral={crm.handleDeleteReferral}
     onMoveReferral={crm.handleMoveReferral}
 

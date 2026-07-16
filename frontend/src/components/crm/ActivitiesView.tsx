@@ -196,7 +196,7 @@ export default function ActivitiesView({
               <ListFilter className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Manager Activity Filters</h4>
+              <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Admin Activity Filters</h4>
               <p className="text-[10px] text-txt-secondary mt-0.5">Toggle workspaces to verify workload across teams and individual members</p>
             </div>
           </div>
@@ -225,12 +225,12 @@ export default function ActivitiesView({
         </div>
       )}
 
-      {!isManager && (
+      {/* {!isManager && (
         <div className="bg-card border border-border-crm rounded-2xl p-4 flex items-center space-x-2 text-txt-secondary select-none shadow-sm">
           <Clock className="w-4 h-4 text-emerald-500" />
           <span className="font-bold text-xs">Viewing Activities Assigned To You ({filteredActivities.length})</span>
         </div>
-      )}
+      )} */}
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         
@@ -468,7 +468,7 @@ export default function ActivitiesView({
 
           {/* Checklist */}
           <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4 shadow-sm">
-            <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Pending Actions</h4>
+            <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Upcoming Activities</h4>
             <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
               {filteredActivities.filter(a => !a.done).map(act => (
                 <div
@@ -494,7 +494,7 @@ export default function ActivitiesView({
                 </div>
               ))}
               {filteredActivities.filter(a => !a.done).length === 0 && (
-                <p className="text-xs text-txt-secondary italic text-center py-4">No pending actions</p>
+                <p className="text-xs text-txt-secondary italic text-center py-4">No Upcoming activities</p>
               )}
             </div>
           </div>

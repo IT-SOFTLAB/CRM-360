@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface LoginViewProps {
   authMode: 'login' | 'register' | 'setup';
@@ -30,6 +31,10 @@ export default function LoginView({
     password: '',
     confirmPassword: ''
   });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showSetupPassword, setShowSetupPassword] = useState(false);
+  const [showSetupConfirmPassword, setShowSetupConfirmPassword] = useState(false);
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -240,30 +245,48 @@ export default function LoginView({
 
               <div>
                 <label className="block text-xs font-bold text-txt-secondary mb-1">Password</label>
-                <input
-                  type="password" required
-                  className="w-full border border-border-crm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
-                  placeholder="••••••••"
-                  value={setupData.password}
-                  onChange={e => {
-                    setError('');
-                    setSetupData({ ...setupData, password: e.target.value });
-                  }}
-                />
+                <div className="relative">
+                  <input
+                    type={showSetupPassword ? "text" : "password"} required
+                    className="w-full border border-border-crm rounded-xl pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
+                    placeholder="••••••••"
+                    value={setupData.password}
+                    onChange={e => {
+                      setError('');
+                      setSetupData({ ...setupData, password: e.target.value });
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSetupPassword(!showSetupPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                  >
+                    {showSetupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs font-bold text-txt-secondary mb-1">Confirm Password</label>
-                <input
-                  type="password" required
-                  className="w-full border border-border-crm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
-                  placeholder="••••••••"
-                  value={setupData.confirmPassword}
-                  onChange={e => {
-                    setError('');
-                    setSetupData({ ...setupData, confirmPassword: e.target.value });
-                  }}
-                />
+                <div className="relative">
+                  <input
+                    type={showSetupConfirmPassword ? "text" : "password"} required
+                    className="w-full border border-border-crm rounded-xl pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
+                    placeholder="••••••••"
+                    value={setupData.confirmPassword}
+                    onChange={e => {
+                      setError('');
+                      setSetupData({ ...setupData, confirmPassword: e.target.value });
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSetupConfirmPassword(!showSetupConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
+                  >
+                    {showSetupConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <button
@@ -293,25 +316,38 @@ export default function LoginView({
 
               <div>
                 <label className="block text-xs font-bold text-txt-secondary mb-1">Password</label>
-                <input
-                  type="password" required
-                  className="w-full border border-border-crm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
-                  placeholder="••••••••"
-                  value={authForm.password}
-                  onChange={e => {
-                    setError('');
-                    setAuthForm({ ...authForm, password: e.target.value });
-                  }}
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"} required
+                    className="w-full border border-border-crm rounded-xl pl-4 pr-10 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
+                    placeholder="••••••••"
+                    value={authForm.password}
+                    onChange={e => {
+                      setError('');
+                      setAuthForm({ ...authForm, password: e.target.value });
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer animate-in fade-in"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between text-xs mt-2">
-                <label className="flex items-center space-x-2 text-txt-secondary cursor-pointer">
-                  <input type="checkbox" className="rounded text-blue-550 border-border-crm bg-bg-main focus:ring-0" />
-                  <span>Remember me</span>
-                </label>
-                <a href="#" className="text-primary hover:underline font-semibold">Forgot password?</a>
-              </div>
+              {/* <div className="flex items-center justify-between text-xs mt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    alert("Forgot your password?\n\n1. Please contact your Super Admin or Manager to reset your password.\n2. Once logged in, you can change your password at any time via the 'Change Password' card in the Settings panel.");
+                  }}
+                  className="text-primary hover:underline font-semibold bg-transparent border-0 cursor-pointer p-0 focus:outline-none"
+                >
+                  Forgot password?
+                </button>
+              </div> */}
 
               <button
                 type="submit"

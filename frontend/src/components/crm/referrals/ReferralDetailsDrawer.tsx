@@ -21,6 +21,7 @@ interface Props {
   onClose: () => void;
 
   onApproveReward: (id: string) => void;
+  onPayReward: (id: string) => void;
 
   onDeleteReferral: (id: string) => void;
 }
@@ -35,6 +36,7 @@ export default function ReferralDetailsDrawer({
   onClose,
 
   onApproveReward,
+  onPayReward,
 
   onDeleteReferral
 
@@ -199,25 +201,19 @@ export default function ReferralDetailsDrawer({
               </div>
 
               <div>
-
-                {referral.rewardApproved ? (
-
-                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs">
-
+                {referral.referralRewards?.some((r: any) => r.paid) ? (
+                  <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
+                    Paid
+                  </span>
+                ) : referral.rewardApproved ? (
+                  <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold">
                     Approved
-
                   </span>
-
                 ) : (
-
-                  <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs">
-
+                  <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold">
                     Pending
-
                   </span>
-
                 )}
-
               </div>
 
             </div>
@@ -326,30 +322,30 @@ export default function ReferralDetailsDrawer({
 
         <div className="border-t border-border-crm p-5 flex gap-3 text-blue-600">
 
-          {!referral.rewardApproved && (
-
+          {!referral.rewardApproved ? (
             <button
-
-              onClick={() =>
-
-                onApproveReward(
-
-                  referral.id
-
-                )
-
-              }
-
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl py-3 flex items-center justify-center gap-2"
-
+              onClick={() => onApproveReward(referral.id)}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white rounded-xl py-3 flex items-center justify-center gap-2 font-bold cursor-pointer"
             >
-
               <CheckCircle size={18} />
-
               Approve Reward
-
             </button>
-
+          ) : referral.referralRewards?.some((r: any) => r.paid) ? (
+            <button
+              disabled
+              className="flex-1 bg-blue-100 text-blue-600 rounded-xl py-3 flex items-center justify-center gap-2 font-bold cursor-not-allowed"
+            >
+              <CheckCircle size={18} />
+              Reward Paid
+            </button>
+          ) : (
+            <button
+              onClick={() => onPayReward(referral.id)}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 flex items-center justify-center gap-2 font-bold cursor-pointer"
+            >
+              <Gift size={18} />
+              Pay Reward
+            </button>
           )}
 
           <button

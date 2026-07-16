@@ -81,6 +81,20 @@ export const referralService = {
   },
 
   // ==========================
+  // Pay Reward
+  // PUT /api/referrals/:id/pay
+  // ==========================
+  payReward: async (id: string) => {
+    try {
+      const res = await api.put(`/referrals/${id}/pay`);
+      return res.data;
+    } catch (err) {
+      console.warn("Failed to pay reward", err);
+      return null;
+    }
+  },
+
+  // ==========================
   // Move Referral to another Stage
   // PUT /api/referrals/:id/stage
   // ==========================
