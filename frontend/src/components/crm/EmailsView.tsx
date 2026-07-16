@@ -34,7 +34,7 @@ interface EmailsViewProps {
   onSendReply: (
     replyText: string,
     emailObj: any
-  ) => void;
+  ) => Promise<any>;
 currentFolder: string;
   applyFilters: (
     data: any[],
@@ -126,6 +126,14 @@ onSendReply,
   const [selectedEmail, setSelectedEmail] = useState<any>(null);
   const [emailReplyText, setEmailReplyText] = useState('');
   const [showCompose, setShowCompose] = useState(false);
+  const [currentView, setCurrentView] = useState<'outlook' | 'dashboard'>('outlook');
+  const [selectedLog, setSelectedLog] = useState<any>(null);
+  const [showLogDrawer, setShowLogDrawer] = useState(false);
+
+  // Filter states
+  const [filterSearch, setFilterSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState('All');
+  const [filterDateRange, setFilterDateRange] = useState('All');
 const [composeForm, setComposeForm] = useState({
   to: "",
   cc: "",
@@ -315,8 +323,10 @@ const handleComposeSend = async (
       body:""
     });
 
-  setShowCompose(false);
-
+    setShowCompose(false);
+  } catch (err) {
+    // Catch the error to prevent uncaught promise rejection developer overlays.
+  }
 };
 
 const handleSaveDraft = async () => {
@@ -340,6 +350,44 @@ const handleSaveDraft = async () => {
   setShowCompose(false);
 
 };
+
+  // Trigger load when switching to dashboard
+  useEffect(() => {
+    if (currentView === 'dashboard') {
+      loadEmailLogs();
+    }
+  }, [currentView]);
+
+  const filteredLogs = (emailLogs || []).filter(log => {
+    // 1. Filter by recipient email
+    if (filterSearch && !log.recipientEmail.toLowerCase().includes(filterSearch.toLowerCase())) {
+      return false;
+    }
+    
+    // 2. Filter by status
+    if (filterStatus !== 'All' && log.status !== filterStatus) {
+      return false;
+    }
+    
+    // 3. Filter by Date Range
+    if (filterDateRange !== 'All') {
+      const logDate = new Date(log.sentAt);
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      if (filterDateRange === 'Today') {
+        if (logDate < startOfToday) return false;
+      } else if (filterDateRange === 'Yesterday') {
+        const startOfYesterday = new Date(startOfToday.getTime() - 24 * 60 * 60 * 1000);
+        if (logDate < startOfYesterday || logDate >= startOfToday) return false;
+      } else if (filterDateRange === 'Last 7 Days') {
+        const startOfSevenDaysAgo = new Date(startOfToday.getTime() - 7 * 24 * 60 * 60 * 1000);
+        if (logDate < startOfSevenDaysAgo) return false;
+      }
+    }
+    
+    return true;
+  });
 
 const filteredEmails = emails;
 

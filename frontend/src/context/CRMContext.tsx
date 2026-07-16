@@ -200,6 +200,9 @@ sendDraft: (
   id: string
 ) => Promise<any>;
 
+  emailLogs: any[];
+  loadEmailLogs: () => Promise<void>;
+
   handleQuotationCreate: (quoteForm: any) => Promise<void>;
   updateQuoteStatus: (quoteId: string, status: string) => Promise<void>;
   handleReferralCreate: (referralForm: any) => Promise<void>;
@@ -530,6 +533,8 @@ createDraft: emailCtx.createDraft,
 updateDraft: emailCtx.updateDraft,
 
 sendDraft: emailCtx.sendDraft,
+      emailLogs: emailCtx.emailLogs,
+      loadEmailLogs: emailCtx.loadEmailLogs,
       handleQuotationCreate: quoteCtx.handleQuotationCreate,
       handleQuotationUpdate: quoteCtx.handleQuotationUpdate,
       updateQuoteStatus: quoteCtx.updateQuoteStatus,

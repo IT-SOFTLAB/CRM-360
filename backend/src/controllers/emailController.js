@@ -942,3 +942,22 @@ exports.sendDraft = async (req, res) => {
     });
 
 };
+
+exports.getEmailLogs = async (req, res) => {
+  try {
+    const logs = await prisma.emailLog.findMany({
+      orderBy: { sentAt: 'desc' }
+    });
+    return res.json(logs);
+  } catch (err) {
+    console.error("Prisma logs fetch failed, falling back to db.json:", err);
+    try {
+      const db = readJSONDB();
+      const logs = db.emailLogs || [];
+      logs.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+      return res.json(logs);
+    } catch (e) {
+      return res.status(500).json({ message: "Failed to load email logs" });
+    }
+  }
+};

@@ -98,6 +98,8 @@ sendDraft: (
     id: string
 ) => Promise<any>;
 
+  emailLogs: any[];
+  loadEmailLogs: () => Promise<void>;
 }
 export const EmailContext = createContext<EmailContextType | undefined>(undefined);
 
@@ -451,19 +453,13 @@ const sendDraft = async (id: string) => {
 
 
 
-  const handleSendEmail = async (replyText: string, emailObject: any) => {
-   // const user = authCtx?.user;
- const payload = {
-
-    to: emailObject.sender,
-
-    subject: `Re: ${emailObject.subject}`,
-
-    body: replyText
-
-};
-
-
+  const handleSendEmail = async (replyText: string, emailObject: any): Promise<boolean> => {
+    try {
+      const payload = {
+        to: emailObject.sender,
+        subject: emailObject.subject.startsWith('Re:') ? emailObject.subject : `Re: ${emailObject.subject}`,
+        body: replyText
+      };
 
       const res = await emailService.sendEmail(payload);
       if (res && (res.error === true || res.success === false)) {
@@ -554,7 +550,8 @@ createDraft,
 updateDraft,
 
 sendDraft,
-   
+    emailLogs,
+    loadEmailLogs,
 }}
 >
       {children}
