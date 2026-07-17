@@ -361,7 +361,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                       disabled={isUploading}
                       className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer disabled:opacity-50"
                     >
-                      <Upload className="w-3.5 h-3.5" />
+                      <Download className="w-3.5 h-3.5" />
                       <span>{isUploading ? 'Uploading...' : 'Import CSV'}</span>
                     </button>
                     <input
