@@ -462,13 +462,13 @@ export default function QuotationsView({
       <div className="space-y-6 print:hidden">
         {/* Manager Filter Header */}
       {isManager && (
-        <div className="bg-card border border-border-crm rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs shrink-0 text-txt-primary">
+        <div className="flex justify-between items-center bg-card border border-border-crm rounded-2xl p-2.5 shadow-xs text-xs">
           <div className="flex items-center space-x-2.5">
             <div className="bg-primary/10 p-2 rounded-xl text-primary border border-primary/20">
               <ListFilter className="w-5 h-5" />
             </div>
             <div>
-              <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Manager Quotation Filters</h4>
+              <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Quotation Filters</h4>
               <p className="text-[10px] text-txt-secondary mt-0.5">Filter quotations list by individual salesperson or team workload</p>
             </div>
           </div>
@@ -508,7 +508,7 @@ export default function QuotationsView({
             <thead>
               <tr className="bg-bg-main border-b border-black  text-xs font-bold text-black uppercase tracking-wider select-none">
                 <th className="px-6 py-4 text-left">Quotation No.</th>
-                <th className="px-6 py-4 text-left">Customer</th>
+                <th className="px-6 py-4 text-left">Client</th>
                 <th className="px-6 py-4 text-left">Company</th>
                 <th className="px-6 py-4 text-left">Quotation Date</th>
                 <th className="px-6 py-4 text-right">Total</th>

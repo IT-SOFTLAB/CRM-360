@@ -1,9 +1,10 @@
 "use client";
 
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useEffect } from 'react';
 import { Activity } from '../types/activity';
 import { activityService } from '../services/activity.service';
 import { ToastContext } from './ToastContext';
+import { AuthContext } from './AuthContext';
 
 export interface ActivityContextType {
   activities: Activity[];
@@ -31,6 +32,15 @@ export const ActivityProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
 const [calendarEmail, setCalendarEmail] = useState("");
   const toastCtx = useContext(ToastContext);
+  const authCtx = useContext(AuthContext);
+
+  useEffect(() => {
+    if (!authCtx?.user) {
+      setCalendarConnected(false);
+      setCalendarEmail("");
+      setActivities([]);
+    }
+  }, [authCtx?.user]);
 
  const checkCalendarStatus = async () => {
   try {

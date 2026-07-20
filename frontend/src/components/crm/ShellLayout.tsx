@@ -19,6 +19,7 @@ import {
   AlertCircle,
   Info,
   BarChart3,
+  User,
   Users,
   ClipboardList,
   Building2,
@@ -181,7 +182,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3, href: '/dashboard', roles: ['SUPER_ADMIN', 'ADMIN', 'USER'] },
-    { id: 'leads', label: 'Leads', icon: Users, href: '/leads', roles: ['ADMIN', 'USER'] },
+    { id: 'leads', label: 'Leads', icon: User, href: '/leads', roles: ['ADMIN', 'USER'] },
     { id: 'opportunities', label: 'Pipeline', icon: ClipboardList, href: '/opportunities', roles: ['ADMIN', 'USER'] },
     { id: 'salesteam', label: 'Teams', icon: Users, href: '/salesteam', roles: ['SUPER_ADMIN', 'ADMIN'] },
     { id: 'activities', label: 'Activities', icon: CalendarIcon, href: '/activities', roles: ['ADMIN', 'USER'] },
@@ -191,6 +192,9 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     { id: 'referrals', label: 'Retention', icon: TrendingUp, href: '/referrals', roles: ['ADMIN', 'USER'] },
     { id: 'settings', label: 'Settings', icon: SettingsIcon, href: '/settings', roles: ['SUPER_ADMIN', 'ADMIN', 'USER'] },
   ];
+
+  const activeTab = tabs.find(t => t.id === currentTab);
+  const displayName = activeTab ? activeTab.label : currentTab;
 
   const handleLogoutClick = async () => {
     setShowProfileMenu(false);
@@ -342,7 +346,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
               <div className="text-sm font-semibold tracking-tight flex items-center space-x-1">
                 <span className="text-txt-secondary select-none">CRM</span>
                 <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                <span className="capitalize text-txt-primary">{currentTab}</span>
+                <span className="capitalize text-txt-primary">{displayName}</span>
               </div>
 
               {/* Action CTAs depending on active route */}
@@ -361,7 +365,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                       disabled={isUploading}
                       className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer disabled:opacity-50"
                     >
-                      <Upload className="w-3.5 h-3.5" />
+                      <Download className="w-3.5 h-3.5" />
                       <span>{isUploading ? 'Uploading...' : 'Import CSV'}</span>
                     </button>
                     <input
@@ -399,7 +403,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                     className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
-                    <span>Submit Referral</span>
+                    <span>Submit Retention</span>
                   </button>
                 )}
               </div>
@@ -549,7 +553,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
               
               {/* Status Filters */}
               <div className="space-y-2">
-                <h4 className="text-[10px] font-extrabold text-txt-secondary uppercase tracking-wide border-b border-border-crm pb-1">Odoo Status Filters</h4>
+                <h4 className="text-[10px] font-extrabold text-txt-secondary uppercase tracking-wide border-b border-border-crm pb-1">Status Filters</h4>
                 <div className="grid grid-cols-2 gap-1">
                   <label className="flex items-center space-x-1.5 p-1.5 hover:bg-slate-100/50 dark:hover:bg-slate-800 rounded-lg cursor-pointer text-xs">
                     <input

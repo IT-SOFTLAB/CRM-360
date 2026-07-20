@@ -871,13 +871,13 @@ showCompose && (
 
 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
 
-<div className="bg-card rounded-2xl w-[700px] shadow-xl border border-border-crm">
+<div className="bg-card rounded-2xl w-[700px] max-h-[90vh] flex flex-col shadow-xl border border-border-crm">
 
 <div className="flex justify-between items-center p-5 border-b">
 
 <h3 className="font-bold text-lg">
 
-New Message
+New Mail
 
 </h3>
 
@@ -899,7 +899,7 @@ className="text-slate-500"
 
 onSubmit={handleComposeSend}
 
-className="p-5 space-y-4"
+className="p-5 space-y-3 overflow-y-auto"
 
 >
 
@@ -1018,7 +1018,7 @@ className="w-full border rounded-xl px-4 py-2"
 
 <textarea
 
-rows={10}
+rows={6}
 
 placeholder="Write your email..."
 

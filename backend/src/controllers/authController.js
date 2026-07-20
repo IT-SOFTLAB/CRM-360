@@ -273,11 +273,22 @@ exports.logout = async (req, res) => {
       secure: isProduction,
       sameSite: isProduction ? "None" : "lax",
     });
+
+    // Destroy the express session to disconnect Outlook/email
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Error destroying session during logout:", err);
+        }
+      });
+    }
+
     res.json({ message: 'Logged out successfully' });
   } catch (err) {
     console.error('Logout error:', err);
     res.status(500).json({ message: 'Logout failed' });
   }
+ 
 };
 
 

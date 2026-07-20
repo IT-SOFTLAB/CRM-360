@@ -181,7 +181,7 @@ export default function LoginView({
           )}
 
           {isSetup ? (
-            /* First time Odoo setup registration form */
+            /* First time setup registration form */
             <form onSubmit={handleLocalSetupSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-txt-secondary mb-1">Company Name</label>

@@ -148,8 +148,7 @@ model Opportunity {
   priority               Int       @default(0)
   tags                   String[]
   description            String?
-
-  assignedSalespersonRel User? @relation(fields: [assignedSalespersonId], references: [id])
+  assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
 }
 model Customer {
   id                     String   @id @default(cuid())
@@ -189,7 +188,6 @@ model Quotation {
   status                      String          @default("Draft")
   createdAt                   DateTime        @default(now())
   updatedAt                   DateTime        @updatedAt
-
   customerGstinSnapshot       String?
   billingAddressSnapshot      String?
   shippingAddressSnapshot     String?
@@ -202,7 +200,6 @@ model Quotation {
   roundOff                    Float           @default(0.0)
   termsConditions             String?
   internalNotes               String?
-
   items                       QuotationItem[]
 }
 

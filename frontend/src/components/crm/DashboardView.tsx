@@ -76,7 +76,7 @@ function PipelinePieChart({
 
       {/* Donut pie — slices sized by revenue */}
       <div className="relative w-32 h-32 shrink-0">
-        <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+        <svg viewBox="-2 -2 40 40" className="w-full h-full -rotate-90">
           <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F1F5F9" strokeWidth="3.5" />
           {segments.map((seg, i) => (
             <circle
@@ -196,6 +196,65 @@ export default function DashboardView({
     if (!selectedTeamMembers) return opportunities;
     return opportunities.filter(o => selectedTeamMembers.includes(o.assignedSalesperson));
   }, [opportunities, selectedTeamMembers]);
+
+  const currentYear = new Date().getFullYear();
+
+  const crmStartYear = useMemo(() => {
+    let earliest = currentYear;
+    opportunities.forEach((o: any) => {
+      const yr = new Date(o.createdAt || o.createdDate || Date.now()).getFullYear();
+      if (yr > 1990 && yr < earliest) earliest = yr;
+    });
+    return earliest;
+  }, [opportunities, currentYear]);
+
+  const yearRangeOptions = useMemo(() => {
+    const options: { value: string; label: string; start: number; end: number }[] = [];
+    const maxYear = currentYear + 5;
+    for (let yr = crmStartYear; yr <= maxYear; yr += 6) {
+      const endYr = yr + 5;
+      options.push({
+        value: `${yr}-${endYr}`,
+        label: `${yr}-${endYr}`,
+        start: yr,
+        end: endYr
+      });
+    }
+    return options;
+  }, [crmStartYear, currentYear]);
+
+  const defaultYearRange = useMemo(() => {
+    const opt = yearRangeOptions.find(r => currentYear >= r.start && currentYear <= r.end);
+    return opt ? opt.value : (yearRangeOptions[yearRangeOptions.length - 1]?.value || `${currentYear - 5}-${currentYear}`);
+  }, [yearRangeOptions, currentYear]);
+
+  const [finYearRange, setFinYearRange] = useState<string>('');
+  const [adminFinYearRange, setAdminFinYearRange] = useState<string>('');
+
+  const [finMonthRange, setFinMonthRange] = useState<'jan-jun' | 'jul-dec'>(
+    new Date().getMonth() < 6 ? 'jan-jun' : 'jul-dec'
+  );
+  const [adminFinMonthRange, setAdminFinMonthRange] = useState<'jan-jun' | 'jul-dec'>(
+    new Date().getMonth() < 6 ? 'jan-jun' : 'jul-dec'
+  );
+
+  const defaultWeekStart = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 6);
+    return d.toISOString().split('T')[0];
+  }, []);
+
+  const [finWeekStartDate, setFinWeekStartDate] = useState<string>(defaultWeekStart);
+  const [adminFinWeekStartDate, setAdminFinWeekStartDate] = useState<string>(defaultWeekStart);
+
+  useEffect(() => {
+    if (!finYearRange && defaultYearRange) {
+      setFinYearRange(defaultYearRange);
+    }
+    if (!adminFinYearRange && defaultYearRange) {
+      setAdminFinYearRange(defaultYearRange);
+    }
+  }, [defaultYearRange]);
 
   const filteredLeads = useMemo(() => {
     if (!selectedTeamMembers) return activeLeads;
@@ -661,9 +720,9 @@ export default function DashboardView({
             { label: "Total Leads", val: activeLeads.length.toLocaleString(), change: "Unconverted entries", icon: Layers, isPrimary: false },
             { label: "Total Opportunities", val: opportunities.length.toLocaleString(), change: "Active deals", icon: ClipboardList, isPrimary: false },
             { label: "Total Quotations", val: quotations.length.toLocaleString(), change: "Sent to clients", icon: FileText, isPrimary: false },
-            { label: "Total Referrals", val: referrals.length.toLocaleString(), change: "Referral submissions", icon: Share2, isPrimary: false },
+            { label: "Total Retentions", val: referrals.length.toLocaleString(), change: "Referral submissions", icon: Share2, isPrimary: false },
             { label: "Total Revenue", val: displayRevenueStr, change: "Closed won statistics", icon: IndianRupee, isPrimary: true },
-            { label: "Conversion Rate", val: `${conversionRate}%`, change: "Lead conversion ratio", icon: TrendingUp, isPrimary: false }
+          //  { label: "Conversion Rate", val: `${conversionRate}%`, change: "Lead conversion ratio", icon: TrendingUp, isPrimary: false }
           ].map((card, idx) => (
             <div
               key={idx}
@@ -696,12 +755,16 @@ export default function DashboardView({
           const now = new Date();
 
           // Build bar chart data depending on active filter
-          let chartBars: { name: string; val: number }[] = [];
+          let chartBars: { name: string; val: number;isCurrent: boolean; }[] = [];
 
           if (finFilter === 'year') {
-            // Last 6 years
-            for (let i = 5; i >= 0; i--) {
-              const yr = now.getFullYear() - i;
+            const selectedRangeStr = finYearRange || defaultYearRange;
+            const match = selectedRangeStr.match(/(\d+)-(\d+)/);
+            const startYr = match ? parseInt(match[1]) : currentYear - 5;
+
+            for (let i = 0; i < 6; i++) {
+              const yr = startYr + i;
+              const isCurrent = yr === now.getFullYear();
               const val = filteredOpps
                 .filter(o => o.stageId === 'p_6')
                 .filter(o => {
@@ -709,13 +772,16 @@ export default function DashboardView({
                   return d.getFullYear() === yr;
                 })
                 .reduce((s, o) => s + (o.dealValue || 0), 0);
-              chartBars.push({ name: String(yr), val });
+              chartBars.push({ name: String(yr), val, isCurrent });
             }
           } else if (finFilter === 'month') {
-            // Last 6 months
-            for (let i = 5; i >= 0; i--) {
-              const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-              const yr = d.getFullYear(); const mo = d.getMonth();
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const startMo = finMonthRange === 'jan-jun' ? 0 : 6;
+            const yr = now.getFullYear();
+
+            for (let i = 0; i < 6; i++) {
+              const mo = startMo + i;
+              const isCurrent = yr === now.getFullYear() && mo === now.getMonth();
               const val = filteredOpps
                 .filter(o => o.stageId === 'p_6')
                 .filter(o => {
@@ -723,13 +789,23 @@ export default function DashboardView({
                   return cd.getFullYear() === yr && cd.getMonth() === mo;
                 })
                 .reduce((s, o) => s + (o.dealValue || 0), 0);
-              chartBars.push({ name: d.toLocaleString('default', { month: 'short' }), val });
+              chartBars.push({ name: monthNames[mo], val, isCurrent });
             }
           } else {
-            // Last 7 days
-            for (let i = 6; i >= 0; i--) {
-              const day = new Date(now); day.setDate(now.getDate() - i); day.setHours(0,0,0,0);
-              const dayEnd = new Date(day); dayEnd.setHours(23,59,59,999);
+            const startDate = new Date(finWeekStartDate || defaultWeekStart);
+            startDate.setHours(0, 0, 0, 0);
+
+            for (let i = 0; i < 7; i++) {
+              const day = new Date(startDate);
+              day.setDate(startDate.getDate() + i);
+              day.setHours(0, 0, 0, 0);
+              const dayEnd = new Date(day);
+              dayEnd.setHours(23, 59, 59, 999);
+
+              const isCurrent = day.getFullYear() === now.getFullYear() &&
+                                day.getMonth() === now.getMonth() &&
+                                day.getDate() === now.getDate();
+
               const val = filteredOpps
                 .filter(o => o.stageId === 'p_6')
                 .filter(o => {
@@ -737,7 +813,7 @@ export default function DashboardView({
                   return cd >= day && cd <= dayEnd;
                 })
                 .reduce((s, o) => s + (o.dealValue || 0), 0);
-              chartBars.push({ name: day.toLocaleString('default', { weekday: 'short' }), val });
+              chartBars.push({ name: `${day.toLocaleString('default', { weekday: 'short' })} ${day.getDate()}`, val, isCurrent });
             }
           }
 
@@ -746,8 +822,8 @@ export default function DashboardView({
           // Summary stats for current vs previous period
           const curVal  = chartBars[chartBars.length - 1]?.val || 0;
           const prevVal = chartBars[chartBars.length - 2]?.val || 0;
-          const curLabel  = finFilter === 'year' ? 'This Year'  : finFilter === 'month' ? 'This Month'  : 'Today';
-          const prevLabel = finFilter === 'year' ? 'Last Year'  : finFilter === 'month' ? 'Last Month'  : 'Yesterday';
+          const curLabel  = chartBars[chartBars.length - 1]?.name || 'Current';
+          const prevLabel = chartBars[chartBars.length - 2]?.name || 'Previous';
 
           const growthPct = prevVal > 0 ? Math.round(((curVal - prevVal) / prevVal) * 100) : (curVal > 0 ? 100 : 0);
           const growthPos = growthPct >= 0;
@@ -757,70 +833,104 @@ export default function DashboardView({
               {/* Simple Header */}
               <div className="border-b border-border-crm/30 pb-2">
                 <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">Financial Performance</h3>
-                <p className="text-[9px] text-txt-secondary">Closed won revenue vs deal status breakdown.</p>
+                {/* <p className="text-[9px] text-txt-secondary">Closed won revenue vs deal status breakdown.</p> */}
               </div>
 
               {/* Bar chart + Pie chart side by side */}
-              <div className="flex gap-4 items-stretch">
+              <div className="flex flex-col lg:flex-row gap-4 items-stretch">
 
                 {/* Bar chart — 3/4 width with absolute positioned stats & filter tabs */}
-                <div className="relative flex-1 h-56 bg-bg-main border border-border-crm/40 rounded-xl p-4 flex flex-col justify-between">
+                <div className="relative flex-1 h-72 lg:h-56 bg-bg-main border border-border-crm/40 rounded-xl p-4 flex flex-col justify-between">
                   {/* Top bar inside container holding stats (left) and filter tabs (right) */}
-                  <div className="flex justify-between items-center w-full z-10">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 w-full z-10">
                     {/* Inline Summary Metrics (Top Left) */}
                     <div className="flex items-center gap-3 text-xs font-semibold bg-bg-main/70 backdrop-blur-xs px-2 py-1 rounded-lg border border-border-crm/20">
-                      <div>
+                      {/* <div>
                         <span className="text-txt-secondary text-[9px] uppercase font-bold mr-1">{curLabel}:</span>
                         <span className="text-txt-primary font-bold text-xs">{formatCRMRevenue(curVal)}</span>
                       </div>
                       <div className="border-l border-border-crm/30 pl-2">
                         <span className="text-txt-secondary text-[9px] uppercase font-bold mr-1">{prevLabel}:</span>
                         <span className="text-txt-primary font-bold text-xs">{formatCRMRevenue(prevVal)}</span>
-                      </div>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5 border leading-none ${
+                      </div> */}
+                      {/* <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5 border leading-none ${
                         growthPos
                           ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
                           : 'bg-rose-50 border-rose-200 text-rose-700'
                       }`}>
                         <TrendingUp className="w-2.5 h-2.5" />
                         {growthPos ? '+' : ''}{growthPct}%
-                      </span>
+                      </span> */}
                     </div>
 
-                    {/* Filter tabs (top right) */}
-                    <div className="flex items-center bg-bg-main/90 backdrop-blur-xs border border-border-crm/40 rounded-lg p-0.5 gap-0.5 shrink-0">
-                      {(['year', 'month', 'week'] as const).map(f => (
-                        <button
-                          key={f}
-                          onClick={() => setFinFilter(f)}
-                          className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide transition-all duration-200 cursor-pointer ${
-                            finFilter === f
-                              ? 'bg-primary text-white shadow-xs'
-                              : 'text-txt-secondary hover:text-txt-primary hover:bg-slate-100 dark:hover:bg-slate-800'
-                          }`}
+                    {/* Filter tabs & Sub-filters (top right) */}
+                    <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                      {finFilter === 'year' && (
+                        <select
+                          value={finYearRange || defaultYearRange}
+                          onChange={(e) => setFinYearRange(e.target.value)}
+                          className="text-[10px] font-extrabold py-0.5 px-1.5 rounded-md bg-card border border-border-crm text-txt-primary focus:outline-none focus:border-primary shadow-xs cursor-pointer"
                         >
-                          {f === 'year' ? 'Year' : f === 'month' ? 'Month' : 'Week'}
-                        </button>
-                      ))}
+                          {yearRangeOptions.map(r => (
+                            <option key={r.value} value={r.value}>{r.label}</option>
+                          ))}
+                        </select>
+                      )}
+
+                      {finFilter === 'month' && (
+                        <select
+                          value={finMonthRange}
+                          onChange={(e) => setFinMonthRange(e.target.value as any)}
+                          className="text-[10px] font-extrabold py-0.5 px-1.5 rounded-md bg-card border border-border-crm text-txt-primary focus:outline-none focus:border-primary shadow-xs cursor-pointer"
+                        >
+                          <option value="jan-jun">Jan - Jun</option>
+                          <option value="jul-dec">Jul - Dec</option>
+                        </select>
+                      )}
+
+                      {finFilter === 'week' && (
+                        <input
+                          type="date"
+                          value={finWeekStartDate}
+                          onChange={(e) => setFinWeekStartDate(e.target.value)}
+                          className="text-[10px] font-extrabold py-0.5 px-1.5 rounded-md bg-card border border-border-crm text-txt-primary focus:outline-none focus:border-primary shadow-xs cursor-pointer max-w-[110px]"
+                        />
+                      )}
+
+                      <div className="flex items-center bg-bg-main/90 backdrop-blur-xs border border-border-crm/40 rounded-lg p-0.5 gap-0.5 shrink-0">
+                        {(['year', 'month', 'week'] as const).map(f => (
+                          <button
+                            key={f}
+                            onClick={() => setFinFilter(f)}
+                            className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide transition-all duration-200 cursor-pointer ${
+                              finFilter === f
+                                ? 'bg-primary text-white shadow-xs'
+                                : 'text-txt-secondary hover:text-txt-primary hover:bg-slate-100 dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            {f === 'year' ? 'Year' : f === 'month' ? 'Month' : 'Week'}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
                   <div className="flex-1 flex items-end justify-around w-full pt-4">
                     {chartBars.map((bar, idx) => {
                       const heightPct = maxBarVal > 0 ? (bar.val / maxBarVal) * 80 : 0;
-                      const isLatest = idx === chartBars.length - 1;
+                      const isHighlight = !!bar.isCurrent;
                       return (
                         <div key={idx} className="flex flex-col items-center group relative h-full justify-end" style={{ width: `${100 / chartBars.length}%` }}>
                           {/* Bar */}
                           <div className={`w-8 border rounded-t-lg h-36 flex items-end overflow-hidden ${
-                            isLatest
-                              ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300/50'
+                            isHighlight
+                              ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300/50 shadow-xs'
                               : 'bg-slate-100 dark:bg-slate-800/40 border-border-crm/30'
                           }`}>
                             <div
                               style={{ height: `${Math.max(heightPct, bar.val > 0 ? 4 : 0)}%` }}
                               className={`w-full rounded-t-md transition-all duration-500 cursor-pointer ${
-                                isLatest
+                                isHighlight
                                   ? 'bg-gradient-to-t from-blue-700 to-blue-500 hover:from-blue-600 hover:to-blue-400'
                                   : 'bg-gradient-to-t from-blue-600 to-blue-400 hover:from-blue-500 hover:to-blue-300'
                               }`}
@@ -828,7 +938,7 @@ export default function DashboardView({
                           </div>
                           {/* Label */}
                           <span className={`text-[9px] font-extrabold uppercase mt-2 select-none ${
-                            isLatest ? 'text-primary' : 'text-slate-400 dark:text-slate-500'
+                            isHighlight ? 'text-primary' : 'text-slate-400 dark:text-slate-500'
                           }`}>{bar.name}</span>
                         </div>
                       );
@@ -852,12 +962,12 @@ export default function DashboardView({
                   ];
 
                   return (
-                    <div className="w-72 shrink-0 h-56 bg-bg-main border border-border-crm/40 rounded-xl p-3.5 flex flex-col items-center justify-between">
+                    <div className="w-full lg:w-72 lg:shrink-0 h-56 bg-bg-main border border-border-crm/40 rounded-xl p-3.5 flex flex-col items-center justify-between">
                       <p className="text-[10px] font-extrabold uppercase tracking-wider text-txt-secondary text-center w-full">Deal Status</p>
 
                       {/* Donut chart - centered and occupying full container width */}
                       <div className="relative w-28 h-28 my-0.5">
-                        <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                        <svg viewBox="-2 -2 40 40" className="w-full h-full -rotate-90">
                           <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F1F5F9" strokeWidth="4" />
                           {pieSegs.map((seg, i) => (
                             <circle
@@ -995,7 +1105,7 @@ export default function DashboardView({
             <div className="w-full md:w-44 shrink-0 flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-border-crm pt-4 md:pt-0 md:pl-6">
               <span className="text-[10px] font-bold text-txt-secondary uppercase tracking-wider mb-3">Sales Share by Team</span>
               <div className="relative w-28 h-28 animate-pulse-subtle">
-                <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
+                <svg viewBox="-2 -2 40 40" className="w-full h-full transform -rotate-90">
                   <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F1F5F9" strokeWidth="4" />
                   {donutSegments.map((seg, idx) => (
                     <circle 
@@ -1045,8 +1155,8 @@ export default function DashboardView({
         {/* Header Title */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-txt-primary">Team Overview</h2>
-            <p className="text-xs text-txt-secondary">Workload balancing, deal distributions, and executive schedules.</p>
+            <h2 className="text-xl font-bold tracking-tight text-txt-primary">Overview</h2>
+            {/* <p className="text-xs text-txt-secondary">Workload balancing, deal distributions, and executive schedules.</p> */}
           </div>
           
         </div>
@@ -1059,7 +1169,7 @@ export default function DashboardView({
             { label: "Opportunities", val: teamKPIs.opps.toString(), sub: "Active Pipeline" },
             { label: "Quotations", val: teamKPIs.quotes.toString(), sub: "Sent to clients" },
             { label: "Clients", val: teamKPIs.cust.toString(), sub: "Converted accounts" },
-            { label: "Referrals", val: referrals.length.toLocaleString(), sub: "Total submissions" },
+            { label: "Retentions", val: referrals.length.toLocaleString(), sub: "Total submissions" },
             { label: "Revenue", val: teamKPIs.rev, sub: "Total closed" }
           ].map((card, idx) => (
             <div key={idx} className="bg-card border border-border-crm rounded-2xl p-4.5 shadow-xs text-left">
@@ -1197,11 +1307,16 @@ export default function DashboardView({
             <div className="pt-4 border-t border-border-crm/50 space-y-3">
               {(() => {
                 const now = new Date();
-                let chartBars: { name: string; val: number }[] = [];
+                let chartBars: { name: string; val: number;isCurrent: boolean; }[] = [];
 
                 if (adminFinFilter === 'year') {
-                  for (let i = 5; i >= 0; i--) {
-                    const yr = now.getFullYear() - i;
+                  const selectedRangeStr = adminFinYearRange || defaultYearRange;
+                  const match = selectedRangeStr.match(/(\d+)-(\d+)/);
+                  const startYr = match ? parseInt(match[1]) : currentYear - 5;
+
+                  for (let i = 0; i < 6; i++) {
+                    const yr = startYr + i;
+                    const isCurrent = yr === now.getFullYear();
                     const val = opportunities
                       .filter(o => o.stageId === 'p_6')
                       .filter(o => {
@@ -1209,12 +1324,16 @@ export default function DashboardView({
                         return d.getFullYear() === yr;
                       })
                       .reduce((s, o) => s + (o.dealValue || 0), 0);
-                    chartBars.push({ name: String(yr), val });
+                    chartBars.push({ name: String(yr), val, isCurrent });
                   }
                 } else if (adminFinFilter === 'month') {
-                  for (let i = 5; i >= 0; i--) {
-                    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                    const yr = d.getFullYear(); const mo = d.getMonth();
+                  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                  const startMo = adminFinMonthRange === 'jan-jun' ? 0 : 6;
+                  const yr = now.getFullYear();
+
+                  for (let i = 0; i < 6; i++) {
+                    const mo = startMo + i;
+                    const isCurrent = yr === now.getFullYear() && mo === now.getMonth();
                     const val = opportunities
                       .filter(o => o.stageId === 'p_6')
                       .filter(o => {
@@ -1222,12 +1341,23 @@ export default function DashboardView({
                         return cd.getFullYear() === yr && cd.getMonth() === mo;
                       })
                       .reduce((s, o) => s + (o.dealValue || 0), 0);
-                    chartBars.push({ name: d.toLocaleString('default', { month: 'short' }), val });
+                    chartBars.push({ name: monthNames[mo], val, isCurrent });
                   }
                 } else {
-                  for (let i = 6; i >= 0; i--) {
-                    const day = new Date(now); day.setDate(now.getDate() - i); day.setHours(0,0,0,0);
-                    const dayEnd = new Date(day); dayEnd.setHours(23,59,59,999);
+                  const startDate = new Date(adminFinWeekStartDate || defaultWeekStart);
+                  startDate.setHours(0, 0, 0, 0);
+
+                  for (let i = 0; i < 7; i++) {
+                    const day = new Date(startDate);
+                    day.setDate(startDate.getDate() + i);
+                    day.setHours(0, 0, 0, 0);
+                    const dayEnd = new Date(day);
+                    dayEnd.setHours(23, 59, 59, 999);
+
+                    const isCurrent = day.getFullYear() === now.getFullYear() &&
+                                      day.getMonth() === now.getMonth() &&
+                                      day.getDate() === now.getDate();
+
                     const val = opportunities
                       .filter(o => o.stageId === 'p_6')
                       .filter(o => {
@@ -1235,7 +1365,7 @@ export default function DashboardView({
                         return cd >= day && cd <= dayEnd;
                       })
                       .reduce((s, o) => s + (o.dealValue || 0), 0);
-                    chartBars.push({ name: day.toLocaleString('default', { weekday: 'short' }), val });
+                    chartBars.push({ name: `${day.toLocaleString('default', { weekday: 'short' })} ${day.getDate()}`, val, isCurrent });
                   }
                 }
 
@@ -1246,28 +1376,62 @@ export default function DashboardView({
                     <div className="flex justify-between items-center w-full">
                       <span className="text-[10px] font-bold text-txt-secondary uppercase tracking-wider block">Closed Won Revenue Chart</span>
                       
-                      {/* Filter tabs */}
-                      <div className="flex items-center bg-bg-main border border-border-crm rounded-lg p-0.5 gap-0.5 shrink-0">
-                        {(['year', 'month', 'week'] as const).map(f => (
-                          <button
-                            key={f}
-                            onClick={() => setAdminFinFilter(f)}
-                            className={`px-2 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wide transition-all duration-200 cursor-pointer ${
-                              adminFinFilter === f
-                                ? 'bg-primary text-white shadow-xs'
-                                : 'text-txt-secondary hover:text-txt-primary hover:bg-slate-100 dark:hover:bg-slate-800'
-                            }`}
+                      {/* Filter tabs & Sub-filters */}
+                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                        {adminFinFilter === 'year' && (
+                          <select
+                            value={adminFinYearRange || defaultYearRange}
+                            onChange={(e) => setAdminFinYearRange(e.target.value)}
+                            className="text-[9px] font-extrabold py-0.5 px-1 rounded-md bg-card border border-border-crm text-txt-primary focus:outline-none focus:border-primary shadow-xs cursor-pointer"
                           >
-                            {f === 'year' ? 'Year' : f === 'month' ? 'Month' : 'Week'}
-                          </button>
-                        ))}
+                            {yearRangeOptions.map(r => (
+                              <option key={r.value} value={r.value}>{r.label}</option>
+                            ))}
+                          </select>
+                        )}
+
+                        {adminFinFilter === 'month' && (
+                          <select
+                            value={adminFinMonthRange}
+                            onChange={(e) => setAdminFinMonthRange(e.target.value as any)}
+                            className="text-[9px] font-extrabold py-0.5 px-1 rounded-md bg-card border border-border-crm text-txt-primary focus:outline-none focus:border-primary shadow-xs cursor-pointer"
+                          >
+                            <option value="jan-jun">Jan - Jun</option>
+                            <option value="jul-dec">Jul - Dec</option>
+                          </select>
+                        )}
+
+                        {adminFinFilter === 'week' && (
+                          <input
+                            type="date"
+                            value={adminFinWeekStartDate}
+                            onChange={(e) => setAdminFinWeekStartDate(e.target.value)}
+                            className="text-[9px] font-extrabold py-0.5 px-1 rounded-md bg-card border border-border-crm text-txt-primary focus:outline-none focus:border-primary shadow-xs cursor-pointer max-w-[100px]"
+                          />
+                        )}
+
+                        <div className="flex items-center bg-bg-main border border-border-crm rounded-lg p-0.5 gap-0.5 shrink-0">
+                          {(['year', 'month', 'week'] as const).map(f => (
+                            <button
+                              key={f}
+                              onClick={() => setAdminFinFilter(f)}
+                              className={`px-2 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wide transition-all duration-200 cursor-pointer ${
+                                adminFinFilter === f
+                                  ? 'bg-primary text-white shadow-xs'
+                                  : 'text-txt-secondary hover:text-txt-primary hover:bg-slate-100 dark:hover:bg-slate-800'
+                              }`}
+                            >
+                              {f === 'year' ? 'Year' : f === 'month' ? 'Month' : 'Week'}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
                     <div className="relative w-full h-48 bg-bg-main border border-border-crm/40 rounded-xl overflow-hidden p-4 flex items-end justify-around">
                       {chartBars.map((bar, idx) => {
                         const heightPercent = maxBarVal > 0 ? (bar.val / maxBarVal) * 80 : 20;
-                        const isLatest = idx === chartBars.length - 1;
+                        const isHighlight = !!bar.isCurrent;
                         
                         return (
                           <div key={idx} className="flex flex-col items-center group relative h-full justify-end" style={{ width: `${100 / chartBars.length}%` }}>
@@ -1276,16 +1440,18 @@ export default function DashboardView({
                             
                             {/* Bar Graphic */}
                             <div className={`w-5 border rounded-t-sm transition-all duration-300 relative group cursor-pointer ${
-                              isLatest
+                              isHighlight
                                 ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300/50'
                                 : 'bg-slate-100 dark:bg-slate-800/40 border-border-crm/30'
                             }`} style={{ height: `${Math.max(heightPercent, bar.val > 0 ? 4 : 0)}%` }}>
-                              <div className="w-full h-full bg-primary hover:bg-primary/95 rounded-t-sm" />
+                              <div className={`w-full h-full rounded-t-sm ${
+                                isHighlight ? 'bg-primary hover:bg-primary/95' : 'bg-blue-600/80 dark:bg-blue-500/80 hover:bg-blue-600'
+                              }`} />
                             </div>
 
                             {/* Period label */}
                             <span className={`text-[8px] font-bold uppercase mt-1.5 ${
-                              isLatest ? 'text-primary' : 'text-slate-400'
+                              isHighlight ? 'text-primary' : 'text-slate-400'
                             }`}>{bar.name}</span>
                           </div>
                         );
@@ -1336,7 +1502,7 @@ export default function DashboardView({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-txt-primary">Personal Workspace</h2>
-          <p className="text-xs text-txt-secondary">My pipelines, day-to-day checklist schedule.</p>
+          {/* <p className="text-xs text-txt-secondary">My pipelines, day-to-day checklist schedule.</p> */}
         </div>
        
       </div>
@@ -1480,7 +1646,7 @@ export default function DashboardView({
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-bg-main border-b border-border-crm text-[10px] font-extrabold uppercase text-txt-secondary tracking-wider">
-                  <th className="px-4 py-3">Customer</th>
+                  <th className="px-4 py-3">Client</th>
                   <th className="px-4 py-3 text-center">Amount</th>
                   <th className="px-4 py-3 text-right">Status</th>
                 </tr>

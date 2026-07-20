@@ -4,6 +4,7 @@ import {
     Pencil,
     Trash2,
     ListFilter,
+    Search,
 } from "lucide-react";
 import { useCRM } from "../../context/CRMContext";
 import { customerService } from "../../services/customer.service";
@@ -18,6 +19,10 @@ const CustomerView = () => {
     const [activeFilter, setActiveFilter] = useState<'all' | 'my' | 'team'>('all');
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
     const [showCustomerDrawer, setShowCustomerDrawer] = useState(false);
+
+    const [searchQuery, setSearchQuery] = useState("");
+    const [minDealValue, setMinDealValue] = useState("");
+    const [maxDealValue, setMaxDealValue] = useState("");
 
     // Load Sales Teams to resolve member names
     useEffect(() => {
@@ -49,69 +54,141 @@ const CustomerView = () => {
 
     // Filtered list of customers
     const filteredCustomers = useMemo(() => {
-        if (!isManager) return customers;
-        if (activeFilter === 'my') {
-            return customers.filter(c => c.assignedSalesperson === user?.name);
+        let list = customers;
+
+        if (isManager) {
+            if (activeFilter === 'my') {
+                list = customers.filter(c => c.assignedSalesperson === user?.name);
+            } else if (activeFilter === 'team') {
+                list = customers.filter(c => managedTeamMemberNames.includes(c.assignedSalesperson));
+            }
         }
-        if (activeFilter === 'team') {
-            return customers.filter(c => managedTeamMemberNames.includes(c.assignedSalesperson));
+
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            list = list.filter(c => 
+                (c.customerName || '').toLowerCase().includes(query) ||
+                (c.company || '').toLowerCase().includes(query) ||
+                (c.email || '').toLowerCase().includes(query)
+            );
         }
-        return customers;
-    }, [customers, activeFilter, user, isManager, managedTeamMemberNames]);
+
+        if (minDealValue.trim()) {
+            const min = parseFloat(minDealValue);
+            if (!isNaN(min)) {
+                list = list.filter(c => (c.dealValue || 0) >= min);
+            }
+        }
+
+        if (maxDealValue.trim()) {
+            const max = parseFloat(maxDealValue);
+            if (!isNaN(max)) {
+                list = list.filter(c => (c.dealValue || 0) <= max);
+            }
+        }
+
+        return list;
+    }, [customers, activeFilter, user, isManager, managedTeamMemberNames, searchQuery, minDealValue, maxDealValue]);
 
     return (
         <div className="space-y-6">
-            {/* Manager Filter Header */}
-            {isManager && (
-                <div className="bg-card border border-border-crm rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs shrink-0 text-txt-primary">
-                    <div className="flex items-center space-x-2.5">
-                        <div className="bg-primary/10 p-2 rounded-xl text-primary border border-primary/20">
-                            <ListFilter className="w-5 h-5" />
+            {/* Unified Compact Control Bar */}
+            <div className="bg-card border border-border-crm rounded-2xl p-2.5 shadow-xs text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    {/* Left side: Search & Deal Range */}
+                    <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                        {/* Search Input */}
+                        <div className="relative flex-1 min-w-[200px] sm:min-w-[260px]">
+                            <input
+                                type="text"
+                                placeholder="Search client, company or email..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl pl-8 pr-3 py-1.5 bg-white dark:bg-slate-800 text-txt-primary text-xs focus:outline-none focus:border-primary transition"
+                            />
+                            <div className="absolute left-2.5 top-2 text-slate-400">
+                                <Search className="w-3.5 h-3.5" />
+                            </div>
                         </div>
-                        <div>
-                            <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Manager Client Filters</h4>
-                            <p className="text-[10px] text-txt-secondary mt-0.5">Filter clients list by assigned salesperson or team members</p>
-                        </div>
-                    </div>
 
-                    <div className="flex flex-wrap gap-2">
-                        {[
-                            { id: 'all', label: 'All Clients' },
-                            { id: 'my', label: 'My Clients' },
-                            { id: 'team', label: 'Team Clients' }
-                        ].map(f => (
+                        {/* Min Deal Value */}
+                        <div className="w-28 sm:w-32">
+                            <input
+                                type="number"
+                                placeholder="Min ₹"
+                                value={minDealValue}
+                                onChange={(e) => setMinDealValue(e.target.value)}
+                                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-white dark:bg-slate-800 text-txt-primary text-xs focus:outline-none focus:border-primary transition"
+                            />
+                        </div>
+
+                        {/* Max Deal Value */}
+                        <div className="w-28 sm:w-32">
+                            <input
+                                type="number"
+                                placeholder="Max ₹"
+                                value={maxDealValue}
+                                onChange={(e) => setMaxDealValue(e.target.value)}
+                                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-white dark:bg-slate-800 text-txt-primary text-xs focus:outline-none focus:border-primary transition"
+                            />
+                        </div>
+
+                        {/* Clear Button */}
+                        {(searchQuery || minDealValue || maxDealValue) && (
                             <button
-                                key={f.id}
-                                onClick={() => setActiveFilter(f.id as any)}
-                                className={`px-3.5 py-2 rounded-xl text-[11px] font-semibold border transition cursor-pointer shadow-xs ${
-                                    activeFilter === f.id
-                                        ? 'bg-primary text-white border-primary/50'
-                                        : 'bg-card text-txt-secondary border-border-crm hover:bg-slate-100 dark:hover:bg-slate-800'
-                                }`}
+                                onClick={() => {
+                                    setSearchQuery("");
+                                    setMinDealValue("");
+                                    setMaxDealValue("");
+                                }}
+                                className="text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-semibold px-2.5 py-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer text-xs"
                             >
-                                {f.label}
+                                Clear
                             </button>
-                        ))}
+                        )}
                     </div>
-                </div>
-            )}
 
-            {!isManager && (
+                    {/* Right side: Manager Filter Pills */}
+                    {isManager && (
+                        <div className="flex items-center space-x-1.5 shrink-0">
+                            {[
+                                { id: 'all', label: 'All Clients' },
+                                { id: 'my', label: 'My Clients' },
+                                { id: 'team', label: 'Team Clients' }
+                            ].map(f => (
+                                <button
+                                    key={f.id}
+                                    onClick={() => setActiveFilter(f.id as any)}
+                                    className={`px-3 py-1.5 rounded-xl text-[11px] font-semibold border transition cursor-pointer shadow-xs ${
+                                        activeFilter === f.id
+                                            ? 'bg-primary text-white border-primary/50'
+                                            : 'bg-card text-txt-secondary border-border-crm hover:bg-slate-100 dark:hover:bg-slate-800'
+                                    }`}
+                                >
+                                    {f.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* {!isManager && (
                 <div className="bg-card border border-border-crm rounded-2xl p-4 flex items-center space-x-2 text-txt-secondary select-none shadow-xs">
                     <span className="font-bold text-xs">Viewing Clients Assigned To You ({filteredCustomers.length} clients)</span>
                 </div>
-            )}
+            )} */}
 
             <div>
-                <h2 className="text-xl font-bold text-txt-primary mb-4">Clients</h2>
+                {/* <h2 className="text-xl font-bold text-txt-primary mb-4">Clients</h2> */}
 
                 <div className="bg-card border border-border-crm rounded-2xl shadow-xs overflow-hidden">
 
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
-                                <tr className="bg-bg-main border-b border-border-crm text-sm font-bold text-txt-secondary uppercase tracking-wider select-none">
-                                    <th className="px-8 py-5">Customer</th>
+                                <tr className="bg-bg-main border-b border-black  text-xs font-bold text-txt-black uppercase tracking-wider select-none">
+                                    <th className="px-8 py-5">Client</th>
                                     <th className="px-8 py-5">Company</th>
                                     <th className="px-8 py-5">Email</th>
                                     <th className="px-8 py-5">Phone</th>

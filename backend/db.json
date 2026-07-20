@@ -52,12 +52,12 @@
     {
       "id": "p_2",
       "name": "Possible Response Received",
-      "order": 2
+      "order": 3
     },
     {
       "id": "p_3",
       "name": "Discussion",
-      "order": 3
+      "order": 2
     },
     {
       "id": "p_4",
@@ -67,17 +67,22 @@
     {
       "id": "p_5",
       "name": "Negotiation",
-      "order": 5
+      "order": 6
     },
     {
       "id": "p_6",
       "name": "Won",
-      "order": 6
+      "order": 7
     },
     {
       "id": "p_7",
       "name": "Lost",
-      "order": 7
+      "order": 8
+    },
+    {
+      "id": "p_1784274200936",
+      "name": "D2s",
+      "order": 5
     }
   ],
   "referralPipelines": [
@@ -486,12 +491,102 @@
     }
   ],
   "companyBranding": {
-    "name": "IT",
+    "name": "CRM 360",
     "primaryColor": "#2563EB",
     "secondaryColor": "#0F172A",
     "logoText": "CRM"
   },
   "auditLogs": [
+    {
+      "id": "log_1784274218017_dcgzf",
+      "timestamp": "2026-07-17T07:43:38.017Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1784274214036_3r2uv",
+      "timestamp": "2026-07-17T07:43:34.036Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1784274211872_sq4zw",
+      "timestamp": "2026-07-17T07:43:31.872Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1784274207607_q5wwz",
+      "timestamp": "2026-07-17T07:43:27.607Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1784274200936_cf4n1",
+      "timestamp": "2026-07-17T07:43:20.937Z",
+      "user": "System",
+      "role": "System",
+      "action": "CREATE_PIPELINE",
+      "module": "Settings",
+      "details": "Created sales pipeline stage: D2s"
+    },
+    {
+      "id": "log_1784268285271_fvfmc",
+      "timestamp": "2026-07-17T06:04:45.271Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1784268283282_jl3jq",
+      "timestamp": "2026-07-17T06:04:43.282Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1784268281367_191pj",
+      "timestamp": "2026-07-17T06:04:41.367Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1784268278434_r1olw",
+      "timestamp": "2026-07-17T06:04:38.434Z",
+      "user": "System",
+      "role": "System",
+      "action": "REORDER_PIPELINE",
+      "module": "Settings",
+      "details": "Reordered pipeline stages"
+    },
+    {
+      "id": "log_1784266287144_j31yb",
+      "timestamp": "2026-07-17T05:31:27.144Z",
+      "user": "System",
+      "role": "System",
+      "action": "UPDATE_BRANDING",
+      "module": "Settings",
+      "details": "Updated company branding details."
+    },
     {
       "id": "log_1784199933102_q1nnq",
       "timestamp": "2026-07-16T11:05:33.102Z",
@@ -744,7 +839,7 @@
       "status": "Invalid",
       "errorMessage": "Recipient email address is invalid.",
       "attachments": null,
-      "emailBody": "Hi ,\n\nI hope you're doing well.\n\nI'd like to introduce CRM-360, a complete CRM platform designed to manage leads, opportunities, customer interactions, quotations, and sales activities efficiently.\n\nWe would love to demonstrate how CRM-360 can benefit your organization.\n\nPlease let us know if you'd like to schedule a demo.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "emailBody": "Hi ,\n\nI hope you're doing well.\n\nI'd like to introduce CRM-360, a complete CRM platform designed to manage leads, pipelines, customer interactions, quotations, and sales activities efficiently.\n\nWe would love to demonstrate how CRM-360 can benefit your organization.\n\nPlease let us know if you'd like to schedule a demo.\n\nBest Regards,\n\nparthika\n\nCRM-360",
       "sentAt": "2026-07-16T08:53:40.844Z",
       "createdAt": "2026-07-16T08:53:40.844Z",
       "updatedAt": "2026-07-16T08:53:40.844Z"

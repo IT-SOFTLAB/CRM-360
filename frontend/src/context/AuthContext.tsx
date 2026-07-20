@@ -41,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setMounted(true);
 
     const initialize = async () => {
-      // Check Odoo setup status
+      // Che setup status
       try {
         const res = await authService.checkSetupStatus();
         if (res && res.setupRequired) {
@@ -178,7 +178,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       handleSetupSubmit
     }}>
       {children}
-      {/* Odoo style first-time overlay indicator */}
+      {/* style first-time overlay indicator */}
       {setupRequired && mounted && (
         <div className="fixed bottom-4 right-4 bg-yellow-500 text-black px-4 py-2 rounded-lg shadow-lg text-xs font-semibold z-50">
           ⚙️ First-Run Setup Mode Active

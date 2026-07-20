@@ -315,9 +315,9 @@ export default function SalesTeamView() {
   const metrics = selectedTeam ? compileTeamMetrics(selectedTeam) : null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-6 text-txt-primary animate-fade-in">
+    <div className="max-w-7xl mx-auto px-4 space-y-6 text-txt-primary animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border-crm pb-5">
+      {/* <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border-crm pb-5">
         <div className="flex items-center space-x-3">
           <div className="bg-indigo-600/10 p-2.5 rounded-xl border border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
             <Users className="w-6 h-6" />
@@ -328,17 +328,11 @@ export default function SalesTeamView() {
           </div>
         </div>
 
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 text-xs font-semibold transition flex items-center space-x-1.5 shadow-lg shadow-indigo-500/10 cursor-pointer"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Create Team</span>
-        </button>
-      </div>
+       
+      </div> */}
 
       {/* Team Select Dropdown Toolbar */}
-      <div className="bg-card border border-border-crm rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex justify-between items-center bg-card border border-border-crm rounded-2xl p-2.5 shadow-xs text-xs">
         <div className="flex items-center space-x-2">
           <span className="text-xs font-bold text-txt-secondary uppercase tracking-wider">Select Team:</span>
           <select
@@ -352,6 +346,13 @@ export default function SalesTeamView() {
             ))}
           </select>
         </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 text-xs font-semibold transition flex items-center space-x-1.5 shadow-lg shadow-indigo-500/10 cursor-pointer"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Create Team</span>
+        </button>
         {selectedTeam && (
           <button
             onClick={() => handleTeamSelectChange('all')}
@@ -359,6 +360,7 @@ export default function SalesTeamView() {
           >
             ← Back to All Teams Overview
           </button>
+          
         )}
       </div>
 

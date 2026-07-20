@@ -51,7 +51,7 @@ app.use(
 );
 app.use("/api/leads", leadRoutes);
 app.use("/api/activities", activityRoutes);
-app.use("/api/opportunities",opportunityRoutes);
+app.use("/api/opportunities", opportunityRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/auth", authRoutes);
