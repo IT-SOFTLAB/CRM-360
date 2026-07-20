@@ -182,22 +182,24 @@ const ROW_VPAD = 6; // vertical padding below each row's tallest line
  * mid-word into the row underneath. Short values keep the compact
  * label-left/value-right layout.
  */
-function shouldStackRow(doc, width, value) {
+function shouldStackRow(doc, width, value, opts = {}) {
+  const { bold = true } = opts;
   const labelWidth = width * LABEL_WIDTH_RATIO;
   const valueWidth = width - labelWidth - 6;
-  doc.fontSize(9).font("Helvetica");
+  doc.fontSize(9).font(bold ? "Helvetica-Bold" : "Helvetica");
   const singleLineWidth = doc.widthOfString(String(value));
   return singleLineWidth > valueWidth;
 }
 
 /** Computes the height a key/value row will occupy, without drawing anything. */
-function measureKeyValueRow(doc, width, label, value) {
-  const stacked = shouldStackRow(doc, width, value);
+function measureKeyValueRow(doc, width, label, value, opts = {}) {
+  const { bold = true } = opts;
+  const stacked = shouldStackRow(doc, width, value, opts);
 
   if (stacked) {
     doc.fontSize(7).font("Helvetica-Bold");
     const labelHeight = doc.heightOfString(String(label).toUpperCase(), { width });
-    doc.fontSize(9).font("Helvetica");
+    doc.fontSize(9).font(bold ? "Helvetica-Bold" : "Helvetica");
     const valueHeight = doc.heightOfString(String(value), { width, align: "left" });
     return labelHeight + 3 + valueHeight + ROW_VPAD;
   }
@@ -208,7 +210,7 @@ function measureKeyValueRow(doc, width, label, value) {
   doc.fontSize(7).font("Helvetica-Bold");
   const labelHeight = doc.heightOfString(String(label).toUpperCase(), { width: labelWidth });
 
-  doc.fontSize(9).font("Helvetica");
+  doc.fontSize(9).font(bold ? "Helvetica-Bold" : "Helvetica");
   const valueHeight = doc.heightOfString(String(value), { width: valueWidth, align: "right" });
 
   return Math.max(labelHeight, valueHeight, 10) + ROW_VPAD;
@@ -217,8 +219,8 @@ function measureKeyValueRow(doc, width, label, value) {
 /** Draws a label/value row. Auto-stacks onto two lines when the value is too long to fit beside the label. */
 function drawKeyValueRow(doc, x, y, width, label, value, opts = {}) {
   const { valueColor = COLORS.slate900, bold = true } = opts;
-  const stacked = shouldStackRow(doc, width, value);
-  const rowHeight = measureKeyValueRow(doc, width, label, value);
+  const stacked = shouldStackRow(doc, width, value, opts);
+  const rowHeight = measureKeyValueRow(doc, width, label, value, opts);
 
   if (stacked) {
     doc
@@ -258,7 +260,7 @@ function drawKeyValueRow(doc, x, y, width, label, value, opts = {}) {
 }
 
 function sumRowHeights(doc, width, rows) {
-  return rows.reduce((total, r) => total + measureKeyValueRow(doc, width, r.label, r.value), 0);
+  return rows.reduce((total, r) => total + measureKeyValueRow(doc, width, r.label, r.value, r), 0);
 }
 
 function drawDivider(doc, x, y, width, dashed = false) {

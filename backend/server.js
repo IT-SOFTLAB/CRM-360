@@ -68,6 +68,28 @@ app.use(
   "/uploads",
   express.static(path.join(__dirname, "src", "uploads"))
 );
+
+const isProduction = process.env.NODE_ENV === "production";
+
+// Enable trust proxy for Render / HTTPS load balancers
+if (isProduction) {
+  app.set("trust proxy", 1);
+}
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "crm360-secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: isProduction, // true on HTTPS in production
+      sameSite: isProduction ? "none" : "lax", // "none" required for cross-origin HTTPS
+    },
+  })
+);
+
 function readDB() {
   if (!fs.existsSync(DB_FILE)) {
     const initialData = seedDatabase();
