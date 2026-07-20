@@ -62,22 +62,6 @@ sendBulkEmail: async (payload: {
 
 },
 
-sendBulkEmail: async (payload: {
-   opportunityIds: string[];
-    cc?: string;
-    bcc?: string;
-    subject: string;
-    body: string;
-}) => {
-
-  const res = await api.post(
-    "/emails/send-bulk",
-    payload
-  );
-
-  return res.data;
-
-},
 
 createDraft: async (payload: any) => {
 
