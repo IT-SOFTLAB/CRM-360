@@ -4,7 +4,7 @@ export const emailService = {
 
   connectOutlook: () => {
     window.location.href =
-       "http://localhost:5000/auth/login/outlook";
+       `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login/outlook`;
       //"https://crm-360-wvd1.onrender.com/auth/login/outlook";
   },
 
@@ -44,6 +44,23 @@ export const emailService = {
     const res = await api.post("/emails/send", payload);
     return res.data;
   },
+
+sendBulkEmail: async (payload: {
+   opportunityIds: string[];
+    cc?: string;
+    bcc?: string;
+    subject: string;
+    body: string;
+}) => {
+
+  const res = await api.post(
+    "/emails/send-bulk",
+    payload
+  );
+
+  return res.data;
+
+},
 
 createDraft: async (payload: any) => {
 

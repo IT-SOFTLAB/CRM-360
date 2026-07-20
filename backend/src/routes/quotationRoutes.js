@@ -23,10 +23,16 @@ router.put("/:id", quotationController.updateQuotation);
 // Delete Quotation
 router.delete("/:id", quotationController.deleteQuotation);
 
+
 // Change Status
 router.patch("/:id/status", quotationController.changeQuotationStatus);
 
+
+
 // Get Quotations of Particular Opportunity
 router.get("/opportunity/:id", quotationController.getOpportunityQuotations);
-
+router.post(
+    "/:id/send",
+    quotationController.sendQuotationByOutlook
+);
 module.exports = router;

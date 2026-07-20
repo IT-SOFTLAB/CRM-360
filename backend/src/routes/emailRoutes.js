@@ -36,6 +36,7 @@ router.get(
 
 router.post("/send", email.sendMail);
 
+router.post("/send-bulk", email.sendBulkMail);
 // ---------- Dynamic Routes ----------
 router.get("/:id", email.getEmailById);
 

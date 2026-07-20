@@ -22,7 +22,6 @@ model User {
   salesTeamId       String?
   status            String         @default("Active")
   adminId           String?
-
   customers         Customer[]
   leads             Lead[]
   notifications     Notification[]
@@ -31,10 +30,8 @@ model User {
   ledTeams          SalesTeam[]    @relation("TeamLeader")
   tasksCreated      Task[]         @relation("TasksCreated")
   tasksAssigned     Task[]         @relation("TasksAssigned")
-
-  User              User?          @relation("UserToUser", fields: [adminId], references: [id])
-  other_User        User[]         @relation("UserToUser")
-
+  admin             User?          @relation("UserToUser", fields: [adminId], references: [id])
+  subordinates      User[]         @relation("UserToUser")
   salesTeam         SalesTeam?     @relation("TeamMembers", fields: [salesTeamId], references: [id])
 }
 

@@ -285,8 +285,133 @@ export default function OpportunitiesView({
 
   const [selectedOppIds, setSelectedOppIds] = useState<string[]>([]);
   const [showBulkEmailModal, setShowBulkEmailModal] = useState(false);
-  const [bulkEmailForm, setBulkEmailForm] = useState({ subject: '', body: '' });
+ const [bulkEmailForm, setBulkEmailForm] = useState({
+    cc: "",
+    bcc: "",
+    template: "",
+    subject: "",
+    body: ""
+});
   const [bulkEmailLoading, setBulkEmailLoading] = useState(false);
+
+const GENERAL_TEMPLATES = [
+    { id: 'blank', label: 'Blank Email', subject: '', body: '' },
+    {
+      id: 'welcome',
+      label: 'Welcome Email',
+      subject: 'Welcome to CRM-360',
+      body: `Hi {{contactName}},\n\nWelcome to CRM-360.\n\nThank you for connecting with us.\n\nWe look forward to helping your organization streamline customer relationship management and improve sales productivity.\n\nIf you have any questions, feel free to contact us.\n\nBest Regards,\n\n{{senderName}}\n\nCRM-360`
+    },
+    {
+      id: 'product_intro',
+      label: 'Product Introduction',
+      subject: 'Introducing CRM-360',
+      body: `Hi {{contactName}},\n\nI hope you're doing well.\n\nI'd like to introduce CRM-360, a complete CRM platform designed to manage leads, opportunities, customer interactions, quotations, and sales activities efficiently.\n\nWe would love to demonstrate how CRM-360 can benefit your organization.\n\nPlease let us know if you'd like to schedule a demo.\n\nBest Regards,\n\n{{senderName}}\n\nCRM-360`
+    },
+    {
+      id: 'follow_up',
+      label: 'Follow-up',
+      subject: 'Following Up on Our Previous Conversation',
+      body: `Hi {{contactName}},\n\nI hope you're doing well.\n\nI wanted to follow up regarding our previous discussion.\n\nPlease let us know if you have any questions or require additional information.\n\nLooking forward to your response.\n\nBest Regards,\n\n{{senderName}}\n\nCRM-360`
+    },
+    {
+      id: 'meeting_request',
+      label: 'Meeting Request',
+      subject: 'Meeting Request',
+      body: `Hi {{contactName}},\n\nI hope you're doing well.\n\nWe would appreciate the opportunity to meet with you to discuss your business requirements and demonstrate how CRM-360 can help your organization.\n\nPlease let us know a suitable date and time.\n\nLooking forward to meeting with you.\n\nBest Regards,\n\n{{senderName}}\n\nCRM-360`
+    },
+    {
+      id: 'quote_follow_up',
+      label: 'Quotation Follow-up',
+      subject: 'Follow-up Regarding Your Quotation',
+      body: `Hi {{contactName}},\n\nI hope you're doing well.\n\nI wanted to follow up regarding the quotation we shared.\n\nPlease let us know if you have any questions or if you require any modifications.\n\nWe look forward to hearing from you.\n\nBest Regards,\n\n{{senderName}}\n\nCRM-360`
+    },
+    {
+      id: 'thank_you',
+      label: 'Thank You',
+      subject: 'Thank You',
+      body: `Hi {{contactName}},\n\nThank you for taking the time to connect with us.\n\nWe truly appreciate the opportunity to work with you.\n\nIf there is anything else we can assist you with, please don't hesitate to reach out.\n\nBest Regards,\n\n{{senderName}}\n\nCRM-360`
+    }
+  ];
+
+    const getCategoryTemplates = (categoriesList: string[]) => {
+    return categoriesList.map(cat => ({
+      id: `category_${cat}`,
+      label: `${cat} Template`,
+      subject: `Helping Your ${cat} Business Grow with CRM-360`,
+      body: `Hi {{contactName}},\n\nI hope you're doing well.\n\nWe noticed that your organization operates in the ${cat} industry.\n\nCRM-360 helps businesses manage leads, automate follow-ups, organize sales pipelines, and improve customer relationships from one platform.\n\nWe would be happy to schedule a quick demonstration and discuss how CRM-360 can support your business.\n\nPlease let us know a convenient time.\n\nBest Regards,\n\n{{senderName}}\n\nCRM-360`
+    }));
+  };
+
+    const resolvePlaceholders = (text: string, lead: any, senderUser: any, categoryName?: string) => {
+    if (!text) return "";
+    const currentDate = new Date().toISOString().split('T')[0];
+    return text
+      .replace(/\{\{contactName\}\}/g, lead?.contactName || lead?.name || "")
+      .replace(/\{\{companyName\}\}/g, lead?.company || "")
+      .replace(/\{\{category\}\}/g, categoryName || lead?.category || "")
+      .replace(/\{\{email\}\}/g, lead?.email || "")
+      .replace(/\{\{phone\}\}/g, lead?.phone || "")
+      .replace(/\{\{assignedUser\}\}/g, lead?.assignedUser || "")
+      .replace(/\{\{senderName\}\}/g, senderUser?.name || "")
+      .replace(/\{\{senderEmail\}\}/g, senderUser?.email || "")
+      .replace(/\{\{organizationName\}\}/g, senderUser?.company || "")
+      .replace(/\{\{currentDate\}\}/g, currentDate);
+  };
+
+const categories = [
+  ...new Set(
+    leads
+      .map((lead) => lead.category)
+      .filter(Boolean)
+  ),
+];
+
+const categoryTemplates = getCategoryTemplates(categories);
+
+const [selectedTemplateId, setSelectedTemplateId] = useState("");
+
+const [isTemplateManuallySelected, setIsTemplateManuallySelected] = useState(false);
+
+const matchedLead = leads.find((lead) =>
+  selectedOppIds.some((id) => {
+    const opp = opportunities.find((o) => o.id === id);
+    return (
+      opp &&
+      (lead.email === opp.email ||
+        lead.id === opp.leadId)
+    );
+  })
+);
+
+ const applyTemplate = (template: any, lead: any) => {
+    const resolvedSubject = resolvePlaceholders(template.subject, lead, user, lead?.category || (template.id.startsWith('category_') ? template.id.replace('category_', '') : ''));
+    const resolvedBody = resolvePlaceholders(template.body, lead, user, lead?.category || (template.id.startsWith('category_') ? template.id.replace('category_', '') : ''));
+    setBulkEmailForm(prev => ({
+      ...prev,
+      subject: resolvedSubject,
+      body: resolvedBody
+    }));
+  };
+
+    const handleTemplateChange = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    setIsTemplateManuallySelected(true);
+
+    if (!templateId || templateId === 'blank') {
+      setBulkEmailForm(prev => ({ ...prev, subject: '', body: '' }));
+      return;
+    }
+
+    const template = GENERAL_TEMPLATES.find(t => t.id === templateId) || 
+                     categoryTemplates.find(t => t.id === templateId);
+
+
+
+    if (template) {
+      applyTemplate(template, matchedLead);
+    }
+  };
 
   const handleToggleViewMode = (mode: 'kanban' | 'list') => {
     setViewMode(mode);
@@ -314,50 +439,63 @@ export default function OpportunitiesView({
     );
   };
 
-  const handleSendBulkEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (selectedOppIds.length === 0) {
-      addToast('error', 'No opportunities selected');
-      return;
-    }
+ const handleSendBulkEmailSubmit = async (
+  e: React.FormEvent
+) => {
+
+  e.preventDefault();
+
+  if (selectedOppIds.length === 0) {
+    addToast("error", "No opportunities selected");
+    return;
+  }
+
+  try {
+
     setBulkEmailLoading(true);
-    let successCount = 0;
-    
-    for (const oppId of selectedOppIds) {
-      const opp = opportunities.find(o => o.id === oppId);
-      if (!opp) continue;
-      const associatedLead = leads.find(l =>
-        l.id === opp.leadId ||
-        ((l.contactName === opp.customerName || l.name === opp.customerName) && l.company === opp.company)
-      );
-      const resolvedEmail = opp.email || associatedLead?.email;
-      if (!resolvedEmail) continue;
 
-      const payload = {
-        sender: user?.email || 'superadmin@crm.com',
-        to: resolvedEmail,
-        subject: bulkEmailForm.subject,
-        body: bulkEmailForm.body,
-        folder: 'Sent'
-      };
-      try {
-        const res = await emailService.sendEmail(payload);
-        if (res) successCount++;
-      } catch (err) {
-        console.error("Bulk email send failed for recipient:", resolvedEmail, err);
-      }
-    }
+  await emailService.sendBulkEmail({
+    opportunityIds: selectedOppIds,
+    cc: bulkEmailForm.cc,
+    bcc: bulkEmailForm.bcc,
+    subject: bulkEmailForm.subject,
+    body: bulkEmailForm.body
+});
 
-    if (successCount > 0) {
-      addToast('success', `Bulk emails sent to ${successCount} recipients successfully!`);
-      setShowBulkEmailModal(false);
-      setSelectedOppIds([]);
-      setBulkEmailForm({ subject: '', body: '' });
-    } else {
-      addToast('error', 'Failed to send bulk emails.');
-    }
+    addToast(
+      "success",
+      "Bulk email sent successfully!"
+    );
+
+    setShowBulkEmailModal(false);
+
+setBulkEmailForm({
+    cc: "",
+    bcc: "",
+    template: "",
+    subject: "",
+    body: ""
+});
+
+setSelectedTemplateId("");
+setIsTemplateManuallySelected(false);
+setShowBulkEmailModal(true);
+
+  } catch (err: any) {
+
+    addToast(
+      "error",
+      err.response?.data?.message ||
+      "Failed to send bulk email."
+    );
+
+  } finally {
+
     setBulkEmailLoading(false);
-  };
+
+  }
+
+};
 
   const handleOpenEmailModal = (opp: any) => {
     const associatedLead = leads.find(l =>
@@ -484,10 +622,14 @@ export default function OpportunitiesView({
               </span>
               <button
                 onClick={() => {
-                  setBulkEmailForm({
-                    subject: 'Update regarding your project/opportunity',
-                    body: 'Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin'
-                  });
+                setBulkEmailForm({
+    cc: "",
+    bcc: "",
+    template: "",
+    subject: "Update regarding your project/opportunity",
+    body:
+        "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin"
+});
                   setShowBulkEmailModal(true);
                 }}
                 className="bg-primary hover:bg-primary-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow flex items-center gap-1.5 transition cursor-pointer"
@@ -1200,7 +1342,69 @@ export default function OpportunitiesView({
                   className="w-full border border-border-crm bg-slate-50 dark:bg-slate-900 rounded-xl px-3 py-2 text-txt-secondary font-semibold"
                   value={`${selectedOppIds.length} selected recipients`}
                 />
+
+                <div>
+  <label className="block text-slate-400 font-semibold mb-1">CC</label>
+  <input
+    type="email"
+    value={bulkEmailForm.cc}
+    onChange={(e) =>
+      setBulkEmailForm({
+        ...bulkEmailForm,
+        cc: e.target.value,
+      })
+    }
+    className="w-full border border-border-crm rounded-xl px-3 py-2"
+    placeholder="cc@example.com"
+  />
+</div>
+
+
+<div>
+  <label className="block text-slate-400 font-semibold mb-1">BCC</label>
+  <input
+    type="email"
+    value={bulkEmailForm.bcc}
+    onChange={(e) =>
+      setBulkEmailForm({
+        ...bulkEmailForm,
+        bcc: e.target.value,
+      })
+    }
+    className="w-full border border-border-crm rounded-xl px-3 py-2"
+    placeholder="bcc@example.com"
+  />
+</div>
               </div>
+              <div>
+  <label className="block text-slate-400 font-semibold mb-1">
+    Choose Template
+  </label>
+
+  <select
+    value={selectedTemplateId}
+    onChange={(e) => handleTemplateChange(e.target.value)}
+    className="w-full border border-border-crm rounded-xl px-3 py-2"
+  >
+    <option value="">Select Template</option>
+
+    <optgroup label="General Templates">
+      {GENERAL_TEMPLATES.map((t) => (
+        <option key={t.id} value={t.id}>
+          {t.label}
+        </option>
+      ))}
+    </optgroup>
+
+    <optgroup label="Category Templates">
+      {categoryTemplates.map((t) => (
+        <option key={t.id} value={t.id}>
+          {t.label}
+        </option>
+      ))}
+    </optgroup>
+  </select>
+</div>
               <div>
                 <label className="block text-slate-400 font-semibold mb-1">Subject</label>
                 <input

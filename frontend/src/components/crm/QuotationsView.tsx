@@ -381,10 +381,22 @@ export default function QuotationsView({
     setShowQuoteModal(true);
   };
 
-  const handleSend = (quote: any) => {
+ const handleSend = async (quote: any) => {
+  try {
+    await api.post(`/quotations/${quote.id}/send`);
+
+    alert("Quotation sent successfully!");
+
     onApproveReject(quote.id, "Sent");
-    alert("Quotation Sent via Outlook Successfully!");
-  };
+  } catch (err: any) {
+    console.error(err);
+
+    alert(
+      err?.response?.data?.message ||
+      "Failed to send quotation."
+    );
+  }
+};
 
   const handlePrint = (quote: any) => {
     setSelectedQuote(quote);
@@ -483,18 +495,18 @@ export default function QuotationsView({
         </div>
       )}
 
-      {!isManager && (
+      {/* {!isManager && (
         <div className="bg-card border border-border-crm rounded-2xl p-4 flex items-center space-x-2 text-txt-secondary select-none shadow-xs">
           <span className="font-bold text-xs">Viewing Quotations Assigned To You ({filteredQuotations.length} quotes)</span>
         </div>
-      )}
+      )} */}
 
       <div className="bg-card border border-border-crm rounded-2xl shadow-xs overflow-hidden text-xs">
         {/* ===================== Quotations Table ===================== */}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-slate-50 border-b border-border-crm text-xs uppercase font-bold text-txt-secondary">
+              <tr className="bg-bg-main border-b border-black  text-xs font-bold text-black uppercase tracking-wider select-none">
                 <th className="px-6 py-4 text-left">Quotation No.</th>
                 <th className="px-6 py-4 text-left">Customer</th>
                 <th className="px-6 py-4 text-left">Company</th>

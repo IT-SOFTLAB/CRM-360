@@ -113,7 +113,7 @@ console.log(payload);
 
 connectCalendar: () => {
   window.location.href =
-    "http://localhost:5000/auth/login/outlook?redirect=activities";
+    `${process.env.NEXT_PUBLIC_BACKEND_URL}/auth/login/outlook?redirect=activities`;
 },
 
   createCalendarEvent: async (payload: any) => {

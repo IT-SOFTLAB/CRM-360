@@ -29,7 +29,7 @@ const bootstrapRoutes = require("./src/routes/bootstrapRoutes.js");
 const notificationRoutes = require("./src/routes/notificationRoutes.js");
 const calendarRoutes = require("./src/routes/calenderRoutes.js");
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000','https://crm-360-2.onrender.com'],
  // origin: ['https://crm-360-2.onrender.com', 'http://127.0.0.1:3000'],
   credentials: true
 }));
@@ -64,6 +64,10 @@ app.use("/api/referral-pipeline", pipelineRoutes);
 app.use("/api/bootstrap", bootstrapRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/calendar", calendarRoutes);
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "src", "uploads"))
+);
 function readDB() {
   if (!fs.existsSync(DB_FILE)) {
     const initialData = seedDatabase();

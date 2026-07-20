@@ -315,10 +315,13 @@ exports.sendMail = async (req, res) => {
         await client.api("/me/sendMail").post({
           message: {
             subject: subject,
-            body: {
-              contentType: "HTML",
-              content: body
-            },
+           body: {
+  contentType: "HTML",
+  content: body
+    .split("\n\n")
+    .map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+    .join("")
+},
             toRecipients: [
               {
                 emailAddress: {
@@ -959,5 +962,137 @@ exports.getEmailLogs = async (req, res) => {
     } catch (e) {
       return res.status(500).json({ message: "Failed to load email logs" });
     }
+  }
+};
+
+exports.sendBulkMail = async (req, res) => {
+const {
+    opportunityIds,
+    cc,
+    bcc,
+    subject,
+    body
+} = req.body;
+  const userId = req.user?.id || "System";
+
+  if (!opportunityIds || !Array.isArray(opportunityIds) || opportunityIds.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: "No opportunities selected."
+    });
+  }
+
+  if (!subject || !body) {
+    return res.status(400).json({
+      success: false,
+      message: "Subject and body are required."
+    });
+  }
+
+  try {
+
+    const opportunities = await prisma.opportunity.findMany({
+      where: {
+        id: {
+          in: opportunityIds
+        }
+      },
+      select: {
+        id: true,
+        email: true,
+        customerName: true
+      }
+    });
+
+    const recipients = opportunities
+      .filter(o => o.email)
+      .map(o => ({
+        emailAddress: {
+          address: o.email
+        }
+      }));
+
+    if (recipients.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No valid email addresses found."
+      });
+    }
+
+    if (!req.session?.outlook?.accessToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Outlook account is not connected."
+      });
+    }
+
+    const client = getGraphClient(req.session.outlook.accessToken);
+
+  await client.api("/me/sendMail").post({
+    message: {
+        subject,
+
+      body: {
+    contentType: "HTML",
+    content: body
+        .split("\n\n")
+        .map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+        .join("")
+},
+
+        toRecipients: [],
+
+        ccRecipients: cc
+            ? [{
+                emailAddress: {
+                    address: cc
+                }
+            }]
+            : [],
+
+        bccRecipients: [
+            ...recipients,
+            ...(bcc
+                ? [{
+                    emailAddress: {
+                        address: bcc
+                    }
+                }]
+                : [])
+        ]
+    }
+});
+
+    for (const opp of opportunities) {
+
+      if (!opp.email) continue;
+
+      await logOutgoingEmail({
+        recipientEmail: opp.email,
+        subject,
+        opportunityId: opp.id,
+        sentByUserId: userId,
+        status: "Sent",
+        emailBody: body,
+        attachments: null
+      });
+
+    }
+
+    res.json({
+      success: true,
+      totalSent: recipients.length,
+      message: `Email sent to ${recipients.length} recipients.`
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+
   }
 };

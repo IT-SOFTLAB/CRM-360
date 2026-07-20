@@ -1,8 +1,9 @@
 const { PrismaClient } = require("@prisma/client");
-
+const { getGraphClient } = require("../services/graphService");
 const prisma = new PrismaClient();
-
-
+const fs = require("fs");
+const path = require("path");
+const { generateQuotationPDF } = require("../services/pdfService");
 
 exports.createQuotation = async (req, res) => {
   try {
@@ -280,6 +281,7 @@ exports.updateQuotation = async (req, res) => {
       },
     });
 
+ 
     res.json(quotation);
   } catch (err) {
     console.error("Update Quotation Error:", err);
@@ -407,3 +409,147 @@ exports.getOpportunityQuotations = async (req, res) => {
   }
 
 };
+
+
+
+exports.sendQuotationByOutlook = async (req, res) => {
+  try {
+
+    if (!req.session?.outlook?.accessToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Outlook is not connected."
+      });
+    }
+
+    const quotation = await prisma.quotation.findUnique({
+      where: {
+        id: req.params.id
+      },
+      include: {
+        items: true
+      }
+    });
+
+    if (!quotation) {
+      return res.status(404).json({
+        success: false,
+        message: "Quotation not found"
+      });
+    }
+
+  const client = getGraphClient(
+    req.session.outlook.accessToken
+);
+
+const attachments = [];
+const pdfPath = await generateQuotationPDF(quotation);
+
+const file = fs.readFileSync(pdfPath);
+
+attachments.push({
+  "@odata.type": "#microsoft.graph.fileAttachment",
+  name: `Quotation-${quotation.quotationNumber}.pdf`,
+  contentBytes: file.toString("base64"),
+});
+const html = `
+<div style="font-family:Arial,sans-serif;font-size:15px;color:#333">
+
+<h2 style="color:#2563eb">
+Quotation ${quotation.quotationNumber}
+</h2>
+
+<p>Dear ${quotation.customerNameSnapshot},</p>
+
+<p>
+Thank you for your interest in our services.
+Please find the quotation attached with this email.
+</p>
+
+<table cellpadding="8" cellspacing="0" border="1" style="border-collapse:collapse">
+
+<tr>
+<td><b>Quotation Number</b></td>
+<td>${quotation.quotationNumber}</td>
+</tr>
+
+<tr>
+<td><b>Total Amount</b></td>
+<td>${quotation.currency} ${quotation.total}</td>
+</tr>
+
+<tr>
+<td><b>Valid Till</b></td>
+<td>${quotation.expirationDate.toDateString()}</td>
+</tr>
+
+</table>
+
+<br>
+
+<p>
+If you have any questions, simply reply to this email.
+</p>
+
+<br>
+
+<p>
+Regards,<br>
+CRM 360 Team
+</p>
+
+</div>
+`;
+
+  await client.api("/me/sendMail").post({
+  message: {
+    subject: `Quotation ${quotation.quotationNumber}`,
+
+    body: {
+      contentType: "HTML",
+      content: html,
+    },
+
+    toRecipients: [
+      {
+        emailAddress: {
+          address: quotation.customerEmailSnapshot,
+        },
+      },
+    ],
+
+    attachments,
+  },
+
+  saveToSentItems: true,
+});
+if (fs.existsSync(pdfPath)) {
+  fs.unlinkSync(pdfPath);
+}
+
+    await prisma.quotation.update({
+      where: {
+        id: quotation.id
+      },
+      data: {
+        status: "Sent"
+      }
+    });
+
+    res.json({
+      success: true,
+      message: "Quotation sent successfully."
+    });
+
+  } catch (err) {
+
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+
+  }
+};
+
