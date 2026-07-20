@@ -1,16 +1,10 @@
 import axios from 'axios';
 
-const getBaseURL = () => {
-  
- return "http://localhost:5000/api";
-  //return "https://crm-360-wvd1.onrender.com/api";
-};
-
 const api = axios.create({
-  baseURL: getBaseURL(),
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
   withCredentials: true,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 

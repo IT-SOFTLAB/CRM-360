@@ -213,7 +213,7 @@ export default function SettingsView({
 
         {/* Project Categories */}
         {(userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') && (
-          <div className="bg-slate-300 border border-slate-700/60 rounded-2xl p-5 space-y-4">
+          <div className="bg-white-300 border border-slate-700/60 rounded-2xl p-5 space-y-4">
             <h4 className="font-bold text-xs uppercase tracking-wider text-slate-600">Project Categories</h4>
             <form onSubmit={handleAddCategorySubmit} className="flex gap-2">
               <input
@@ -233,7 +233,7 @@ export default function SettingsView({
               {categories.map(cat => (
                 <span
                   key={cat}
-                  className="bg-slate-500 border border-slate-600 text-slate-200 rounded-xl px-2.5 py-1 flex items-center space-x-1"
+                  className="bg-white-500 border border-slate-600 text-black-200 rounded-xl px-2.5 py-1 flex items-center space-x-1"
                 >
                   <span>{cat}</span>
                   <button type="button" onClick={() => onDeleteCategory(cat)} className="text-rose-500 hover:text-rose-700 cursor-pointer">
@@ -246,7 +246,7 @@ export default function SettingsView({
         )}
 
         {/* Change Password */}
-        <div className="bg-slate-300 border border-slate-700/60 rounded-2xl p-5 space-y-4">
+        <div className="bg-white-300 border border-slate-700/60 rounded-2xl p-5 space-y-4">
           <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">Change Password</h4>
           <form onSubmit={handleChangePasswordSubmit} className="space-y-3">
             <div>
@@ -320,7 +320,7 @@ export default function SettingsView({
         <div className="lg:col-span-2 space-y-6">
         
         {/* User management list */}
-        <div className="bg-slate-300 border border-slate-700/60 rounded-2xl p-5 space-y-4">
+        <div className="bg-white-300 border border-slate-700/60 rounded-2xl p-5 space-y-4">
           <div className="flex justify-between items-center">
             <h4 className="font-bold text-xs uppercase tracking-wider text-slate-600">User Accounts Management</h4>
             <button
@@ -438,7 +438,7 @@ export default function SettingsView({
         </div>
 
         {/* Permissions Matrix */}
-        <div className="bg-slate-300 border border-slate-700/60 rounded-2xl p-5 space-y-4">
+        <div className="bg-white-300 border border-slate-700/60 rounded-2xl p-5 space-y-4">
           <h4 className="font-bold text-xs uppercase tracking-wider text-slate-600">Role Permissions Access Matrix</h4>
           <div className="overflow-x-auto text-[10px]">
             <table className="w-full text-left border-collapse">
@@ -456,7 +456,7 @@ export default function SettingsView({
                   { perm: 'Create, Edit, Delete Pipelines/Stages', sa: true, ad: false, us: false },
                   { perm: 'Create and Manage User Accounts', sa: true, ad: true, us: false },
                   { perm: 'Access Assigned Opportunities Leads', sa: true, ad: true, us: true },
-                  { perm: 'Referral Rewards Approval', sa: true, ad: false, us: false }
+                  { perm: 'Retention Rewards Approval', sa: true, ad: false, us: false }
                 ].map((pm, i) => (
                   <tr key={i}>
                     <td className="py-2.5 font-semibold text-slate-700">{pm.perm}</td>

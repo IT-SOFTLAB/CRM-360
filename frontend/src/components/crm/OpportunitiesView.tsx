@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ChevronRight, Trash2, Plus, X, Briefcase, Calendar, DollarSign, User, Mail, Phone, Tag, Clipboard, Info, CheckCircle2, List, LayoutGrid, Star, Clock, Upload } from 'lucide-react';
 import QuotationForm from "./QuotationForm";
 import { emailService } from '../../services/email.service';
@@ -215,6 +215,7 @@ export default function OpportunitiesView({
 
   const [newStageName, setNewStageName] = useState('');
   const [draggedOppId, setDraggedOppId] = useState<string | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [selectedOpp, setSelectedOpp] = useState<any | null>(null);
   const [showQuotationForm, setShowQuotationForm] = useState(false);
   const [quotationOpportunity, setQuotationOpportunity] = useState<any>(null);
@@ -436,6 +437,21 @@ export default function OpportunitiesView({
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    
+    if (!scrollContainerRef.current) return;
+    
+    const container = scrollContainerRef.current;
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    
+    const edgeSize = 100; // Trigger zone near left/right edges (in pixels)
+    const scrollSpeed = 15; // Amount to scroll per drag event
+    
+    if (x < edgeSize) {
+      container.scrollLeft -= scrollSpeed;
+    } else if (rect.width - x < edgeSize) {
+      container.scrollLeft += scrollSpeed;
+    }
   };
 
   const handleDrop = (stageId: string) => {
@@ -476,7 +492,7 @@ export default function OpportunitiesView({
       {/* View Toggle Bar */}
       <div className="flex justify-between items-center bg-card border border-border-crm rounded-2xl py-2.5 px-4 shrink-0 shadow-xs">
         <div className="flex items-center space-x-2">
-          <span className="font-extrabold text-sm text-txt-primary">Opportunities Pipeline</span>
+          <span className="font-extrabold text-sm text-txt-primary">Pipeline</span>
           {viewMode === 'list' && selectedOppIds.length > 0 && (
             <div className="flex items-center space-x-2 ml-4 animate-in fade-in slide-in-from-left-2 duration-200">
               <span className="text-xs text-txt-secondary font-semibold bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
@@ -537,7 +553,11 @@ export default function OpportunitiesView({
       </div>
 
       {viewMode === 'kanban' ? (
-        <div className="flex space-x-4 overflow-x-auto pb-4 items-start select-none">
+        <div
+          ref={scrollContainerRef}
+          onDragOver={handleDragOver}
+          className="flex space-x-4 overflow-x-auto pb-4 items-start select-none"
+        >
           {pipelines.map(stage => {
             const stageOpps = applyFilters(
               opportunities.filter(

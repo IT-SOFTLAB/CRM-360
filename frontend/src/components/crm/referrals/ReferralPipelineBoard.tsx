@@ -61,7 +61,7 @@ export default function ReferralPipelineBoard({
         <div>
 
           <h3 className="font-bold text-sm text-blue-900">
-            Referral Pipeline
+            Retention Pipeline
           </h3>
 
           <p className="text-xs text-black">

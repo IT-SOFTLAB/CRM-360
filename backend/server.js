@@ -29,7 +29,7 @@ const bootstrapRoutes = require("./src/routes/bootstrapRoutes.js");
 const notificationRoutes = require("./src/routes/notificationRoutes.js");
 const calendarRoutes = require("./src/routes/calenderRoutes.js");
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: ['http://localhost:3000', 'http://127.0.0.1:3000','https://crm-360-2.onrender.com'],
  // origin: ['https://crm-360-2.onrender.com', 'http://127.0.0.1:3000'],
   credentials: true
 }));
@@ -51,7 +51,7 @@ app.use(
 );
 app.use("/api/leads", leadRoutes);
 app.use("/api/activities", activityRoutes);
-app.use("/api/opportunities",opportunityRoutes);
+app.use("/api/opportunities", opportunityRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/auth", authRoutes);

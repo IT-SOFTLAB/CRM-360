@@ -24,7 +24,7 @@ export const opportunityService = {
       const res = await api.get('/referral-pipelines');
       return res.data;
     } catch (err) {
-      console.warn('API error fetching referral pipelines, fallback to offline', err);
+      console.warn('API error fetching retention pipelines, fallback to offline', err);
       return null;
     }
   },

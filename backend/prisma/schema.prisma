@@ -22,7 +22,6 @@ model User {
   salesTeamId       String?
   status            String         @default("Active")
   adminId           String?
-  adminId           String?
   customers         Customer[]
   leads             Lead[]
   notifications     Notification[]
@@ -31,8 +30,8 @@ model User {
   ledTeams          SalesTeam[]    @relation("TeamLeader")
   tasksCreated      Task[]         @relation("TasksCreated")
   tasksAssigned     Task[]         @relation("TasksAssigned")
-  User              User?          @relation("UserToUser", fields: [adminId], references: [id])
-  other_User        User[]         @relation("UserToUser")
+  admin             User?          @relation("UserToUser", fields: [adminId], references: [id])
+  subordinates      User[]         @relation("UserToUser")
   salesTeam         SalesTeam?     @relation("TeamMembers", fields: [salesTeamId], references: [id])
 }
 
@@ -53,26 +52,6 @@ model Lead {
 }
 
 model Activity {
-  id              String    @id @default(cuid())
-  title           String
-  description     String?
-  type            String    @default("Task")
-  date            DateTime
-  time            String
-  duration        Int
-  startTime       DateTime?
-  endTime         DateTime?
-  salesperson     String?
-  leadId          String?
-  opportunityId   String?
-  location        String?
-  attendees       Json?
-  isOutlookSynced Boolean   @default(false)
-  outlookEventId  String?
-  meetingUrl      String?
-  done            Boolean   @default(false)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
   id              String    @id @default(cuid())
   title           String
   description     String?
@@ -170,7 +149,6 @@ model Opportunity {
   priority               Int       @default(0)
   tags                   String[]
   description            String?
-  description            String?
   assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
 }
 
@@ -192,39 +170,6 @@ model Customer {
 }
 
 model Quotation {
-  id                          String          @id @default(uuid())
-  quotationNumber             String          @unique
-  opportunityId               String
-  customerId                  String
-  customerNameSnapshot        String
-  customerCompanyNameSnapshot String
-  customerEmailSnapshot       String
-  customerPhoneSnapshot       String
-  salesperson                 String
-  quotationDate               DateTime
-  expirationDate              DateTime
-  paymentTerms                String
-  currency                    String
-  subtotal                    Float
-  tax                         Float
-  total                       Float
-  notes                       String?
-  status                      String          @default("Draft")
-  createdAt                   DateTime        @default(now())
-  updatedAt                   DateTime        @updatedAt
-  customerGstinSnapshot       String?
-  billingAddressSnapshot      String?
-  shippingAddressSnapshot     String?
-  discountPercent             Float           @default(0.0)
-  cgst                        Float           @default(0.0)
-  sgst                        Float           @default(0.0)
-  igst                        Float           @default(0.0)
-  shippingCharge              Float           @default(0.0)
-  otherCharges                Float           @default(0.0)
-  roundOff                    Float           @default(0.0)
-  termsConditions             String?
-  internalNotes               String?
-  items                       QuotationItem[]
   id                          String          @id @default(uuid())
   quotationNumber             String          @unique
   opportunityId               String

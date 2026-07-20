@@ -78,7 +78,7 @@ const handleSubmit = async () => {
 
               <p className="text-xs text-muted-foreground text-blue-500">
 
-                Add another stage into your referral pipeline.
+                Add another stage into your retention pipeline.
 
               </p>
 

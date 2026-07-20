@@ -76,7 +76,7 @@ function PipelinePieChart({
 
       {/* Donut pie — slices sized by revenue */}
       <div className="relative w-32 h-32 shrink-0">
-        <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+        <svg viewBox="-2 -2 40 40" className="w-full h-full -rotate-90">
           <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F1F5F9" strokeWidth="3.5" />
           {segments.map((seg, i) => (
             <circle
@@ -661,9 +661,9 @@ export default function DashboardView({
             { label: "Total Leads", val: activeLeads.length.toLocaleString(), change: "Unconverted entries", icon: Layers, isPrimary: false },
             { label: "Total Opportunities", val: opportunities.length.toLocaleString(), change: "Active deals", icon: ClipboardList, isPrimary: false },
             { label: "Total Quotations", val: quotations.length.toLocaleString(), change: "Sent to clients", icon: FileText, isPrimary: false },
-            { label: "Total Referrals", val: referrals.length.toLocaleString(), change: "Referral submissions", icon: Share2, isPrimary: false },
+            { label: "Total Retentions", val: referrals.length.toLocaleString(), change: "Referral submissions", icon: Share2, isPrimary: false },
             { label: "Total Revenue", val: displayRevenueStr, change: "Closed won statistics", icon: IndianRupee, isPrimary: true },
-            { label: "Conversion Rate", val: `${conversionRate}%`, change: "Lead conversion ratio", icon: TrendingUp, isPrimary: false }
+          //  { label: "Conversion Rate", val: `${conversionRate}%`, change: "Lead conversion ratio", icon: TrendingUp, isPrimary: false }
           ].map((card, idx) => (
             <div
               key={idx}
@@ -761,12 +761,12 @@ export default function DashboardView({
               </div>
 
               {/* Bar chart + Pie chart side by side */}
-              <div className="flex gap-4 items-stretch">
+              <div className="flex flex-col lg:flex-row gap-4 items-stretch">
 
                 {/* Bar chart — 3/4 width with absolute positioned stats & filter tabs */}
-                <div className="relative flex-1 h-56 bg-bg-main border border-border-crm/40 rounded-xl p-4 flex flex-col justify-between">
+                <div className="relative flex-1 h-72 lg:h-56 bg-bg-main border border-border-crm/40 rounded-xl p-4 flex flex-col justify-between">
                   {/* Top bar inside container holding stats (left) and filter tabs (right) */}
-                  <div className="flex justify-between items-center w-full z-10">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 w-full z-10">
                     {/* Inline Summary Metrics (Top Left) */}
                     <div className="flex items-center gap-3 text-xs font-semibold bg-bg-main/70 backdrop-blur-xs px-2 py-1 rounded-lg border border-border-crm/20">
                       <div>
@@ -852,12 +852,12 @@ export default function DashboardView({
                   ];
 
                   return (
-                    <div className="w-72 shrink-0 h-56 bg-bg-main border border-border-crm/40 rounded-xl p-3.5 flex flex-col items-center justify-between">
+                    <div className="w-full lg:w-72 lg:shrink-0 h-56 bg-bg-main border border-border-crm/40 rounded-xl p-3.5 flex flex-col items-center justify-between">
                       <p className="text-[10px] font-extrabold uppercase tracking-wider text-txt-secondary text-center w-full">Deal Status</p>
 
                       {/* Donut chart - centered and occupying full container width */}
                       <div className="relative w-28 h-28 my-0.5">
-                        <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                        <svg viewBox="-2 -2 40 40" className="w-full h-full -rotate-90">
                           <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F1F5F9" strokeWidth="4" />
                           {pieSegs.map((seg, i) => (
                             <circle
@@ -995,7 +995,7 @@ export default function DashboardView({
             <div className="w-full md:w-44 shrink-0 flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-border-crm pt-4 md:pt-0 md:pl-6">
               <span className="text-[10px] font-bold text-txt-secondary uppercase tracking-wider mb-3">Sales Share by Team</span>
               <div className="relative w-28 h-28 animate-pulse-subtle">
-                <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
+                <svg viewBox="-2 -2 40 40" className="w-full h-full transform -rotate-90">
                   <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F1F5F9" strokeWidth="4" />
                   {donutSegments.map((seg, idx) => (
                     <circle 
@@ -1045,8 +1045,8 @@ export default function DashboardView({
         {/* Header Title */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-txt-primary">Team Overview</h2>
-            <p className="text-xs text-txt-secondary">Workload balancing, deal distributions, and executive schedules.</p>
+            <h2 className="text-xl font-bold tracking-tight text-txt-primary">Overview</h2>
+            {/* <p className="text-xs text-txt-secondary">Workload balancing, deal distributions, and executive schedules.</p> */}
           </div>
           
         </div>
@@ -1059,7 +1059,7 @@ export default function DashboardView({
             { label: "Opportunities", val: teamKPIs.opps.toString(), sub: "Active Pipeline" },
             { label: "Quotations", val: teamKPIs.quotes.toString(), sub: "Sent to clients" },
             { label: "Clients", val: teamKPIs.cust.toString(), sub: "Converted accounts" },
-            { label: "Referrals", val: referrals.length.toLocaleString(), sub: "Total submissions" },
+            { label: "Retentions", val: referrals.length.toLocaleString(), sub: "Total submissions" },
             { label: "Revenue", val: teamKPIs.rev, sub: "Total closed" }
           ].map((card, idx) => (
             <div key={idx} className="bg-card border border-border-crm rounded-2xl p-4.5 shadow-xs text-left">
@@ -1336,7 +1336,7 @@ export default function DashboardView({
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-txt-primary">Personal Workspace</h2>
-          <p className="text-xs text-txt-secondary">My pipelines, day-to-day checklist schedule.</p>
+          {/* <p className="text-xs text-txt-secondary">My pipelines, day-to-day checklist schedule.</p> */}
         </div>
        
       </div>
@@ -1480,7 +1480,7 @@ export default function DashboardView({
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-bg-main border-b border-border-crm text-[10px] font-extrabold uppercase text-txt-secondary tracking-wider">
-                  <th className="px-4 py-3">Customer</th>
+                  <th className="px-4 py-3">Client</th>
                   <th className="px-4 py-3 text-center">Amount</th>
                   <th className="px-4 py-3 text-right">Status</th>
                 </tr>

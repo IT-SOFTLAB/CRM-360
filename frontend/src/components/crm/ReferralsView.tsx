@@ -102,7 +102,7 @@ const [showStageModal, setShowStageModal] = useState(false);
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
         
         <div className="bg-card rounded-2xl p-5 border border-border-crm shadow-xs">
-          <p className="text-xs font-bold text-txt-secondary uppercase tracking-wide">Total Referrers</p>
+          <p className="text-xs font-bold text-txt-secondary uppercase tracking-wide">Total Retentions</p>
           <h3 className="text-2xl font-extrabold text-txt-primary mt-1">
         {dashboard?.totalReferrals ?? 0}
           </h3>

@@ -180,23 +180,38 @@ const connectOutlook = () => {
 useEffect(() => {
 
     const init = async () => {
-
-        const status = await emailService.status();
-
-        if (!status.connected) {
+        if (!authCtx?.user) {
             setIsConnected(false);
+            setConnectedEmail("");
+            setEmails([]);
+            setEmailLogs([]);
             return;
         }
 
-        setIsConnected(true);
-        setConnectedEmail(status.email);
+        try {
+            const status = await emailService.status();
 
-        await loadInbox();
+            if (!status.connected) {
+                setIsConnected(false);
+                return;
+            }
+
+            setIsConnected(true);
+            setConnectedEmail(status.email);
+
+            await loadInbox();
+        } catch (err) {
+            console.error("Error initializing email status:", err);
+            setIsConnected(false);
+            setConnectedEmail("");
+        }
     };
 
-    init();
+    if (authCtx?.authReady) {
+        init();
+    }
 
-}, []);
+}, [authCtx?.user, authCtx?.authReady]);
 
 const loadInbox = async () => {
 
