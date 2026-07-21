@@ -921,6 +921,12 @@ export default function DashboardView({
                       const isHighlight = !!bar.isCurrent;
                       return (
                         <div key={idx} className="flex flex-col items-center group relative h-full justify-end" style={{ width: `${100 / chartBars.length}%` }}>
+                          {/* Tooltip on hover */}
+                          <div className="absolute top-1 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-20 bg-slate-900/90 text-white dark:bg-slate-100 dark:text-slate-900 text-[10px] font-bold px-2 py-1 rounded-md shadow-lg whitespace-nowrap -translate-y-1 group-hover:translate-y-0 flex flex-col items-center">
+                            <span>{formatCRMRevenue(bar.val)}</span>
+                            <span className="text-[8px] font-medium opacity-80">{bar.name}</span>
+                            <div className="w-1.5 h-1.5 bg-slate-900/90 dark:bg-slate-100 rotate-45 -mb-1 -mt-0.5" />
+                          </div>
                           {/* Bar */}
                           <div className={`w-8 border rounded-t-lg h-36 flex items-end overflow-hidden ${
                             isHighlight
@@ -1428,18 +1434,22 @@ export default function DashboardView({
                       </div>
                     </div>
 
-                    <div className="relative w-full h-48 bg-bg-main border border-border-crm/40 rounded-xl overflow-hidden p-4 flex items-end justify-around">
+                    <div className="relative w-full h-48 bg-bg-main border border-border-crm/40 rounded-xl p-4 flex items-end justify-around">
                       {chartBars.map((bar, idx) => {
-                        const heightPercent = maxBarVal > 0 ? (bar.val / maxBarVal) * 80 : 20;
+                        const heightPercent = maxBarVal > 0 ? (bar.val / maxBarVal) * 80 : 0;
                         const isHighlight = !!bar.isCurrent;
                         
                         return (
                           <div key={idx} className="flex flex-col items-center group relative h-full justify-end" style={{ width: `${100 / chartBars.length}%` }}>
-                            {/* Label of value */}
-                            <span className="text-[8px] font-bold text-primary mb-1">{formatCRMRevenue(bar.val)}</span>
+                            {/* Tooltip on hover */}
+                            <div className="absolute top-1 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-20 bg-slate-900/90 text-white dark:bg-slate-100 dark:text-slate-900 text-[10px] font-bold px-2 py-1 rounded-md shadow-lg whitespace-nowrap -translate-y-1 group-hover:translate-y-0 flex flex-col items-center">
+                              <span>{formatCRMRevenue(bar.val)}</span>
+                              <span className="text-[8px] font-medium opacity-80">{bar.name}</span>
+                              <div className="w-1.5 h-1.5 bg-slate-900/90 dark:bg-slate-100 rotate-45 -mb-1 -mt-0.5" />
+                            </div>
                             
                             {/* Bar Graphic */}
-                            <div className={`w-5 border rounded-t-sm transition-all duration-300 relative group cursor-pointer ${
+                            <div className={`w-5 border rounded-t-sm transition-all duration-300 relative cursor-pointer ${
                               isHighlight
                                 ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300/50'
                                 : 'bg-slate-100 dark:bg-slate-800/40 border-border-crm/30'

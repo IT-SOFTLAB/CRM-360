@@ -1,5 +1,6 @@
 const prisma = require("../config/prisma");
 const calendarService = require("../services/calendarService");
+const { getOutlookTokens } = require("../services/graphService");
 
 // Create Activity
 
@@ -40,20 +41,10 @@ console.log({
 });
 
 let outlookEvent = null;
-console.log("Checking Outlook sync...");
-console.log("===== CREATE ACTIVITY =====");
-console.log("type:", type);
-console.log("syncOutlook:", syncOutlook);
-console.log("Has token:", !!req.session?.outlook?.accessToken);
-if (
-    type === "Meeting" &&
-    syncOutlook &&
-    req.session?.outlook?.accessToken
-) {
-console.log("Creating Outlook meeting...");
+const outlookTokens = await getOutlookTokens(req);
+if (type === "Meeting" && syncOutlook && outlookTokens?.accessToken) {
     outlookEvent = await calendarService.createMeeting(
-
-        req.session.outlook.accessToken,
+        outlookTokens.accessToken,
 
         {
 
@@ -195,17 +186,10 @@ exports.updateActivity = async (req, res) => {
 
         });
 
-        // If this activity is synced with Outlook, update the Outlook meeting
-        if (
-
-            oldActivity?.outlookEventId &&
-            req.session?.outlook?.accessToken
-
-        ) {
-
+        const outlookTokens = await getOutlookTokens(req);
+        if (oldActivity?.outlookEventId && outlookTokens?.accessToken) {
             await calendarService.updateMeeting(
-
-                req.session.outlook.accessToken,
+                outlookTokens.accessToken,
 
                 oldActivity.outlookEventId,
 
@@ -360,17 +344,10 @@ const activity =
 
     });
 
-if (
-
-    activity?.outlookEventId &&
-
-    req.session?.outlook?.accessToken
-
-) {
-
+const outlookTokens = await getOutlookTokens(req);
+if (activity?.outlookEventId && outlookTokens?.accessToken) {
     await calendarService.deleteMeeting(
-
-        req.session.outlook.accessToken,
+        outlookTokens.accessToken,
 
         activity.outlookEventId
 

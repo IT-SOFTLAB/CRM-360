@@ -28,9 +28,27 @@ const pipelineRoutes = require("./src/routes/pipeline.routes.js");
 const bootstrapRoutes = require("./src/routes/bootstrapRoutes.js");
 const notificationRoutes = require("./src/routes/notificationRoutes.js");
 const calendarRoutes = require("./src/routes/calenderRoutes.js");
+const isProduction = process.env.NODE_ENV === "production";
+
+if (isProduction) {
+  app.set("trust proxy", 1);
+}
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://crm-360-2.onrender.com',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000','https://crm-360-2.onrender.com'],
- // origin: ['https://crm-360-2.onrender.com', 'http://127.0.0.1:3000'],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || isProduction) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
   credentials: true
 }));
 app.use(bodyParser.json());
@@ -44,8 +62,8 @@ app.use(
         cookie: {
             maxAge: 7 * 24 * 60 * 60 * 1000,
             httpOnly: true,
-            secure: false,
-            sameSite: "lax"
+            secure: isProduction,
+            sameSite: isProduction ? "none" : "lax"
         }
     })
 );
@@ -67,27 +85,6 @@ app.use("/api/calendar", calendarRoutes);
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "src", "uploads"))
-);
-
-const isProduction = process.env.NODE_ENV === "production";
-
-// Enable trust proxy for Render / HTTPS load balancers
-if (isProduction) {
-  app.set("trust proxy", 1);
-}
-
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET || "crm360-secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      httpOnly: true,
-      secure: isProduction, // true on HTTPS in production
-      sameSite: isProduction ? "none" : "lax", // "none" required for cross-origin HTTPS
-    },
-  })
 );
 
 function readDB() {
