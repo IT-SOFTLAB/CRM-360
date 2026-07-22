@@ -302,3 +302,37 @@ exports.convertLeadToOpportunity = async (req, res) => {
     });
   }
 };
+
+exports.bulkDeleteOpportunities = async (req, res) => {
+  try {
+    const { ids } = req.body;
+
+    if (!ids || ids.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "No opportunities selected",
+      });
+    }
+
+    await prisma.opportunity.deleteMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "Deleted successfully",
+    });
+
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};

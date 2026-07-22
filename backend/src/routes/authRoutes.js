@@ -10,6 +10,12 @@ router.post('/setup', auth.setup);
 
 // Standard auth endpoints
 router.post('/login', auth.login);
+
+// Forgot Password
+router.post("/forgot-password", auth.forgotPassword);
+router.post('/verify-otp', auth.verifyOtp);
+router.post('/reset-password', auth.resetPassword);
+
 router.get("/login/outlook", auth.outlookLogin);
 router.get("/callback", auth.outlookCallback);
 

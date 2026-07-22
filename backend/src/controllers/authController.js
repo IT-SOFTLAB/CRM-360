@@ -1,11 +1,10 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-const { PrismaClient } = require('@prisma/client');
 const { Client } = require("@microsoft/microsoft-graph-client");
 require("isomorphic-fetch");
-
-const prisma = new PrismaClient();
+const { sendMail } = require("../services/mailService");
+const prisma = require("../config/prisma");
 const {
     getAuthUrl,
     getTokenFromCode
@@ -323,6 +322,223 @@ exports.changePassword = async (req, res) => {
   }
 };
 
+exports.forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        email: email.toLowerCase().trim(),
+      },
+    });
+
+    // Don't reveal whether the email exists
+    if (!user) {
+      return res.json({
+        success: true,
+        message: "If an account exists, an OTP has been sent.",
+      });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    const expiry = new Date(Date.now() + 10 * 60 * 1000);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetOtp: otp,
+        resetOtpExpiry: expiry,
+      },
+    });
+
+  try {
+  await sendMail({
+    to: user.email,
+    subject: "CRM Password Reset OTP",
+    html: `
+      <h2>Password Reset</h2>
+
+      <p>Hello ${user.name},</p>
+
+      <p>Your OTP is:</p>
+
+      <h1 style="letter-spacing:4px">${otp}</h1>
+
+      <p>This OTP will expire in <b>10 minutes</b>.</p>
+
+      <p>If you did not request this request, ignore this email.</p>
+    `,
+  });
+
+  return res.json({
+    success: true,
+    message: "OTP sent successfully",
+  });
+
+} catch (mailError) {
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      resetOtp: null,
+      resetOtpExpiry: null,
+    },
+  });
+
+  throw mailError;
+}
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+exports.verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and OTP are required",
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        email: email.toLowerCase().trim(),
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "Invalid OTP",
+      });
+    }
+
+    if (
+      user.resetOtp !== otp ||
+      !user.resetOtpExpiry ||
+      user.resetOtpExpiry < new Date()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired OTP",
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "OTP verified",
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+const { email, otp, newPassword } = req.body;
+
+if (!newPassword) {
+  return res.status(400).json({
+    success: false,
+    message: "New password is required",
+  });
+}
+
+if (newPassword.length < 8) {
+  return res.status(400).json({
+    success: false,
+    message: "Password must be at least 8 characters long.",
+  });
+}
+
+   if (!email || !otp || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        email: email.toLowerCase().trim(),
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    if (
+      user.resetOtp !== otp ||
+      !user.resetOtpExpiry ||
+      user.resetOtpExpiry < new Date()
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired OTP",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: {
+        id: user.id,
+      },
+      data: {
+        password: hashedPassword,
+        resetOtp: null,
+        resetOtpExpiry: null,
+      },
+    });
+
+    // Log the user out from all devices
+    await prisma.refreshToken.deleteMany({
+      where: {
+        userId: user.id,
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "Password reset successful",
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
+};
 
 exports.inviteUser = async (req, res) => {
   try {

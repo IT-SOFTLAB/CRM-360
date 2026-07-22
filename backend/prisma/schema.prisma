@@ -8,31 +8,36 @@ datasource db {
 }
 
 model User {
-  id                String         @id @default(cuid())
-  name              String
-  email             String         @unique
-  password          String
-  role              String         @default("User")
-  createdAt         DateTime       @default(now())
-  category          String?
-  department        String?
-  invitationExpires DateTime?
-  invitationToken   String?        @unique
-  isLocked          Boolean        @default(false)
-  salesTeamId       String?
-  status            String         @default("Active")
-  adminId           String?
-  customers         Customer[]
-  leads             Lead[]
-  notifications     Notification[]
-  opportunities     Opportunity[]
-  refreshTokens     RefreshToken[]
-  ledTeams          SalesTeam[]    @relation("TeamLeader")
-  tasksCreated      Task[]         @relation("TasksCreated")
-  tasksAssigned     Task[]         @relation("TasksAssigned")
-  admin             User?          @relation("UserToUser", fields: [adminId], references: [id])
-  subordinates      User[]         @relation("UserToUser")
-  salesTeam         SalesTeam?     @relation("TeamMembers", fields: [salesTeamId], references: [id])
+  id                  String         @id @default(cuid())
+  name                String
+  email               String         @unique
+  password            String
+  role                String         @default("User")
+  createdAt           DateTime       @default(now())
+  category            String?
+  department          String?
+  invitationExpires   DateTime?
+  invitationToken     String?        @unique
+  isLocked            Boolean        @default(false)
+  salesTeamId         String?
+  status              String         @default("Active")
+  adminId             String?
+  outlookAccessToken  String?
+  outlookEmail        String?
+  outlookRefreshToken String?
+  resetOtp            String?
+  resetOtpExpiry      DateTime?
+  customers           Customer[]
+  leads               Lead[]
+  notifications       Notification[]
+  opportunities       Opportunity[]
+  refreshTokens       RefreshToken[]
+  ledTeams            SalesTeam[]    @relation("TeamLeader")
+  tasksCreated        Task[]         @relation("TasksCreated")
+  tasksAssigned       Task[]         @relation("TasksAssigned")
+  admin               User?          @relation("UserToUser", fields: [adminId], references: [id])
+  subordinates        User[]         @relation("UserToUser")
+  salesTeam           SalesTeam?     @relation("TeamMembers", fields: [salesTeamId], references: [id])
 }
 
 model Lead {
@@ -73,6 +78,7 @@ model Activity {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
+
 model ReferralPipeline {
   id                String            @id @default(cuid())
   name              String
@@ -150,6 +156,7 @@ model Opportunity {
   description            String?
   assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
 }
+
 model Customer {
   id                     String   @id @default(cuid())
   opportunityId          String?
@@ -213,7 +220,6 @@ model QuotationItem {
   tax         Float
   discount    Float
   subtotal    Float
-
   quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 }
 

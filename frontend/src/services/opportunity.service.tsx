@@ -64,13 +64,26 @@ export const opportunityService = {
       return null;
     }
   },
-  deleteOpportunity: async (oppId: string) => {
-    try {
-      const res = await api.delete(`/opportunities/${oppId}`);
-      return res.data;
-    } catch (err) {
-      console.warn('API error deleting opportunity, fallback to offline', err);
-      return null;
-    }
+deleteOpportunity: async (oppId: string) => {
+  try {
+    const res = await api.delete(`/opportunities/${oppId}`);
+    return res.data;
+  } catch (err) {
+    console.warn("API error deleting opportunity", err);
+    return null;
   }
+},
+bulkDeleteOpportunities: async (ids: string[]) => {
+  try {
+    const res = await api.delete("/opportunities/bulk-delete", {
+      data: { ids },
+    });
+
+    return res.data;
+  } catch (err) {
+    console.warn("API error deleting opportunities", err);
+    return null;
+  }
+}
+
 };

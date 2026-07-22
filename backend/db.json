@@ -978,6 +978,21 @@
       "sentAt": "2026-07-20T10:22:04.073Z",
       "createdAt": "2026-07-20T10:22:04.073Z",
       "updatedAt": "2026-07-20T10:22:04.073Z"
+    },
+    {
+      "id": "elog_1784613344441_7nqq0",
+      "recipientEmail": "flash23022006@gmail.com",
+      "subject": "Re: Welcome to CRM-360",
+      "leadId": null,
+      "opportunityId": null,
+      "sentByUserId": "cmrlwmzr30006ur50bv9ubmb9",
+      "status": "Sent",
+      "errorMessage": null,
+      "attachments": null,
+      "emailBody": "Hi ,\n\nWelcome to CRM-360.\n\nThank you for connecting with us.\n\nWe look forward to helping your organization streamline customer relationship management and improve sales productivity.\n\nIf you have any questions, feel free to contact us.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "sentAt": "2026-07-21T05:55:44.441Z",
+      "createdAt": "2026-07-21T05:55:44.441Z",
+      "updatedAt": "2026-07-21T05:55:44.441Z"
     }
   ]
 }

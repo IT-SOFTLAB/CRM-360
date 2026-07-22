@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
+import { authService } from "../../services/auth.service";
 import { Eye, EyeOff } from 'lucide-react';
 
 interface LoginViewProps {
-  authMode: 'login' | 'register' | 'setup';
-  setAuthMode: (mode: 'login' | 'register' | 'setup') => void;
+authMode: 'login' | 'register' | 'setup' | 'forgotPassword';
+setAuthMode: (
+  mode: 'login' | 'register' | 'setup' | 'forgotPassword'
+) => void;
   authForm: any;
   setAuthForm: (form: any) => void;
   onSubmit: (e: React.FormEvent) => void;
@@ -35,10 +38,17 @@ export default function LoginView({
   const [showPassword, setShowPassword] = useState(false);
   const [showSetupPassword, setShowSetupPassword] = useState(false);
   const [showSetupConfirmPassword, setShowSetupConfirmPassword] = useState(false);
-
+ const [otpInputs, setOtpInputs] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+const [forgotStep, setForgotStep] = useState(1);
 
+const [forgotData, setForgotData] = useState({
+  email: "",
+  otp: "",
+  newPassword: "",
+  confirmPassword: "",
+});
   const handleLocalSetupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -128,6 +138,113 @@ export default function LoginView({
       setLoading(false);
     }
   };
+
+const handleForgotPassword = async () => {
+  setLoading(true);
+  setError("");
+
+  try {
+    const res = await authService.forgotPassword(forgotData.email);
+
+    addToast("success", res.message);
+
+    setForgotStep(2);
+  } catch (err: any) {
+    setError(err.response?.data?.message || "Failed to send OTP");
+  } finally {
+    setLoading(false);
+  }
+};
+const handleOtpChange = (
+  value: string,
+  index: number
+) => {
+  if (!/^\d?$/.test(value)) return;
+
+  const newOtp = [...otpInputs];
+  newOtp[index] = value;
+
+  setOtpInputs(newOtp);
+
+  setForgotData({
+    ...forgotData,
+    otp: newOtp.join("")
+  });
+
+  if (value && index < 5) {
+    const next = document.getElementById(`otp-${index + 1}`);
+    (next as HTMLInputElement)?.focus();
+  }
+};
+
+const handleOtpKeyDown = (
+  e: React.KeyboardEvent<HTMLInputElement>,
+  index: number
+) => {
+  if (
+    e.key === "Backspace" &&
+    !otpInputs[index] &&
+    index > 0
+  ) {
+    const prev = document.getElementById(`otp-${index - 1}`);
+    (prev as HTMLInputElement)?.focus();
+  }
+};
+
+
+const handleVerifyOtp = async () => {
+  setLoading(true);
+  setError("");
+
+  try {
+    const res = await authService.verifyOtp(
+      forgotData.email,
+      forgotData.otp
+    );
+
+    addToast("success", res.message);
+
+    setForgotStep(3);
+  } catch (err: any) {
+    setError(err.response?.data?.message || "Invalid OTP");
+  } finally {
+    setLoading(false);
+  }
+};
+
+const handleResetPassword = async () => {
+  if (forgotData.newPassword !== forgotData.confirmPassword) {
+    setError("Passwords do not match");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const res = await authService.resetPassword(
+      forgotData.email,
+      forgotData.otp,
+      forgotData.newPassword
+    );
+
+    addToast("success", res.message);
+
+    setForgotStep(1);
+
+    setForgotData({
+      email: "",
+      otp: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+
+    setAuthMode("login");
+  } catch (err: any) {
+    setError(err.response?.data?.message || "Password reset failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const selectQuickAccount = (email: string) => {
     setError('');
@@ -297,7 +414,166 @@ export default function LoginView({
                 {loading ? 'Initializing organization...' : 'Initialize CRM Organization'}
               </button>
             </form>
-          ) : (
+          ) : authMode === "forgotPassword" ? ( 
+<form
+  onSubmit={(e) => {
+    e.preventDefault();
+
+    if (forgotStep === 1) {
+      handleForgotPassword();
+    } else if (forgotStep === 2) {
+      handleVerifyOtp();
+    } else {
+      handleResetPassword();
+    }
+  }}
+  className="space-y-4"
+>
+
+  <h2 className="text-xl font-bold text-center">
+  {forgotStep === 1
+    ? "Forgot Password"
+    : forgotStep === 2
+    ? "Verify OTP"
+    : "Reset Password"}
+</h2>
+
+{forgotStep === 1 && (
+  <div>
+    <label className="block text-xs font-bold text-txt-secondary mb-1">
+      Email Address
+    </label>
+
+    <input
+      type="email"
+      required
+      className="w-full border border-border-crm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
+      placeholder="Enter your email"
+      value={forgotData.email}
+      onChange={(e) =>
+        setForgotData({
+          ...forgotData,
+          email: e.target.value,
+        })
+      }
+    />
+  </div>
+)}
+
+{forgotStep === 1 && (
+  <button
+    type="submit"
+    disabled={loading}
+    className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 text-sm font-semibold transition cursor-pointer disabled:opacity-50"
+  >
+    {loading ? "Sending OTP..." : "Send OTP"}
+  </button>
+)}
+
+{forgotStep === 2 && (
+ <div>
+  <label className="block text-xs font-bold text-txt-secondary mb-3">
+    Enter OTP
+  </label>
+
+  <div className="flex justify-between gap-2">
+    {otpInputs.map((digit, index) => (
+      <input
+        key={index}
+        id={`otp-${index}`}
+        type="text"
+        inputMode="numeric"
+        maxLength={1}
+        value={digit}
+        onChange={(e) =>
+          handleOtpChange(e.target.value, index)
+        }
+        onKeyDown={(e) =>
+          handleOtpKeyDown(e, index)
+        }
+        className="w-12 h-12 text-center text-lg font-bold border border-border-crm rounded-xl focus:outline-none focus:border-primary bg-bg-main"
+      />
+    ))}
+  </div>
+</div>
+)}
+
+{forgotStep === 2 && (
+  <button
+    type="submit"
+    disabled={loading}
+    className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 text-sm font-semibold transition disabled:opacity-50"
+  >
+    {loading ? "Verifying..." : "Verify OTP"}
+  </button>
+)}
+
+{forgotStep === 3 && (
+  <>
+    <div>
+      <label className="block text-xs font-bold text-txt-secondary mb-1">
+        New Password
+      </label>
+
+      <input
+        type="password"
+        placeholder="Enter new password"
+        className="w-full border border-border-crm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
+        value={forgotData.newPassword}
+        onChange={(e) =>
+          setForgotData({
+            ...forgotData,
+            newPassword: e.target.value,
+          })
+        }
+      />
+    </div>
+
+    <div>
+      <label className="block text-xs font-bold text-txt-secondary mb-1">
+        Confirm Password
+      </label>
+
+      <input
+        type="password"
+        placeholder="Confirm new password"
+        className="w-full border border-border-crm rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-txt-primary bg-bg-main transition"
+        value={forgotData.confirmPassword}
+        onChange={(e) =>
+          setForgotData({
+            ...forgotData,
+            confirmPassword: e.target.value,
+          })
+        }
+      />
+    </div>
+  </>
+)}
+
+{forgotStep === 3 && (
+  <button
+    type="submit"
+    disabled={loading}
+    className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3 text-sm font-semibold transition disabled:opacity-50"
+  >
+    {loading ? "Resetting..." : "Reset Password"}
+  </button>
+)}
+
+<button
+  type="button"
+  onClick={() => {
+    setAuthMode("login");
+    setForgotStep(1);
+    setError("");
+  }}
+  className="w-full text-primary hover:underline text-sm font-semibold"
+>
+  ← Back to Login
+</button>
+</form>
+
+           ) : (
             /* Normal Login Form */
             <form onSubmit={handleLocalLoginSubmit} className="space-y-4">
               <div>
@@ -337,17 +613,19 @@ export default function LoginView({
                 </div>
               </div>
 
-              {/* <div className="flex items-center justify-between text-xs mt-2">
+              <div className="flex items-center justify-between text-xs mt-2">
                 <button
                   type="button"
-                  onClick={() => {
-                    alert("Forgot your password?\n\n1. Please contact your Super Admin or Manager to reset your password.\n2. Once logged in, you can change your password at any time via the 'Change Password' card in the Settings panel.");
-                  }}
+                onClick={() => {
+    setError("");
+    setForgotStep(1);
+    setAuthMode("forgotPassword");
+}}
                   className="text-primary hover:underline font-semibold bg-transparent border-0 cursor-pointer p-0 focus:outline-none"
                 >
                   Forgot password?
                 </button>
-              </div> */}
+              </div>
 
               <button
                 type="submit"

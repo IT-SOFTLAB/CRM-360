@@ -79,5 +79,49 @@ export const authService = {
       console.error('API error accepting invitation', err);
       throw err;
     }
+  },
+
+
+   forgotPassword: async (email: string) => {
+    try {
+      const res = await api.post("/auth/forgot-password", {
+        email,
+      });
+      return res.data;
+    } catch (err) {
+      console.error("API error sending OTP", err);
+      throw err;
+    }
+  },
+
+  verifyOtp: async (email: string, otp: string) => {
+    try {
+      const res = await api.post("/auth/verify-otp", {
+        email,
+        otp,
+      });
+      return res.data;
+    } catch (err) {
+      console.error("API error verifying OTP", err);
+      throw err;
+    }
+  },
+
+  resetPassword: async (
+    email: string,
+    otp: string,
+    newPassword: string
+  ) => {
+    try {
+      const res = await api.post("/auth/reset-password", {
+        email,
+        otp,
+        newPassword,
+      });
+      return res.data;
+    } catch (err) {
+      console.error("API error resetting password", err);
+      throw err;
+    }
   }
 };

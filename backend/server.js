@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -5,7 +6,7 @@ const cookieParser = require('cookie-parser');
 const session = require("express-session");
 const fs = require('fs');
 const path = require('path');
-require("dotenv").config();
+
 
 console.log(process.env.DATABASE_URL);
 const app = express();
@@ -14,7 +15,7 @@ const DB_FILE = path.join(__dirname, 'db.json');
 const leadRoutes = require("./src/routes/leadRoutes.js");
 const activityRoutes = require("./src/routes/activityRoutes.js");
 const authRoutes=require("./src/routes/authRoutes.js");
-
+console.log(require.resolve("./src/routes/authRoutes.js"));
 const emailRoutes=require("./src/routes/emailRoutes.js");
 const opportunityRoutes=require("./src/routes/opportunityRoutes.js");
 const { PrismaClient } = require('@prisma/client');
@@ -34,6 +35,10 @@ app.use(cors({
   credentials: true
 }));
 app.use(bodyParser.json());
+app.use((req, res, next) => {
+  console.log(req.method, req.originalUrl);
+  next();
+});
 app.use(cookieParser());
 app.use(
     session({

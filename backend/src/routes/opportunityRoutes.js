@@ -8,6 +8,7 @@ const {
   createOpportunity,
   updateOpportunity,
   deleteOpportunity,
+    bulkDeleteOpportunities,
   convertLeadToOpportunity,
 
 }=require("../controllers/opportunityController");
@@ -22,8 +23,10 @@ router.get("/:id",getOpportunity);
 router.post("/",createOpportunity);
 
 router.put("/:id",updateOpportunity);
-
+router.delete("/bulk-delete", bulkDeleteOpportunities);
 router.delete("/:id",deleteOpportunity);
+
+
 
 router.post(
   "/convert/:leadId",

@@ -5,6 +5,7 @@ import { ChevronRight, Trash2, Plus, X, Briefcase, Calendar, DollarSign, User, M
 import QuotationForm from "./QuotationForm";
 import { emailService } from '../../services/email.service';
 import { useCRM } from '../../context/CRMContext';
+import { opportunityService } from "../../services/opportunity.service";
 
 interface OpportunitiesViewProps {
   opportunities: any[];
@@ -498,6 +499,37 @@ setShowBulkEmailModal(true);
 
 };
 
+const handleBulkDelete = async () => {
+  if (selectedOppIds.length === 0) {
+    addToast("error", "No opportunities selected");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Delete ${selectedOppIds.length} selected opportunities?`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    const res = await opportunityService.bulkDeleteOpportunities(
+      selectedOppIds
+    );
+
+    if (res) {
+      addToast("success", "Selected opportunities deleted.");
+
+      setSelectedOppIds([]);
+
+      window.location.reload();
+    } else {
+      addToast("error", "Failed to delete opportunities.");
+    }
+  } catch (err) {
+    addToast("error", "Something went wrong.");
+  }
+};
+
   const handleOpenEmailModal = (opp: any) => {
     const associatedLead = leads.find(l =>
       l.id === opp.leadId ||
@@ -653,6 +685,13 @@ setShowBulkEmailModal(true);
                 <Mail className="w-3.5 h-3.5" />
                 <span>Send Bulk Email</span>
               </button>
+              <button
+  onClick={handleBulkDelete}
+  className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow flex items-center gap-1.5 transition cursor-pointer"
+>
+  <Trash2 className="w-3.5 h-3.5" />
+  <span>Delete Selected</span>
+</button>
             </div>
           )}
         </div>
