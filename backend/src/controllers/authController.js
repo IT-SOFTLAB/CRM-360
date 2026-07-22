@@ -324,6 +324,8 @@ exports.changePassword = async (req, res) => {
 
 exports.forgotPassword = async (req, res) => {
   try {
+    console.log("1. forgotPassword API called");
+
     const { email } = req.body;
 
     if (!email) {
@@ -333,22 +335,27 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
+    console.log("2. Email received:", email);
+
     const user = await prisma.user.findUnique({
       where: {
         email: email.toLowerCase().trim(),
       },
     });
 
-    // Don't reveal whether the email exists
+    console.log("3. User lookup completed");
+
     if (!user) {
+      console.log("4. User not found");
       return res.json({
         success: true,
         message: "If an account exists, an OTP has been sent.",
       });
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    console.log("5. User found:", user.email);
 
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = new Date(Date.now() + 10 * 60 * 1000);
 
     await prisma.user.update({
@@ -359,44 +366,46 @@ exports.forgotPassword = async (req, res) => {
       },
     });
 
-  try {
-  await sendMail({
-    to: user.email,
-    subject: "CRM Password Reset OTP",
-    html: `
-      <h2>Password Reset</h2>
+    console.log("6. OTP saved in database");
 
-      <p>Hello ${user.name},</p>
+    try {
+      console.log("7. Calling sendMail()");
 
-      <p>Your OTP is:</p>
+      await sendMail({
+        to: user.email,
+        subject: "CRM Password Reset OTP",
+        html: `
+          <h2>Password Reset</h2>
+          <p>Hello ${user.name},</p>
+          <p>Your OTP is:</p>
+          <h1>${otp}</h1>
+        `,
+      });
 
-      <h1 style="letter-spacing:4px">${otp}</h1>
+      console.log("8. sendMail() completed");
 
-      <p>This OTP will expire in <b>10 minutes</b>.</p>
+      return res.json({
+        success: true,
+        message: "OTP sent successfully",
+      });
 
-      <p>If you did not request this request, ignore this email.</p>
-    `,
-  });
+    } catch (mailError) {
+      console.log("9. sendMail() failed");
+      console.error(mailError);
 
-  return res.json({
-    success: true,
-    message: "OTP sent successfully",
-  });
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          resetOtp: null,
+          resetOtpExpiry: null,
+        },
+      });
 
-} catch (mailError) {
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      resetOtp: null,
-      resetOtpExpiry: null,
-    },
-  });
-
-  throw mailError;
-}
+      throw mailError;
+    }
 
   } catch (err) {
+    console.log("10. Outer catch");
     console.error(err);
 
     res.status(500).json({
@@ -426,7 +435,7 @@ exports.verifyOtp = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "Invalid OTP",
+        message: "User not found",
       });
     }
 
@@ -443,12 +452,10 @@ exports.verifyOtp = async (req, res) => {
 
     res.json({
       success: true,
-      message: "OTP verified",
+      message: "OTP verified successfully",
     });
-
   } catch (err) {
-    console.error(err);
-
+    console.error('Verify OTP error:', err);
     res.status(500).json({
       success: false,
       message: err.message,

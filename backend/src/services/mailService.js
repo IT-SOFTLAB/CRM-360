@@ -24,13 +24,18 @@ transporter.verify((err, success) => {
 });
 exports.sendMail = async ({ to, subject, html, text }) => {
   try {
-    await transporter.sendMail({
-      from: process.env.MAIL_FROM,
-      to,
-      subject,
-      text,
-      html,
-    });
+    console.log("A. Entered sendMail");
+
+const info = await transporter.sendMail({
+  from: process.env.MAIL_FROM,
+  to,
+  subject,
+  text,
+  html,
+});
+
+console.log("B. Mail sent successfully");
+console.log(info);
 
 console.log("EMAIL_FROM:", process.env.EMAIL_FROM);
     console.log(`Email sent successfully to ${to}`);
