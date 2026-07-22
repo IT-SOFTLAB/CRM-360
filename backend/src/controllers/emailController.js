@@ -1,5 +1,6 @@
 const {
-    getGraphClient
+    getGraphClient,
+    getOutlookTokens
 }=require("../services/graphService");
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
@@ -76,10 +77,11 @@ const logOutgoingEmail = async (logData) => {
 };
 
 async function getFolderMessages(req, folderName) {
-  if (!req.session?.outlook?.accessToken) {
+  const outlookTokens = await getOutlookTokens(req);
+  if (!outlookTokens?.accessToken) {
     return [];
-}
-    const client = getGraphClient(req.session.outlook.accessToken)
+  }
+  const client = getGraphClient(outlookTokens.accessToken);
 
     const mails = await client
         .api(`/me/mailFolders/${folderName}/messages`)
@@ -222,12 +224,12 @@ exports.getFolders = async(req,res)=>{
 
 
 exports.markRead = async (req, res) => {
-
     try {
-if (!req.session?.outlook?.accessToken) {
-    throw new Error("Outlook account is not connected.");
-}
-        const client = getGraphClient(req.session.outlook.accessToken)
+        const outlookTokens = await getOutlookTokens(req);
+        if (!outlookTokens?.accessToken) {
+            throw new Error("Outlook account is not connected.");
+        }
+        const client = getGraphClient(outlookTokens.accessToken);
 
         await client
             .api(`/me/messages/${req.params.id}`)
@@ -308,10 +310,11 @@ exports.sendMail = async (req, res) => {
     let status = "Sent";
     let errorMessage = null;
 
-    if (req.session?.outlook?.accessToken) {
+    const outlookTokens = await getOutlookTokens(req);
+    if (outlookTokens?.accessToken) {
       // Send via real Microsoft Graph API
       try {
-        const client = getGraphClient(req.session.outlook.accessToken);
+        const client = getGraphClient(outlookTokens.accessToken);
         await client.api("/me/sendMail").post({
           message: {
             subject: subject,
@@ -377,10 +380,11 @@ exports.sendMail = async (req, res) => {
 
 exports.deleteMail = async (req, res) => {
   try {
-    if (!req.session?.outlook?.accessToken) {
-    throw new Error("Outlook account is not connected.");
-}
-    const client = getGraphClient(req.session.outlook.accessToken)
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
+    }
+    const client = getGraphClient(outlookTokens.accessToken);
 
     // Move the message to Deleted Items
     await client
@@ -406,10 +410,11 @@ exports.deleteMail = async (req, res) => {
 
 exports.markUnread = async (req, res) => {
   try {
-if (!req.session?.outlook?.accessToken) {
-    throw new Error("Outlook account is not connected.");
-}
-    const client = getGraphClient(req.session.outlook.accessToken)
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
+    }
+    const client = getGraphClient(outlookTokens.accessToken);
 
     await client
       .api(`/me/messages/${req.params.id}`)
@@ -435,10 +440,11 @@ if (!req.session?.outlook?.accessToken) {
 
 exports.restoreMail = async (req, res) => {
   try {
-if (!req.session?.outlook?.accessToken) {
-    throw new Error("Outlook account is not connected.");
-}
-    const client = getGraphClient(req.session.outlook.accessToken)
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
+    }
+    const client = getGraphClient(outlookTokens.accessToken);
 
     await client
       .api(`/me/messages/${req.params.id}/move`)
@@ -464,10 +470,11 @@ if (!req.session?.outlook?.accessToken) {
 
 exports.permanentDelete = async (req, res) => {
   try {
-if (!req.session?.outlook?.accessToken) {
-    throw new Error("Outlook account is not connected.");
-}
-    const client = getGraphClient(req.session.outlook.accessToken)
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
+    }
+    const client = getGraphClient(outlookTokens.accessToken);
 
     await client
       .api(`/me/messages/${req.params.id}`)
@@ -491,10 +498,11 @@ if (!req.session?.outlook?.accessToken) {
 
 exports.getEmailById = async (req, res) => {
   try {
-if (!req.session?.outlook?.accessToken) {
-    throw new Error("Outlook account is not connected.");
-}
-    const client = getGraphClient(req.session.outlook.accessToken)
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
+    }
+    const client = getGraphClient(outlookTokens.accessToken);
 
     const mail = await client
       .api(`/me/messages/${req.params.id}`)
@@ -533,10 +541,11 @@ if (!req.session?.outlook?.accessToken) {
 
 exports.replyMail = async (req, res) => {
   try {
-if (!req.session?.outlook?.accessToken) {
-    throw new Error("Outlook account is not connected.");
-}
-    const client = getGraphClient(req.session.outlook.accessToken)
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
+    }
+    const client = getGraphClient(outlookTokens.accessToken);
 
     await client
       .api(`/me/messages/${req.params.id}/reply`)
@@ -567,10 +576,11 @@ if (!req.session?.outlook?.accessToken) {
 
 exports.replyAllMail = async (req, res) => {
   try {
-if (!req.session?.outlook?.accessToken) {
-    throw new Error("Outlook account is not connected.");
-}
-    const client = getGraphClient(req.session.outlook.accessToken)
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
+    }
+    const client = getGraphClient(outlookTokens.accessToken);
 
     await client
       .api(`/me/messages/${req.params.id}/replyAll`)
@@ -601,10 +611,11 @@ if (!req.session?.outlook?.accessToken) {
 
 exports.forwardMail = async (req, res) => {
   try {
-if (!req.session?.outlook?.accessToken) {
-    throw new Error("Outlook account is not connected.");
-}
-    const client = getGraphClient(req.session.outlook.accessToken)
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
+    }
+    const client = getGraphClient(outlookTokens.accessToken);
 
     await client
       .api(`/me/messages/${req.params.id}/forward`)
@@ -638,10 +649,11 @@ if (!req.session?.outlook?.accessToken) {
 
 exports.searchEmails = async (req, res) => {
   try {
-if (!req.session?.outlook?.accessToken) {
-    throw new Error("Outlook account is not connected.");
-}
-    const client = getGraphClient(req.session.outlook.accessToken)
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
+    }
+    const client = getGraphClient(outlookTokens.accessToken);
 
     const keyword = req.query.q;
 
@@ -744,10 +756,11 @@ exports.downloadAttachment = async (req,res)=>{
 
 exports.getConversation = async (req, res) => {
   try {
-if (!req.session?.outlook?.accessToken) {
-    throw new Error("Outlook account is not connected.");
-}
-    const client = getGraphClient(req.session.outlook.accessToken)
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
+    }
+    const client = getGraphClient(outlookTokens.accessToken);
 
     const result = await client
       .api("/me/messages")
@@ -828,23 +841,17 @@ exports.getProfile = async(req,res)=>{
 };
 
 exports.getConnectionStatus = async (req, res) => {
-
-    if (!req.session?.outlook) {
-
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
         return res.json({
             connected: false
         });
-
     }
 
     res.json({
-
         connected: true,
-
-        email: req.session.outlook.email
-
+        email: outlookTokens.email
     });
-
 };
 
 exports.createDraft = async (req, res) => {
@@ -1019,14 +1026,15 @@ const {
       });
     }
 
-    if (!req.session?.outlook?.accessToken) {
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
       return res.status(400).json({
         success: false,
         message: "Outlook account is not connected."
       });
     }
 
-    const client = getGraphClient(req.session.outlook.accessToken);
+    const client = getGraphClient(outlookTokens.accessToken);
 
   await client.api("/me/sendMail").post({
     message: {

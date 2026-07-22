@@ -645,7 +645,6 @@ exports.acceptInvitation = async (req, res) => {
 
 exports.outlookCallback = async (req, res) => {
   try {
-
     const token = await getTokenFromCode(req.query.code);
 
     // Graph client with newly received token
@@ -657,91 +656,86 @@ exports.outlookCallback = async (req, res) => {
 
     // Get Outlook profile
     const me = await client.api("/me").get();
+    const outlookEmail = me.mail || me.userPrincipalName;
 
-    // ⚠️ Temporary: keep existing global token until we replace email APIs
-    // global.accessToken = token.accessToken;
-    // global.refreshToken = token.refreshToken;
+    req.session.outlook = {
+      accessToken: token.accessToken,
+      refreshToken: token.refreshToken,
+      email: outlookEmail
+    };
 
-   req.session.outlook = {
-    accessToken: token.accessToken,
-    refreshToken: token.refreshToken,
-    email: me.mail || me.userPrincipalName
-};
+    console.log("Connected Outlook:", outlookEmail);
 
-console.log("Connected Outlook:", me.mail || me.userPrincipalName);
+    // Parse state if passed
+    let redirectPage = req.session?.oauthRedirect || "emails";
+    let stateUserId = null;
 
-const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-const redirectPage = req.session.oauthRedirect || "emails";
-
-delete req.session.oauthRedirect;
-
-// Save session before redirect
-req.session.save((err) => {
-
-    if (err) {
-        console.error("Session save failed:", err);
-
-        return res.status(500).json({
-            success: false,
-            message: "Unable to save Outlook session."
-        });
+    if (req.query.state) {
+      try {
+        const parsedState = JSON.parse(req.query.state);
+        if (parsedState.redirect) redirectPage = parsedState.redirect;
+        if (parsedState.userId) stateUserId = parsedState.userId;
+      } catch (e) {
+        // State was not JSON, use raw
+        if (req.query.state && typeof req.query.state === "string") {
+          redirectPage = req.query.state;
+        }
+      }
     }
 
-    return res.redirect(
-        `${frontendUrl}/${redirectPage}?connected=true`
-    );
+    // Persist to User DB if userId is available
+    const userIdToUpdate = stateUserId || req.session?.userId || req.user?.id;
+    if (userIdToUpdate) {
+      try {
+        await prisma.user.update({
+          where: { id: userIdToUpdate },
+          data: {
+            outlookAccessToken: token.accessToken,
+            outlookRefreshToken: token.refreshToken,
+            outlookEmail: outlookEmail
+          }
+        });
+      } catch (dbErr) {
+        console.warn("Could not save Outlook tokens to user DB:", dbErr.message);
+      }
+    }
 
-});
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    if (req.session) delete req.session.oauthRedirect;
+
+    // Save session before redirect
+    req.session.save((err) => {
+      if (err) {
+        console.error("Session save failed:", err);
+      }
+      return res.redirect(
+        `${frontendUrl}/${redirectPage}?connected=true`
+      );
+    });
 
   } catch (err) {
-
-    console.error(err);
-
+    console.error("Outlook OAuth callback error:", err);
     res.status(500).json({
       success: false,
       message: err.message
     });
-
   }
 };
-// exports.outlookLogin = async (req, res) => {
-//   console.log("✅ outlookLogin route hit");
-//     try {
-
-//         const url = await getAuthUrl();
-
-//         res.redirect(url);
-
-//     } catch (err) {
-
-//         console.error(err);
-
-//         res.status(500).json({
-//             message: err.message
-//         });
-
-//     }
-
-// };
 
 exports.outlookLogin = async (req, res) => {
   try {
-
     const redirect = req.query.redirect || "emails";
+    if (req.session) req.session.oauthRedirect = redirect;
 
-    req.session.oauthRedirect = redirect;
+    const userId = req.user?.id || req.session?.userId;
+    const state = JSON.stringify({ userId, redirect });
 
-    const url = await getAuthUrl();
-
+    const url = await getAuthUrl(state);
     res.redirect(url);
-
   } catch (err) {
-
-    console.error(err);
-
+    console.error("Outlook login error:", err);
     res.status(500).json({
       message: err.message
     });
-
   }
 };

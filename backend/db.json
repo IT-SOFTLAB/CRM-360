@@ -980,19 +980,34 @@
       "updatedAt": "2026-07-20T10:22:04.073Z"
     },
     {
-      "id": "elog_1784613344441_7nqq0",
-      "recipientEmail": "flash23022006@gmail.com",
-      "subject": "Re: Welcome to CRM-360",
+      "id": "elog_1784544943838_eozzl",
+      "recipientEmail": "parthika.mahajan@itsoftlab.com",
+      "subject": "Following Up on Our Previous Conversation",
       "leadId": null,
-      "opportunityId": null,
+      "opportunityId": "cmrngylmi0008urqkjo9svp5b",
       "sentByUserId": "cmrlwmzr30006ur50bv9ubmb9",
       "status": "Sent",
       "errorMessage": null,
       "attachments": null,
-      "emailBody": "Hi ,\n\nWelcome to CRM-360.\n\nThank you for connecting with us.\n\nWe look forward to helping your organization streamline customer relationship management and improve sales productivity.\n\nIf you have any questions, feel free to contact us.\n\nBest Regards,\n\nparthika\n\nCRM-360",
-      "sentAt": "2026-07-21T05:55:44.441Z",
-      "createdAt": "2026-07-21T05:55:44.441Z",
-      "updatedAt": "2026-07-21T05:55:44.441Z"
+      "emailBody": "Hi ,\n\nI hope you're doing well.\n\nI wanted to follow up regarding our previous discussion.\n\nPlease let us know if you have any questions or require additional information.\n\nLooking forward to your response.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "sentAt": "2026-07-20T10:55:43.839Z",
+      "createdAt": "2026-07-20T10:55:43.839Z",
+      "updatedAt": "2026-07-20T10:55:43.839Z"
+    },
+    {
+      "id": "elog_1784544943848_op626",
+      "recipientEmail": "trupti.mandloi@itsoftlab.com",
+      "subject": "Following Up on Our Previous Conversation",
+      "leadId": null,
+      "opportunityId": "cmrsxjn5c0008ur1kpvjmpeea",
+      "sentByUserId": "cmrlwmzr30006ur50bv9ubmb9",
+      "status": "Sent",
+      "errorMessage": null,
+      "attachments": null,
+      "emailBody": "Hi ,\n\nI hope you're doing well.\n\nI wanted to follow up regarding our previous discussion.\n\nPlease let us know if you have any questions or require additional information.\n\nLooking forward to your response.\n\nBest Regards,\n\nparthika\n\nCRM-360",
+      "sentAt": "2026-07-20T10:55:43.848Z",
+      "createdAt": "2026-07-20T10:55:43.848Z",
+      "updatedAt": "2026-07-20T10:55:43.848Z"
     }
   ]
 }

@@ -752,9 +752,9 @@ export default function QuotationsView({
                     <span className="text-slate-400 font-semibold uppercase text-[9px] tracking-wider">Company Name</span>
                     <span className="font-medium text-txt-primary">{selectedQuote.customerCompanyNameSnapshot || "-"}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400 font-semibold uppercase text-[9px] tracking-wider">Email</span>
-                    <span className="text-primary font-medium hover:underline">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="text-slate-400 font-semibold uppercase text-[9px] tracking-wider shrink-0">Email</span>
+                    <span className="text-primary font-medium hover:underline text-right break-all">
                       <a href={`mailto:${selectedQuote.customerEmailSnapshot}`}>{selectedQuote.customerEmailSnapshot || "-"}</a>
                     </span>
                   </div>

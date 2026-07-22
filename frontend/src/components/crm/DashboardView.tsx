@@ -298,8 +298,7 @@ export default function DashboardView({
       return !isConvertedStatus && !hasMatchingOpp;
     }).length;
     
-    const p1Count = filteredOpps.filter(o => o.stageId === 'p_1' || (o.stage || '').toLowerCase() === 'new').length;
-    const newCount = unconvertedLeadsCount + p1Count;
+    const newCount = unconvertedLeadsCount;
 
     const qualifiedCount = filteredOpps.filter(o => 
       o.stageId === 'p_2' || o.stageId === 'p_3' || o.stageId === 'p_5' ||
@@ -328,13 +327,26 @@ export default function DashboardView({
     return { open: openCount, won: wonCount, lost: lostCount };
   }, [filteredOpps]);
 
-  // Table A: Team Performance Metrics
+  // Table A: Team Performance Metrics (Calculated for current month: 1st date to last date of current month)
   const teamPerformanceData = useMemo(() => {
     if (teamsList.length === 0) {
       return [];
     }
+
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+
+    const isThisMonth = (dateVal?: string | Date) => {
+      if (!dateVal) return true;
+      const d = new Date(dateVal);
+      if (isNaN(d.getTime())) return true;
+      return d.getFullYear() === curYear && d.getMonth() === curMonth;
+    };
+
     const activeTeams = selectedTeamId === 'all' ? teamsList : teamsList.filter(t => t.id === selectedTeamId);
-    return activeTeams.map(team => {
+    
+    const teamStats = activeTeams.map(team => {
       const memberNames = [
         team.leader?.name,
         ...(team.members || []).map((m: any) => m.name)
@@ -342,12 +354,18 @@ export default function DashboardView({
 
       const teamLeadsCount = leads.filter(l => {
         const assigned = l.assignedUser ? l.assignedUser.trim().toLowerCase() : '';
-        return memberNames.includes(assigned);
+        const isMember = memberNames.includes(assigned);
+        if (!isMember) return false;
+        const leadDate = l.createdAt || l.createdDate || l.date;
+        return isThisMonth(leadDate);
       }).length;
 
       const teamOpps = opportunities.filter(o => {
         const assigned = o.assignedSalesperson ? o.assignedSalesperson.trim().toLowerCase() : '';
-        return memberNames.includes(assigned);
+        const isMember = memberNames.includes(assigned);
+        if (!isMember) return false;
+        const oppDate = o.closedDate || o.createdDate || o.createdAt || o.expectedClosing;
+        return isThisMonth(oppDate);
       });
       
       const wonOpps = teamOpps.filter(o => o.stageId === 'p_6');
@@ -357,37 +375,75 @@ export default function DashboardView({
         team: team.name,
         leads: teamLeadsCount,
         won: wonOpps.length,
+        revNum: revSum,
         rev: formatCRMRevenue(revSum)
       };
     });
+
+    const totalRev = teamStats.reduce((sum, t) => sum + t.revNum, 0);
+
+    return teamStats.map((t, idx) => ({
+      ...t,
+      pct: totalRev > 0 ? Math.round((t.revNum / totalRev) * 100) : 0,
+      color: idx === 0 ? '#2563EB' : idx === 1 ? '#10B981' : idx === 2 ? '#F59E0B' : '#8B5CF6'
+    }));
   }, [teamsList, opportunities, leads, selectedTeamId]);
 
-  // Table B: Top Salespersons
+  // Previous Month Date Range (1st of prev month to last day of prev month)
+  const prevMonthDateRange = useMemo(() => {
+    const now = new Date();
+    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevYear = prevDate.getFullYear();
+    const prevMonth = prevDate.getMonth(); // 0-indexed
+
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June",
+      "July", "August", "September", "October", "November", "December"
+    ];
+
+    return {
+      prevYear,
+      prevMonth,
+      monthLabel: `${monthNames[prevMonth]} ${prevYear}`
+    };
+  }, []);
+
+  const isPrevMonthDate = (dateVal?: string | Date) => {
+    if (!dateVal) return false;
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return false;
+    return d.getFullYear() === prevMonthDateRange.prevYear && d.getMonth() === prevMonthDateRange.prevMonth;
+  };
+
+  // Table B: Top Salespersons (Calculated strictly for Previous Month)
   const topSalespersonsData = useMemo(() => {
     const salesMap: { [name: string]: number } = {};
-    opportunities.forEach(o => {
-      if (o.stageId === 'p_6' && o.assignedSalesperson) {
-        salesMap[o.assignedSalesperson] = (salesMap[o.assignedSalesperson] || 0) + (o.dealValue || 0);
-      }
+
+    const prevMonthOpps = opportunities.filter(o => {
+      if (o.stageId !== 'p_6' || !o.assignedSalesperson) return false;
+      const oppDate = o.closedDate || o.createdDate || o.createdAt || o.expectedClosing;
+      return isPrevMonthDate(oppDate);
     });
+
+    prevMonthOpps.forEach(o => {
+      salesMap[o.assignedSalesperson] = (salesMap[o.assignedSalesperson] || 0) + (o.dealValue || 0);
+    });
+
     const sorted = Object.entries(salesMap)
       .map(([name, val]) => ({ name, val }))
       .sort((a, b) => b.val - a.val)
       .slice(0, 3);
       
     if (!sorted.length) {
-      return [
-        { name: "Rahul", rev: "₹18 Lakh", rank: 1 },
-        { name: "Priya", rev: "₹16 Lakh", rank: 2 },
-        { name: "Aman", rev: "₹14 Lakh", rank: 3 }
-      ];
+      return [];
     }
     return sorted.map((s, idx) => ({
       name: s.name,
-      rev: `₹${(s.val / 100000).toFixed(0)} Lakh`,
-      rank: idx + 1
+      rev: formatCRMRevenue(s.val),
+      rank: idx + 1,
+      monthLabel: prevMonthDateRange.monthLabel
     }));
-  }, [opportunities]);
+  }, [opportunities, prevMonthDateRange]);
 
   // ==========================================
   // STATE FOR INTERACTIVE KANBAN (ADMIN)
@@ -491,7 +547,7 @@ export default function DashboardView({
     };
   }, [filteredOpps, quotations, customers, usersList, filteredLeads, selectedTeamMembers]);
 
-  // Dynamic leaderboard rankings (deals won vs leads assigned)
+  // Dynamic leaderboard rankings (deals won vs leads assigned in Previous Month)
   const dynamicLeaderboard = useMemo(() => {
     const participants = usersList.length > 0 
       ? usersList 
@@ -503,17 +559,25 @@ export default function DashboardView({
     const mapped = participants.map((u: any) => {
       const uNameLower = (u.name || '').trim().toLowerCase();
       
-      const uLeadsCount = leads.filter(l => 
-        l.assignedUserId === u.id || 
-        (l.assignedUser && l.assignedUser.trim().toLowerCase() === uNameLower)
-      ).length;
+      const uLeadsCount = leads.filter(l => {
+        const isAssigned = l.assignedUserId === u.id || 
+          (l.assignedUser && l.assignedUser.trim().toLowerCase() === uNameLower);
+        if (!isAssigned) return false;
+        const lDate = l.createdDate || l.createdAt;
+        return isPrevMonthDate(lDate);
+      }).length;
 
-      const uOpps = opportunities.filter(o => 
-        o.assignedSalespersonId === u.id || 
-        (o.assignedSalesperson && o.assignedSalesperson.trim().toLowerCase() === uNameLower)
-      );
-      const uWonCount = uOpps.filter(o => o.stageId === 'p_6').length;
-      const uRevVal = uOpps.filter(o => o.stageId === 'p_6').reduce((sum, o) => sum + (o.dealValue || 0), 0);
+      const uOpps = opportunities.filter(o => {
+        const isAssigned = o.assignedSalespersonId === u.id || 
+          (o.assignedSalesperson && o.assignedSalesperson.trim().toLowerCase() === uNameLower);
+        if (!isAssigned) return false;
+        const oDate = o.closedDate || o.createdDate || o.createdAt || o.expectedClosing;
+        return isPrevMonthDate(oDate);
+      });
+
+      const uWonOpps = uOpps.filter(o => o.stageId === 'p_6');
+      const uWonCount = uWonOpps.length;
+      const uRevVal = uWonOpps.reduce((sum, o) => sum + (o.dealValue || 0), 0);
 
       return {
         name: u.name || "Unknown",
@@ -522,10 +586,10 @@ export default function DashboardView({
         revVal: uRevVal,
         rev: formatCRMRevenue(uRevVal)
       };
-    });
+    }).filter(m => m.revVal > 0 || m.won > 0 || m.leads > 0);
 
     return mapped.sort((a, b) => b.revVal - a.revVal || b.won - a.won).slice(0, 3);
-  }, [usersList, leads, opportunities]);
+  }, [usersList, leads, opportunities, prevMonthDateRange]);
 
   // ==========================================
   // REAL-TIME USER-SIDE METRICS CALCULATIONS
@@ -676,12 +740,18 @@ export default function DashboardView({
 
   const topSalespersonsChart = useMemo(() => {
     const salesMap: { [name: string]: number } = {};
-    filteredOpps.forEach(o => {
-      if (o.stageId === 'p_6' && o.assignedSalesperson) {
-        const nameKey = o.assignedSalesperson.trim();
-        salesMap[nameKey] = (salesMap[nameKey] || 0) + (o.dealValue || 0);
-      }
+
+    const prevMonthOpps = filteredOpps.filter(o => {
+      if (o.stageId !== 'p_6' || !o.assignedSalesperson) return false;
+      const oppDate = o.closedDate || o.createdDate || o.createdAt || o.expectedClosing;
+      return isPrevMonthDate(oppDate);
     });
+
+    prevMonthOpps.forEach(o => {
+      const nameKey = o.assignedSalesperson.trim();
+      salesMap[nameKey] = (salesMap[nameKey] || 0) + (o.dealValue || 0);
+    });
+
     let sorted = Object.entries(salesMap)
       .map(([name, val]) => ({ name, val }))
       .sort((a, b) => b.val - a.val);
@@ -696,9 +766,10 @@ export default function DashboardView({
       val: s.val,
       revStr: formatCRMRevenue(s.val),
       pct: Math.round((s.val / maxVal) * 100),
-      rank: idx + 1
+      rank: idx + 1,
+      monthLabel: prevMonthDateRange.monthLabel
     }));
-  }, [filteredOpps]);
+  }, [filteredOpps, prevMonthDateRange]);
 
   // --- DASHBOARD 1: SUPER ADMIN DASHBOARD ---
   if (userRole === 'SUPER_ADMIN') {
@@ -921,6 +992,12 @@ export default function DashboardView({
                       const isHighlight = !!bar.isCurrent;
                       return (
                         <div key={idx} className="flex flex-col items-center group relative h-full justify-end" style={{ width: `${100 / chartBars.length}%` }}>
+                          {/* Tooltip on hover */}
+                          <div className="absolute top-1 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-20 bg-slate-900/90 text-white dark:bg-slate-100 dark:text-slate-900 text-[10px] font-bold px-2 py-1 rounded-md shadow-lg whitespace-nowrap -translate-y-1 group-hover:translate-y-0 flex flex-col items-center">
+                            <span>{formatCRMRevenue(bar.val)}</span>
+                            <span className="text-[8px] font-medium opacity-80">{bar.name}</span>
+                            <div className="w-1.5 h-1.5 bg-slate-900/90 dark:bg-slate-100 rotate-45 -mb-1 -mt-0.5" />
+                          </div>
                           {/* Bar */}
                           <div className={`w-8 border rounded-t-lg h-36 flex items-end overflow-hidden ${
                             isHighlight
@@ -963,7 +1040,7 @@ export default function DashboardView({
 
                   return (
                     <div className="w-full lg:w-72 lg:shrink-0 h-56 bg-bg-main border border-border-crm/40 rounded-xl p-3.5 flex flex-col items-center justify-between">
-                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-txt-secondary text-center w-full">Deal Status</p>
+                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-txt-secondary text-center w-full">Pipeline Status</p>
 
                       {/* Donut chart - centered and occupying full container width */}
                       <div className="relative w-28 h-28 my-0.5">
@@ -1019,8 +1096,15 @@ export default function DashboardView({
           
           {/* Grouped Bar Chart: Team Performance Comparison */}
           <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4">
-            <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">Team Performance</h3>
-            <p className="text-[10px] text-txt-secondary">Visual comparison of Leads Assigned vs Deals Won per team.</p>
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">Team Performance</h3>
+                <p className="text-[10px] text-txt-secondary">Visual comparison of Leads Assigned vs Deals Won per team.</p>
+              </div>
+              <span className="text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded-full">
+                This Month
+              </span>
+            </div>
             
             <div className="relative w-full h-48 bg-bg-main border border-border-crm/40 rounded-xl p-4 flex items-end justify-around">
               {teamPerformanceData.map((row, idx) => {
@@ -1052,92 +1136,68 @@ export default function DashboardView({
                         </div>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold text-txt-primary">{row.team}</span>
-                    <span className="text-[9px] text-txt-secondary font-bold">{row.rev}</span>
+                    <span className="text-xs font-bold text-txt-primary truncate max-w-full">{row.team}</span>
+                    <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
+                      {row.rev} <span className="text-blue-600 font-bold">({row.pct}%)</span>
+                    </span>
                   </div>
                 );
               })}
             </div>
             
-            <div className="flex justify-center gap-4 text-[9px] font-bold text-txt-secondary">
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-blue-500"></span> Assigned Leads</span>
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-emerald-500"></span> Won Opportunities</span>
+            <div className="flex justify-center gap-4 text-[10px] font-bold text-txt-secondary pt-1">
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500"></span> Assigned Leads</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500"></span> Won Opportunities</span>
             </div>
           </div>
 
-          {/* Horizontal Bar Chart & Donut: Top Salespersons */}
-          <div className="bg-card border border-border-crm rounded-2xl p-5 flex flex-col md:flex-row gap-6">
-            <div className="flex-1 space-y-4">
-              <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">Top Sales Executives</h3>
-              <p className="text-[10px] text-txt-secondary">Revenue generated by leading sales reps.</p>
-              
-              <div className="space-y-4">
-                {topSalespersonsChart.map((row) => (
-                  <div key={row.rank} className="space-y-1 text-xs">
-                    <div className="flex justify-between items-center font-bold">
-                      <div className="flex items-center space-x-2">
-                        <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[9px] text-white font-extrabold ${
-                          row.rank === 1 ? 'bg-yellow-500' : row.rank === 2 ? 'bg-slate-400' : 'bg-amber-600'
-                        }`}>
-                          {row.rank}
-                        </span>
-                        <span className="text-txt-primary">{row.name}</span>
-                      </div>
-                      <span className="text-primary">{row.revStr}</span>
-                    </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
-                      <div 
-                        style={{ width: `${row.pct}%` }} 
-                        className="bg-primary h-full rounded-full transition-all duration-500"
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-                {topSalespersonsChart.length === 0 && (
-                  <div className="text-center py-10 text-txt-secondary text-xs italic">
-                    No salesperson performance data registered.
-                  </div>
-                )}
+          {/* Horizontal Bar Chart: Top Salespersons */}
+          <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">Top Sales Executives</h3>
+                <p className="text-[10px] text-txt-secondary">Revenue generated by leading sales reps ({prevMonthDateRange.monthLabel}).</p>
               </div>
+              <span className="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                Prev Month 
+              </span>
             </div>
-
-            {/* Dynamic Sales by Team Donut Chart */}
-            <div className="w-full md:w-44 shrink-0 flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-border-crm pt-4 md:pt-0 md:pl-6">
-              <span className="text-[10px] font-bold text-txt-secondary uppercase tracking-wider mb-3">Sales Share by Team</span>
-              <div className="relative w-28 h-28 animate-pulse-subtle">
-                <svg viewBox="-2 -2 40 40" className="w-full h-full transform -rotate-90">
-                  <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F1F5F9" strokeWidth="4" />
-                  {donutSegments.map((seg, idx) => (
-                    <circle 
-                      key={idx}
-                      cx="18" 
-                      cy="18" 
-                      r="15.915" 
-                      fill="none" 
-                      stroke={seg.color} 
-                      strokeWidth="4.2" 
-                      strokeDasharray={seg.dashArray} 
-                      strokeDashoffset={seg.dashOffset} 
-                      className="transition-all duration-550"
-                    />
-                  ))}
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                  <span className="text-xs font-extrabold text-txt-primary">
-                    {formatCRMRevenue(totalTeamClosedRevenue)}
-                  </span>
-                  <span className="text-[8px] text-slate-400 font-bold uppercase">Total Won</span>
+            
+            <div className="space-y-4">
+              {topSalespersonsChart.map((row) => (
+                <div key={row.rank} className="space-y-1.5 text-xs">
+                  <div className="flex justify-between items-center font-bold">
+                    <div className="flex items-center space-x-2">
+                      <span className={`w-5 h-5 flex items-center justify-center rounded-full text-[9px] text-white font-extrabold shrink-0 ${
+                        row.rank === 1 ? 'bg-yellow-500' : row.rank === 2 ? 'bg-slate-400' : 'bg-amber-600'
+                      }`}>
+                        {row.rank}
+                      </span>
+                      <div>
+                        <span className="text-txt-primary font-bold">{row.name}</span>
+                        <span className="text-[9px] text-slate-400 font-semibold block leading-tight">{row.monthLabel || prevMonthDateRange.monthLabel}</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-primary font-extrabold">{row.revStr}</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                    <div 
+                      style={{ width: `${row.pct}%` }} 
+                      className="bg-primary h-full rounded-full transition-all duration-500"
+                    ></div>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex flex-wrap gap-2 text-[9px] font-bold mt-4 justify-center">
-                {donutSegments.map((seg, idx) => (
-                  <span key={idx} className="flex items-center gap-1 select-none">
-                    <span style={{ backgroundColor: seg.color }} className="w-2.5 h-2.5 rounded-full shrink-0"></span>
-                    <span>{seg.name} ({seg.pct}%)</span>
-                  </span>
-                ))}
-              </div>
+              ))}
+              {topSalespersonsChart.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-10 bg-bg-main/50 border border-dashed border-border-crm/60 rounded-xl min-h-[140px] text-center">
+                  <Award className="w-8 h-8 text-slate-300 dark:text-slate-700 mb-2" />
+                  <p className="text-txt-secondary text-xs font-semibold italic">
+                    No won deals registered in {prevMonthDateRange.monthLabel}.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1272,8 +1332,15 @@ export default function DashboardView({
           
           {/* Scorecards: Salesperson Performance Leaderboard */}
           <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4 lg:col-span-2">
-            <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">Salesperson Leaderboard</h3>
-            <p className="text-[10px] text-txt-secondary">Comparative representation of deals won vs leads assigned.</p>
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">Salesperson Leaderboard</h3>
+                <p className="text-[10px] text-txt-secondary">Deals won vs leads assigned ({prevMonthDateRange.monthLabel}).</p>
+              </div>
+              <span className="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+                Prev Month
+              </span>
+            </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 py-2">
               {dynamicLeaderboard.map((row, idx) => (
@@ -1299,7 +1366,12 @@ export default function DashboardView({
                 </div>
               ))}
               {dynamicLeaderboard.length === 0 && (
-                <div className="col-span-3 text-center py-6 text-txt-secondary text-xs italic">No salesperson performance data registered.</div>
+                <div className="col-span-3 flex flex-col items-center justify-center py-10 bg-bg-main/50 border border-dashed border-border-crm/60 rounded-xl min-h-[140px] text-center">
+                  <Award className="w-8 h-8 text-slate-300 dark:text-slate-700 mb-2" />
+                  <p className="text-txt-secondary text-xs font-semibold italic">
+                    No won deals registered in {prevMonthDateRange.monthLabel}.
+                  </p>
+                </div>
               )}
             </div>
             
@@ -1428,18 +1500,22 @@ export default function DashboardView({
                       </div>
                     </div>
 
-                    <div className="relative w-full h-48 bg-bg-main border border-border-crm/40 rounded-xl overflow-hidden p-4 flex items-end justify-around">
+                    <div className="relative w-full h-48 bg-bg-main border border-border-crm/40 rounded-xl p-4 flex items-end justify-around">
                       {chartBars.map((bar, idx) => {
-                        const heightPercent = maxBarVal > 0 ? (bar.val / maxBarVal) * 80 : 20;
+                        const heightPercent = maxBarVal > 0 ? (bar.val / maxBarVal) * 80 : 0;
                         const isHighlight = !!bar.isCurrent;
                         
                         return (
                           <div key={idx} className="flex flex-col items-center group relative h-full justify-end" style={{ width: `${100 / chartBars.length}%` }}>
-                            {/* Label of value */}
-                            <span className="text-[8px] font-bold text-primary mb-1">{formatCRMRevenue(bar.val)}</span>
+                            {/* Tooltip on hover */}
+                            <div className="absolute top-1 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-20 bg-slate-900/90 text-white dark:bg-slate-100 dark:text-slate-900 text-[10px] font-bold px-2 py-1 rounded-md shadow-lg whitespace-nowrap -translate-y-1 group-hover:translate-y-0 flex flex-col items-center">
+                              <span>{formatCRMRevenue(bar.val)}</span>
+                              <span className="text-[8px] font-medium opacity-80">{bar.name}</span>
+                              <div className="w-1.5 h-1.5 bg-slate-900/90 dark:bg-slate-100 rotate-45 -mb-1 -mt-0.5" />
+                            </div>
                             
                             {/* Bar Graphic */}
-                            <div className={`w-5 border rounded-t-sm transition-all duration-300 relative group cursor-pointer ${
+                            <div className={`w-5 border rounded-t-sm transition-all duration-300 relative cursor-pointer ${
                               isHighlight
                                 ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300/50'
                                 : 'bg-slate-100 dark:bg-slate-800/40 border-border-crm/30'

@@ -1,5 +1,5 @@
 const { PrismaClient } = require("@prisma/client");
-const { getGraphClient } = require("../services/graphService");
+const { getGraphClient, getOutlookTokens } = require("../services/graphService");
 const prisma = new PrismaClient();
 const fs = require("fs");
 const path = require("path");
@@ -414,8 +414,9 @@ exports.getOpportunityQuotations = async (req, res) => {
 
 exports.sendQuotationByOutlook = async (req, res) => {
   try {
+    const outlookTokens = await getOutlookTokens(req);
 
-    if (!req.session?.outlook?.accessToken) {
+    if (!outlookTokens?.accessToken) {
       return res.status(401).json({
         success: false,
         message: "Outlook is not connected."
@@ -438,9 +439,7 @@ exports.sendQuotationByOutlook = async (req, res) => {
       });
     }
 
-  const client = getGraphClient(
-    req.session.outlook.accessToken
-);
+    const client = getGraphClient(outlookTokens.accessToken);
 
 const attachments = [];
 const pdfPath = await generateQuotationPDF(quotation);
