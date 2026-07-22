@@ -25,8 +25,8 @@ export interface CRMContextType {
   authReady: boolean;
   user: any;
   setUser: React.Dispatch<React.SetStateAction<any>>;
-  authMode: 'login' | 'register' | 'setup';
-  setAuthMode: React.Dispatch<React.SetStateAction<'login' | 'register' | 'setup'>>;
+  authMode: 'login' | 'register' | 'setup'| 'forgotPassword' ;
+  setAuthMode: React.Dispatch<React.SetStateAction<'login' | 'register' | 'setup'| 'forgotPassword' >>;
   authForm: any;
   setAuthForm: React.Dispatch<React.SetStateAction<any>>;
   setupRequired: boolean;

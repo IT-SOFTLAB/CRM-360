@@ -79,7 +79,6 @@ model Activity {
   updatedAt       DateTime  @updatedAt
 }
 
-
 model ReferralPipeline {
   id                String            @id @default(cuid())
   name              String
@@ -157,7 +156,6 @@ model Opportunity {
   description            String?
   assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
 }
-
 
 model Customer {
   id                     String   @id @default(cuid())
@@ -328,4 +326,3 @@ model EmailLog {
   createdAt      DateTime @default(now())
   updatedAt      DateTime
 }
-

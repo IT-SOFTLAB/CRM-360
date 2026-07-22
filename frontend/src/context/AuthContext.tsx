@@ -14,8 +14,8 @@ export interface AuthContextType {
   authReady: boolean;
   user: User | null;
   setUser: React.Dispatch<React.SetStateAction<User | null>>;
-  authMode: 'login' | 'register' | 'setup';
-  setAuthMode: React.Dispatch<React.SetStateAction<'login' | 'register' | 'setup'>>;
+  authMode: 'login' | 'register' | 'setup'| 'forgotPassword' ;
+  setAuthMode: React.Dispatch<React.SetStateAction<'login' | 'register' | 'setup' | 'forgotPassword'>>;
   authForm: AuthForm;
   setAuthForm: React.Dispatch<React.SetStateAction<AuthForm>>;
   handleAuthSubmit: (e: React.FormEvent, onSuccess?: () => void) => Promise<void>;
@@ -32,7 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [mounted, setMounted] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [authMode, setAuthMode] = useState<'login' | 'register' | 'setup'>('login');
+  const [authMode, setAuthMode] = useState<'login' | 'register' |"forgotPassword"| 'setup'>('login');
   const [authForm, setAuthForm] = useState<AuthForm>(DEFAULT_AUTH_FORM);
   const [setupRequired, setSetupRequired] = useState(false);
   const toastCtx = useContext(ToastContext);
