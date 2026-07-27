@@ -13,7 +13,8 @@ const {
   getAllLeads,
   deleteLead,
   updateLead,
-  importLeads
+  importLeads,
+  bulkAssignLeads
 } = require('../controllers/leadController');
 const authenticateJWT = require('../middlewares/authMiddleware');
 
@@ -25,6 +26,7 @@ router.get('/', getAllLeads);
 
 router.delete('/:id', deleteLead);
 
+router.put('/bulk-assign', bulkAssignLeads);
 router.put('/:id', updateLead);
 
 router.post('/import', upload.single('file'), importLeads);

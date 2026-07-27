@@ -11,7 +11,7 @@ import { customerService } from "../../services/customer.service";
 import api from "../../services/api";
 
 const CustomerView = () => {
-    const { customers, user, setCustomers, addToast } = useCRM();
+    const { customers, user, setCustomers, addToast, settingsUsers = [], loadCRMData } = useCRM();
     const userRole = (user?.role || '').toUpperCase().replace(/[\s_]+/g, '_');
     const isManager = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
 
@@ -19,6 +19,15 @@ const CustomerView = () => {
     const [activeFilter, setActiveFilter] = useState<'all' | 'my' | 'team'>('all');
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
     const [showCustomerDrawer, setShowCustomerDrawer] = useState(false);
+
+    const salespersonsList = useMemo(() => {
+        return settingsUsers.filter((u: any) => {
+            const roleStr = (u.role || '').toLowerCase();
+            const nameStr = (u.name || '').toLowerCase();
+            const emailStr = (u.email || '').toLowerCase();
+            return !roleStr.includes('super') && !nameStr.includes('superadmin') && !emailStr.includes('superadmin');
+        });
+    }, [settingsUsers]);
 
     const [searchQuery, setSearchQuery] = useState("");
     const [minDealValue, setMinDealValue] = useState("");
@@ -355,17 +364,29 @@ const CustomerView = () => {
                                             />
                                         </div>
                                         <div>
-                                            <p className="text-slate-400 font-semibold uppercase text-[10px]">Assigned Salesperson</p>
-                                            <input
-                                                className="w-full border rounded-lg px-3 py-2"
-                                                value={selectedCustomer.assignedSalesperson}
-                                                onChange={(e) =>
-                                                    setSelectedCustomer({
-                                                        ...selectedCustomer,
-                                                        assignedSalesperson: e.target.value
-                                                    })
-                                                }
-                                            />
+                                            <p className="text-slate-400 font-semibold uppercase text-[10px] mb-1">Assigned Salesperson</p>
+                                            {userRole !== 'USER' ? (
+                                                <select
+                                                    className="w-full border rounded-lg px-3 py-2 text-txt-primary bg-card focus:outline-none text-xs font-semibold"
+                                                    value={selectedCustomer.assignedSalespersonId || ''}
+                                                    onChange={(e) => {
+                                                        const newId = e.target.value;
+                                                        const foundUser = salespersonsList.find((u: any) => u.id === newId);
+                                                        setSelectedCustomer({
+                                                            ...selectedCustomer,
+                                                            assignedSalespersonId: newId || null,
+                                                            assignedSalesperson: foundUser ? foundUser.name : 'Unassigned'
+                                                        });
+                                                    }}
+                                                >
+                                                    <option value="">Unassigned</option>
+                                                    {salespersonsList.map((u: any) => (
+                                                        <option key={u.id} value={u.id}>{u.name}</option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <p className="font-semibold text-txt-primary mt-1 text-xs">{selectedCustomer.assignedSalesperson || 'Unassigned'}</p>
+                                            )}
                                         </div>
                                         <div className="border-t border-border-crm pt-4">
                                             <button
@@ -375,6 +396,9 @@ const CustomerView = () => {
                                                         setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? selectedCustomer : c));
                                                         setShowCustomerDrawer(false);
                                                         addToast('success', 'Client updated successfully');
+                                                        if (loadCRMData) {
+                                                            await loadCRMData();
+                                                        }
                                                     } catch (err) {
                                                         console.error(err);
                                                         addToast('error', 'Failed to update client');

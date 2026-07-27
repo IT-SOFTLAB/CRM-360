@@ -20,6 +20,8 @@ export default function LeadsPage() {
       showLeadCreateModal={crm.showLeadCreateModal}
       setShowLeadCreateModal={crm.setShowLeadCreateModal}
       applyFilters={crm.applyFilters}
+      settingsUsers={crm.settingsUsers}
+      onBulkAssignLeads={crm.handleBulkAssignLeads}
     />
   );
 }

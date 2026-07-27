@@ -407,14 +407,109 @@ app.post('/api/leads', (req, res) => {
   res.status(201).json(newLead);
 });
 
-app.put('/api/leads/:id', (req, res) => {
+app.put('/api/leads/bulk-assign', async (req, res) => {
+  const { ids, assignedUser, assignedUserId } = req.body;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ success: false, message: 'No leads selected' });
+  }
+
+  const db = readDB();
+
+  // 1. Update db.json
+  ids.forEach(id => {
+    const index = db.leads.findIndex(l => l.id === id);
+    if (index !== -1) {
+      db.leads[index].assignedUser = assignedUser;
+      db.leads[index].assignedUserId = assignedUserId;
+      logActivity(db, null, 'UPDATE_LEAD', 'Leads', `Bulk assigned lead ID: ${id} to ${assignedUser}`);
+
+      const oppIdx = db.opportunities.findIndex(o => o.leadId === id);
+      if (oppIdx !== -1) {
+        db.opportunities[oppIdx].assignedSalesperson = assignedUser;
+        db.opportunities[oppIdx].assignedSalespersonId = assignedUserId;
+      }
+    }
+  });
+  writeDB(db);
+
+  // 2. Update in PostgreSQL
+  try {
+    await prisma.lead.updateMany({
+      where: {
+        id: { in: ids }
+      },
+      data: {
+        assignedUser,
+        assignedUserId
+      }
+    });
+
+    await prisma.opportunity.updateMany({
+      where: {
+        leadId: { in: ids }
+      },
+      data: {
+        assignedSalesperson: assignedUser,
+        assignedSalespersonId: assignedUserId
+      }
+    });
+  } catch (err) {
+    console.error("Prisma error during bulk assign leads:", err);
+  }
+
+  res.json({ success: true, message: `Successfully assigned ${ids.length} leads` });
+});
+
+app.put('/api/leads/:id', async (req, res) => {
   const { id } = req.params;
   const db = readDB();
   const index = db.leads.findIndex(l => l.id === id);
   if (index !== -1) {
     db.leads[index] = { ...db.leads[index], ...req.body };
     logActivity(db, null, 'UPDATE_LEAD', 'Leads', `Updated lead ID: ${id}`);
+
+    // Update associated opportunity in db.json if salesperson changes
+    if (req.body.assignedUser !== undefined || req.body.assignedUserId !== undefined) {
+      const oppIdx = db.opportunities.findIndex(o => o.leadId === id);
+      if (oppIdx !== -1) {
+        db.opportunities[oppIdx].assignedSalesperson = req.body.assignedUser;
+        db.opportunities[oppIdx].assignedSalespersonId = req.body.assignedUserId;
+      }
+    }
     writeDB(db);
+
+    // Sync to PostgreSQL
+    try {
+      await prisma.lead.update({
+        where: { id },
+        data: {
+          contactName: req.body.contactName,
+          company: req.body.company,
+          source: req.body.source,
+          email: req.body.email,
+          phone: req.body.phone,
+          category: req.body.category,
+          serviceType: req.body.serviceType,
+          assignedUser: req.body.assignedUser,
+          assignedUserId: req.body.assignedUserId,
+          status: req.body.status
+        }
+      });
+
+      // Update associated opportunities in PostgreSQL
+      if (req.body.assignedUser !== undefined || req.body.assignedUserId !== undefined) {
+        await prisma.opportunity.updateMany({
+          where: { leadId: id },
+          data: {
+            assignedSalesperson: req.body.assignedUser,
+            assignedSalespersonId: req.body.assignedUserId
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Prisma sync error in PUT /api/leads/:id:", err);
+    }
+
     return res.json(db.leads[index]);
   }
   res.status(404).json({ message: 'Lead not found' });
@@ -618,6 +713,68 @@ app.post('/api/opportunities', (req, res) => {
   res.status(201).json(opp);
 });
 
+app.put('/api/opportunities/bulk-assign', async (req, res) => {
+  const { ids, assignedSalesperson, assignedSalespersonId } = req.body;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ success: false, message: 'No opportunities selected' });
+  }
+
+  const db = readDB();
+
+  // 1. Update in db.json
+  const leadIdsToUpdate = [];
+  ids.forEach(id => {
+    const index = db.opportunities.findIndex(o => o.id === id);
+    if (index !== -1) {
+      db.opportunities[index].assignedSalesperson = assignedSalesperson;
+      db.opportunities[index].assignedSalespersonId = assignedSalespersonId;
+      logActivity(db, null, 'UPDATE_OPPORTUNITY', 'Opportunities', `Bulk assigned opportunity ID: ${id} to ${assignedSalesperson}`);
+
+      const leadId = db.opportunities[index].leadId;
+      if (leadId) {
+        leadIdsToUpdate.push(leadId);
+        const lIdx = db.leads.findIndex(l => l.id === leadId);
+        if (lIdx !== -1) {
+          db.leads[lIdx].assignedUser = assignedSalesperson;
+          db.leads[lIdx].assignedUserId = assignedSalespersonId;
+        }
+      }
+    }
+  });
+  writeDB(db);
+
+  // 2. Update in PostgreSQL
+  try {
+    // Update opportunities
+    await prisma.opportunity.updateMany({
+      where: {
+        id: { in: ids }
+      },
+      data: {
+        assignedSalesperson,
+        assignedSalespersonId
+      }
+    });
+
+    // Update associated leads
+    if (leadIdsToUpdate.length > 0) {
+      await prisma.lead.updateMany({
+        where: {
+          id: { in: leadIdsToUpdate }
+        },
+        data: {
+          assignedUser: assignedSalesperson,
+          assignedUserId: assignedSalespersonId
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Prisma error during bulk assign opportunities:", err);
+  }
+
+  res.json({ success: true, message: `Successfully assigned ${ids.length} opportunities` });
+});
+
 app.put('/api/opportunities/:id', async (req, res) => {
   const { id } = req.params;
   const db = readDB();
@@ -689,6 +846,56 @@ app.put('/api/opportunities/:id', async (req, res) => {
           console.error("Prisma error during opportunity stage move:", err);
         }
       }
+    }
+
+    // Update associated lead in both db.json and PostgreSQL when salesperson is changed
+    if (req.body.assignedSalesperson !== undefined || req.body.assignedSalespersonId !== undefined) {
+      const leadId = updatedOpp.leadId;
+      if (leadId) {
+        // 1. Update in db.leads
+        const leadIndex = db.leads.findIndex(l => l.id === leadId);
+        if (leadIndex !== -1) {
+          db.leads[leadIndex].assignedUser = req.body.assignedSalesperson;
+          db.leads[leadIndex].assignedUserId = req.body.assignedSalespersonId;
+        }
+
+        // 2. Update in PostgreSQL
+        try {
+          await prisma.lead.update({
+            where: { id: leadId },
+            data: {
+              assignedUser: req.body.assignedSalesperson,
+              assignedUserId: req.body.assignedSalespersonId
+            }
+          });
+        } catch (err) {
+          console.error("Prisma error syncing lead assignee from opportunity:", err);
+        }
+      }
+    }
+
+    // 3. Sync Opportunity update to PostgreSQL
+    try {
+      await prisma.opportunity.update({
+        where: { id },
+        data: {
+          customerName: req.body.customerName,
+          company: req.body.company,
+          email: req.body.email,
+          phone: req.body.phone,
+          dealValue: req.body.dealValue !== undefined ? Number(req.body.dealValue) : undefined,
+          stage: req.body.stage,
+          stageId: req.body.stageId,
+          assignedSalesperson: req.body.assignedSalesperson,
+          assignedSalespersonId: req.body.assignedSalespersonId,
+          expectedClosing: req.body.expectedClosing ? new Date(req.body.expectedClosing) : undefined,
+          priority: req.body.priority !== undefined ? Number(req.body.priority) : undefined,
+          tags: req.body.tags,
+          description: req.body.description
+        }
+      });
+    } catch (err) {
+      console.error("Prisma error syncing opportunity update:", err);
     }
 
     logActivity(db, null, 'UPDATE_OPPORTUNITY', 'Opportunities', `Updated opportunity: ${db.opportunities[index].company} (Stage: ${db.opportunities[index].stageId})`);

@@ -223,6 +223,8 @@ sendDraft: (
     id: string,
     stageId: string
   ) => Promise<void>;
+  handleBulkAssignLeads: (leadIds: string[], assignedUserId: string, assignedUser: string) => Promise<void>;
+  handleBulkAssignOpportunities: (oppIds: string[], assignedSalespersonId: string, assignedSalesperson: string) => Promise<void>;
 }
 
 const CRMContext = createContext<CRMContextType | undefined>(undefined);
@@ -366,6 +368,94 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
     }
   };
 
+  const handleUpdateLeadFromViewWithOppSync = async (leadId: string, leadData: any) => {
+    // 1. Optimistically update opportunities & customers if salesperson changes
+    if (leadData.assignedUserId !== undefined || leadData.assignedUser !== undefined) {
+      const opps = oppCtx.opportunities.filter(o => o.leadId === leadId);
+      const oppIds = opps.map(o => o.id);
+
+      oppCtx.setOpportunities((prev: any[]) => prev.map(o =>
+        o.leadId === leadId
+          ? { ...o, assignedSalespersonId: leadData.assignedUserId, assignedSalesperson: leadData.assignedUser }
+          : o
+      ));
+
+      if (oppIds.length > 0) {
+        customerCtx.setCustomers((prev: any[]) => prev.map(c =>
+          c.opportunityId && oppIds.includes(c.opportunityId)
+            ? { ...c, assignedSalesperson: leadData.assignedUser, assignedSalespersonId: leadData.assignedUserId }
+            : c
+        ));
+      }
+    }
+
+    // 2. Call core handler
+    await leadsCtx.handleUpdateLeadFromView(leadId, leadData);
+
+    // 3. Reload opportunities & customers
+    await oppCtx.loadOpportunities();
+    await customerCtx.loadCustomers();
+  };
+
+  const handleBulkAssignLeadsWithOppSync = async (leadIds: string[], assignedUserId: string, assignedUser: string) => {
+    // 1. Optimistically update opportunities & customers
+    const opps = oppCtx.opportunities.filter(o => o.leadId && leadIds.includes(o.leadId));
+    const oppIds = opps.map(o => o.id);
+
+    oppCtx.setOpportunities((prev: any[]) => prev.map(o =>
+      o.leadId && leadIds.includes(o.leadId)
+        ? { ...o, assignedSalespersonId: assignedUserId, assignedSalesperson: assignedUser }
+        : o
+    ));
+
+    if (oppIds.length > 0) {
+      customerCtx.setCustomers((prev: any[]) => prev.map(c =>
+        c.opportunityId && oppIds.includes(c.opportunityId)
+          ? { ...c, assignedSalesperson: assignedUser, assignedSalespersonId: assignedUserId }
+          : c
+      ));
+    }
+
+    // 2. Call core handler
+    await leadsCtx.handleBulkAssignLeads(leadIds, assignedUserId, assignedUser);
+
+    // 3. Reload opportunities & customers
+    await oppCtx.loadOpportunities();
+    await customerCtx.loadCustomers();
+  };
+
+  const handleUpdateOpportunityWithCustomerSync = async (oppId: string, oppData: any) => {
+    // 1. Optimistically update customer if salesperson changes
+    if (oppData.assignedSalesperson !== undefined || oppData.assignedSalespersonId !== undefined) {
+      customerCtx.setCustomers((prev: any[]) => prev.map(c =>
+        c.opportunityId === oppId
+          ? { ...c, assignedSalesperson: oppData.assignedSalesperson, assignedSalespersonId: oppData.assignedSalespersonId }
+          : c
+      ));
+    }
+
+    // 2. Call core handler
+    await oppCtx.handleUpdateOpportunity(oppId, oppData);
+
+    // 3. Reload customers
+    await customerCtx.loadCustomers();
+  };
+
+  const handleBulkAssignOpportunitiesWithCustomerSync = async (oppIds: string[], assignedSalespersonId: string, assignedSalesperson: string) => {
+    // 1. Optimistically update customers
+    customerCtx.setCustomers((prev: any[]) => prev.map(c =>
+      c.opportunityId && oppIds.includes(c.opportunityId)
+        ? { ...c, assignedSalesperson, assignedSalespersonId }
+        : c
+    ));
+
+    // 2. Call core handler
+    await oppCtx.handleBulkAssignOpportunities(oppIds, assignedSalespersonId, assignedSalesperson);
+
+    // 3. Reload customers
+    await customerCtx.loadCustomers();
+  };
+
   const handleSaveCustomFilter = () => {
     if (!customFilterName) return;
     setCustomFilters(prev => [...prev, customFilterName]);
@@ -465,12 +555,12 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       handleLogout: auth.handleLogout,
       selectQuickAccount: auth.selectQuickAccount,
       handleCreateLeadFromView: leadsCtx.handleCreateLeadFromView,
-      handleUpdateLeadFromView: leadsCtx.handleUpdateLeadFromView,
+      handleUpdateLeadFromView: handleUpdateLeadFromViewWithOppSync,
       handleDeleteLeadFromView: leadsCtx.handleDeleteLeadFromView,
       handleConvertLeadFromView,
       handleMoveOpportunity: oppCtx.handleMoveOpportunity,
       handleDeleteOpportunity: oppCtx.handleDeleteOpportunity,
-      handleUpdateOpportunity: oppCtx.handleUpdateOpportunity,
+      handleUpdateOpportunity: handleUpdateOpportunityWithCustomerSync,
       handleAddStage: oppCtx.handleAddStage,
       handleStageReorder: oppCtx.handleStageReorder,
       handleStageDelete: oppCtx.handleStageDelete,
@@ -548,6 +638,8 @@ sendDraft: emailCtx.sendDraft,
       handleBrandingSave: settingsCtx.handleBrandingSave,
       handleDeleteUser: settingsCtx.handleDeleteUser,
       handleUpdateUser: settingsCtx.handleUpdateUser,
+      handleBulkAssignLeads: handleBulkAssignLeadsWithOppSync,
+      handleBulkAssignOpportunities: handleBulkAssignOpportunitiesWithCustomerSync,
       applyFilters,
       handleSaveCustomFilter,
       clearAllFilters,

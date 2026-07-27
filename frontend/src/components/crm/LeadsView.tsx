@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { Trash2, X, Plus, Pencil } from 'lucide-react';
+import { Trash2, X, Plus, Pencil, User, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 interface LeadsViewProps {
@@ -17,6 +17,8 @@ interface LeadsViewProps {
   showLeadCreateModal: boolean;
   setShowLeadCreateModal: (show: boolean) => void;
   applyFilters: (data: any[], type: 'leads' | 'opportunities' | 'emails') => any[];
+  settingsUsers?: any[];
+  onBulkAssignLeads?: (leadIds: string[], assignedUserId: string, assignedUser: string) => Promise<void>;
 }
 
 export default function LeadsView({
@@ -32,9 +34,48 @@ export default function LeadsView({
   onUpdateLead,
   showLeadCreateModal,
   setShowLeadCreateModal,
-  applyFilters
+  applyFilters,
+  settingsUsers = [],
+  onBulkAssignLeads
 }: LeadsViewProps) {
   const router = useRouter();
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const userRole = (user?.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+  const isAdmin = userRole !== 'USER';
+
+  const salespersonsList = settingsUsers.filter((u: any) => {
+    const roleStr = (u.role || '').toLowerCase();
+    const nameStr = (u.name || '').toLowerCase();
+    const emailStr = (u.email || '').toLowerCase();
+    return !roleStr.includes('super') && !nameStr.includes('superadmin') && !emailStr.includes('superadmin');
+  });
+
+  const handleSelectLeadToggle = (id: string) => {
+    setSelectedLeadIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllLeadsToggle = () => {
+    const areAllSelected = filteredLeads.length > 0 && filteredLeads.every(ld => selectedLeadIds.includes(ld.id));
+    if (areAllSelected) {
+      setSelectedLeadIds(prev => prev.filter(id => !filteredLeads.some(ld => ld.id === id)));
+    } else {
+      const idsToAdd = filteredLeads.map(ld => ld.id).filter(id => !selectedLeadIds.includes(id));
+      setSelectedLeadIds(prev => [...prev, ...idsToAdd]);
+    }
+  };
+
+  const handleBulkAssign = async (userId: string) => {
+    if (!onBulkAssignLeads || selectedLeadIds.length === 0) return;
+    const foundUser = settingsUsers.find(u => u.id === userId);
+    const userName = foundUser ? foundUser.name : 'Unassigned';
+
+    if (window.confirm(`Assign ${selectedLeadIds.length} selected leads to ${userName}?`)) {
+      await onBulkAssignLeads(selectedLeadIds, userId, userName);
+      setSelectedLeadIds([]);
+    }
+  };
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [showLeadDrawer, setShowLeadDrawer] = useState(false);
   const [convertLeadId, setConvertLeadId] = useState<string | null>(null);
@@ -144,13 +185,52 @@ export default function LeadsView({
   const filteredLeads = applyFilters(unconvertedLeads, 'leads');
 
   return (
-    <div className="bg-card border border-border-crm rounded-2xl shadow-xs overflow-hidden text-xs">
+    <div className="flex flex-col gap-4">
+      {/* Bulk actions bar */}
+      {selectedLeadIds.length > 0 && isAdmin && (
+        <div className="flex justify-between items-center bg-card border border-border-crm rounded-2xl py-2.5 px-4 shrink-0 shadow-xs animate-in fade-in slide-in-from-left-2 duration-200">
+          <div className="flex items-center space-x-3.5">
+            <span className="text-[10px] text-txt-secondary font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+              {selectedLeadIds.length} Selected
+            </span>
+            <div className="flex items-center whitespace-nowrap">
+              <span className="font-semibold text-txt-secondary text-[11px] mr-2">Assign to Salesperson:</span>
+              <div className="relative flex items-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg border border-border-crm/30 transition shadow-sm cursor-pointer pl-2.5 pr-7 py-1.5">
+                <User className="w-3.5 h-3.5 text-primary mr-1.5 shrink-0" />
+                <select
+                  className="bg-transparent text-txt-primary focus:outline-none text-[11px] font-bold cursor-pointer appearance-none pr-1 outline-none"
+                  value=""
+                  onChange={(e) => handleBulkAssign(e.target.value)}
+                >
+                  <option value="" disabled>Select salesperson...</option>
+                  {salespersonsList.map((u: any) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 pointer-events-none" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="bg-card border border-border-crm rounded-2xl shadow-xs overflow-hidden text-xs">
 
 
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-bg-main border-b border-black  text-xs font-bold text-txt-secondary uppercase tracking-wider select-none">
+              {isAdmin && (
+                <th className="py-4 px-6 w-10">
+                  <input
+                    type="checkbox"
+                    className="rounded text-primary border-border-crm focus:ring-0 cursor-pointer w-3.5 h-3.5"
+                    checked={filteredLeads.length > 0 && filteredLeads.every(ld => selectedLeadIds.includes(ld.id))}
+                    onChange={handleSelectAllLeadsToggle}
+                  />
+                </th>
+              )}
               <th className="px-6 py-4 text-black font-bold">Lead Contact</th>
               <th className="px-6 py-4  text-black font-bold">Company</th>
               <th className="px-6 py-4  text-black font-bold">Category</th>
@@ -168,6 +248,16 @@ export default function LeadsView({
                 onClick={() => { setSelectedLead(ld); setShowLeadDrawer(true); }}
                 className="hover:bg-slate-50 transition cursor-pointer text-txt-primary"
               >
+                {isAdmin && (
+                  <td className="px-6 py-4 w-10" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      className="rounded text-primary border-border-crm focus:ring-0 cursor-pointer w-3.5 h-3.5"
+                      checked={selectedLeadIds.includes(ld.id)}
+                      onChange={() => handleSelectLeadToggle(ld.id)}
+                    />
+                  </td>
+                )}
                 <td className="px-6 py-4">
                   <div className="font-semibold text-txt-primary">
                     {ld.contactName}
@@ -226,7 +316,7 @@ export default function LeadsView({
             ))}
             {filteredLeads.length === 0 && (
               <tr>
-                <td colSpan={9} className="text-center py-12 text-slate-400">
+                <td colSpan={isAdmin ? 10 : 9} className="text-center py-12 text-slate-400">
                   No leads found matching current filter query.
                 </td>
               </tr>
@@ -312,8 +402,29 @@ export default function LeadsView({
                     />
                   </div>
                   <div>
-                    <p className="text-slate-400 font-semibold uppercase text-[10px]">Assigned Representative</p>
-                    <p className="font-medium text-txt-primary mt-0.5">{selectedLead.assignedUser || 'Unassigned'}</p>
+                    <p className="text-slate-400 font-semibold uppercase text-[10px] mb-1">Assigned Representative</p>
+                    {isAdmin ? (
+                      <select
+                        className="border border-border-crm rounded-lg px-2.5 py-1 text-xs text-txt-primary bg-card focus:outline-none w-full font-medium"
+                        value={selectedLead.assignedUserId || ''}
+                        onChange={(e) => {
+                          const newId = e.target.value;
+                          const foundUser = settingsUsers.find((u: any) => u.id === newId);
+                          setSelectedLead({
+                            ...selectedLead,
+                            assignedUserId: newId || null,
+                            assignedUser: foundUser ? foundUser.name : 'Unassigned'
+                          });
+                        }}
+                      >
+                        <option value="">Unassigned</option>
+                        {salespersonsList.map((u: any) => (
+                          <option key={u.id} value={u.id}>{u.name}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="font-medium text-txt-primary mt-0.5">{selectedLead.assignedUser || 'Unassigned'}</p>
+                    )}
                   </div>
                   <div>
                     <p className="text-slate-400 font-semibold uppercase text-[10px]">Service Type</p>
@@ -508,6 +619,7 @@ export default function LeadsView({
         )
       }
 
-    </div >
-  );
+    </div>
+  </div >
+);
 }

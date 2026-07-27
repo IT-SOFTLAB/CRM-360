@@ -84,6 +84,15 @@ bulkDeleteOpportunities: async (ids: string[]) => {
     console.warn("API error deleting opportunities", err);
     return null;
   }
+},
+bulkAssignOpportunities: async (ids: string[], payload: { assignedSalespersonId: string; assignedSalesperson: string }) => {
+  try {
+    const res = await api.put('/opportunities/bulk-assign', { ids, ...payload });
+    return res.data;
+  } catch (err) {
+    console.warn('API error bulk assigning opportunities, fallback to offline', err);
+    return null;
+  }
 }
 
 };

@@ -107,9 +107,70 @@ const updateLead = async (req, res) => {
     category: req.body.category,
     serviceType: req.body.serviceType,
     assignedUser: req.body.assignedUser,
+    assignedUserId: req.body.assignedUserId,
     status: req.body.status
   }
     });
+
+    // Also update associated opportunity and customer if salesperson changes
+    if (req.body.assignedUser !== undefined || req.body.assignedUserId !== undefined) {
+      await prisma.opportunity.updateMany({
+        where: { leadId: id },
+        data: {
+          assignedSalesperson: req.body.assignedUser,
+          assignedSalespersonId: req.body.assignedUserId
+        }
+      });
+      const opps = await prisma.opportunity.findMany({
+        where: { leadId: id },
+        select: { id: true }
+      });
+      const oppIds = opps.map(o => o.id);
+      if (oppIds.length > 0) {
+        await prisma.customer.updateMany({
+          where: { opportunityId: { in: oppIds } },
+          data: {
+            assignedSalesperson: req.body.assignedUser,
+            assignedSalespersonId: req.body.assignedUserId
+          }
+        });
+      }
+    }
+
+    // Also update db.json to keep them synced
+    const db = readDB();
+    const idx = db.leads.findIndex(l => l.id === id);
+    if (idx !== -1) {
+      db.leads[idx] = {
+        ...db.leads[idx],
+        contactName: req.body.contactName,
+        name: req.body.contactName || db.leads[idx].name,
+        company: req.body.company,
+        source: req.body.source,
+        email: req.body.email,
+        phone: req.body.phone,
+        category: req.body.category,
+        serviceType: req.body.serviceType,
+        assignedUser: req.body.assignedUser,
+        assignedUserId: req.body.assignedUserId,
+        status: req.body.status
+      };
+
+      // Update associated opportunity and customer in db.json
+      const oppIdx = db.opportunities.findIndex(o => o.leadId === id);
+      if (oppIdx !== -1) {
+        db.opportunities[oppIdx].assignedSalesperson = req.body.assignedUser;
+        db.opportunities[oppIdx].assignedSalespersonId = req.body.assignedUserId;
+
+        const oppId = db.opportunities[oppIdx].id;
+        const custIdx = db.customers.findIndex(c => c.opportunityId === oppId);
+        if (custIdx !== -1) {
+          db.customers[custIdx].assignedSalesperson = req.body.assignedUser;
+          db.customers[custIdx].assignedSalespersonId = req.body.assignedUserId;
+        }
+      }
+      writeDB(db);
+    }
 
     res.status(200).json(lead);
 
@@ -309,6 +370,84 @@ const importLeads = async (req, res) => {
   }
 };
 
+const bulkAssignLeads = async (req, res) => {
+  try {
+    const { ids, assignedUser, assignedUserId } = req.body;
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'No leads selected' });
+    }
+
+    // 1. Update in PostgreSQL
+    const updated = await prisma.lead.updateMany({
+      where: {
+        id: { in: ids }
+      },
+      data: {
+        assignedUser,
+        assignedUserId
+      }
+    });
+
+    // 2. Update associated opportunities in PostgreSQL
+    await prisma.opportunity.updateMany({
+      where: {
+        leadId: { in: ids }
+      },
+      data: {
+        assignedSalesperson: assignedUser,
+        assignedSalespersonId: assignedUserId
+      }
+    });
+
+    // Update associated customers in PostgreSQL
+    const opps = await prisma.opportunity.findMany({
+      where: { leadId: { in: ids } },
+      select: { id: true }
+    });
+    const oppIds = opps.map(o => o.id);
+    if (oppIds.length > 0) {
+      await prisma.customer.updateMany({
+        where: { opportunityId: { in: oppIds } },
+        data: {
+          assignedSalesperson: assignedUser,
+          assignedSalespersonId: assignedUserId
+        }
+      });
+    }
+
+    // 3. Update db.json
+    const db = readDB();
+    ids.forEach(id => {
+      const idx = db.leads.findIndex(l => l.id === id);
+      if (idx !== -1) {
+        db.leads[idx].assignedUser = assignedUser;
+        db.leads[idx].assignedUserId = assignedUserId;
+      }
+
+      // Update associated opportunity in db.json
+      const oppIdx = db.opportunities.findIndex(o => o.leadId === id);
+      if (oppIdx !== -1) {
+        db.opportunities[oppIdx].assignedSalesperson = assignedUser;
+        db.opportunities[oppIdx].assignedSalespersonId = assignedUserId;
+
+        const oppId = db.opportunities[oppIdx].id;
+        const custIdx = db.customers.findIndex(c => c.opportunityId === oppId);
+        if (custIdx !== -1) {
+          db.customers[custIdx].assignedSalesperson = assignedUser;
+          db.customers[custIdx].assignedSalespersonId = assignedUserId;
+        }
+      }
+    });
+    writeDB(db);
+
+    res.status(200).json({ success: true, message: `Successfully assigned ${ids.length} leads`, updatedCount: updated.count });
+  } catch (error) {
+    console.error('Bulk assign leads error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
-  createLead, getAllLeads, deleteLead, updateLead, importLeads
+  createLead, getAllLeads, deleteLead, updateLead, importLeads, bulkAssignLeads
 };

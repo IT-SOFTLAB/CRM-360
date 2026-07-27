@@ -23,6 +23,8 @@ export default function OpportunitiesPage() {
       addToast={crm.addToast}
       leads={crm.leads}
       onUpdateOpportunity={crm.handleUpdateOpportunity}
+      settingsUsers={crm.settingsUsers}
+      onBulkAssignOpportunities={crm.handleBulkAssignOpportunities}
     />
   );
 }

@@ -25,6 +25,7 @@ export interface OpportunityContextType {
   handleStageDelete: (stageId: string) => Promise<void>;
   handleDeleteOpportunity: (oppId: string) => Promise<void>;
   handleUpdateOpportunity: (oppId: string, oppData: any) => Promise<void>;
+  handleBulkAssignOpportunities: (oppIds: string[], assignedSalespersonId: string, assignedSalesperson: string) => Promise<void>;
 }
 
 export const OpportunityContext = createContext<OpportunityContextType | undefined>(undefined);
@@ -191,12 +192,62 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
     // Optimistic update
     setOpportunities(prev => prev.map(o => o.id === oppId ? { ...o, ...oppData } : o));
 
+    // Also update associated lead if salesperson changes
+    if (oppData.assignedSalesperson !== undefined || oppData.assignedSalespersonId !== undefined) {
+      const oppObj = opportunities.find(o => o.id === oppId);
+      if (oppObj && oppObj.leadId && leadCtx) {
+        leadCtx.setLeads((prev: any[]) => prev.map(l =>
+          l.id === oppObj.leadId
+            ? { ...l, assignedUser: oppData.assignedSalesperson, assignedUserId: oppData.assignedSalespersonId }
+            : l
+        ));
+      }
+    }
+
     const res = await opportunityService.updateOpportunity(oppId, oppData);
     if (res) {
       // Merge with server response state
       setOpportunities(prev => prev.map(o => o.id === oppId ? { ...o, ...res } : o));
+      if (leadCtx) {
+        await leadCtx.loadLeads();
+      }
     } else {
       if (toastCtx) toastCtx.addToast('success', 'Opportunity updated');
+    }
+  };
+
+  const handleBulkAssignOpportunities = async (oppIds: string[], assignedSalespersonId: string, assignedSalesperson: string) => {
+    // Optimistic update
+    setOpportunities(prev => prev.map(o => oppIds.includes(o.id) ? { ...o, assignedSalespersonId, assignedSalesperson } : o));
+
+    // Also update associated leads
+    if (leadCtx) {
+      const leadIdsToUpdate = opportunities
+        .filter(o => oppIds.includes(o.id) && o.leadId)
+        .map(o => o.leadId);
+
+      if (leadIdsToUpdate.length > 0) {
+        leadCtx.setLeads((prev: any[]) => prev.map(l =>
+          leadIdsToUpdate.includes(l.id)
+            ? { ...l, assignedUser: assignedSalesperson, assignedUserId: assignedSalespersonId }
+            : l
+        ));
+      }
+    }
+
+    const res = await opportunityService.bulkAssignOpportunities(oppIds, {
+      assignedSalespersonId,
+      assignedSalesperson
+    });
+    if (res && res.success) {
+      if (toastCtx) toastCtx.addToast('success', `Assigned ${oppIds.length} opportunities successfully`);
+      await loadOpportunities();
+      if (leadCtx) {
+        await leadCtx.loadLeads();
+      }
+    } else {
+      if (toastCtx) toastCtx.addToast('error', 'Failed to assign opportunities');
+      await loadOpportunities();
     }
   };
 
@@ -216,7 +267,8 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
       handleStageReorder,
       handleStageDelete,
       handleDeleteOpportunity,
-      handleUpdateOpportunity
+      handleUpdateOpportunity,
+      handleBulkAssignOpportunities
     }}>
       {children}
     </OpportunityContext.Provider>

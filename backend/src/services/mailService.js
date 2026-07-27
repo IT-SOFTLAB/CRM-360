@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 const dns = require("dns").promises;
+const axios = require("axios");
 
 console.log("SMTP_HOST:", process.env.SMTP_HOST);
 console.log("SMTP_PORT:", process.env.SMTP_PORT);
@@ -7,6 +8,7 @@ console.log("SMTP_SECURE:", process.env.SMTP_SECURE);
 console.log("SMTP_USER:", process.env.SMTP_USER);
 console.log("EMAIL_FROM:", process.env.MAIL_FROM);
 console.log("SMTP_PASS length:", process.env.SMTP_PASS?.length);
+console.log("RESEND_API_KEY configured:", !!process.env.RESEND_API_KEY);
 
 let transporterInstance = null;
 
@@ -51,24 +53,65 @@ async function getTransporter() {
   return transporterInstance;
 }
 
-// Warm up and verify on startup
-getTransporter()
-  .then((transporter) => {
-    transporter.verify((err, success) => {
-      if (err) {
-        console.error("VERIFY ERROR:", err);
-      } else {
-        console.log("SMTP LOGIN SUCCESS");
-      }
+// Warm up and verify SMTP on startup ONLY if RESEND_API_KEY is not defined
+if (!process.env.RESEND_API_KEY) {
+  getTransporter()
+    .then((transporter) => {
+      transporter.verify((err, success) => {
+        if (err) {
+          console.error("VERIFY ERROR:", err);
+        } else {
+          console.log("SMTP LOGIN SUCCESS");
+        }
+      });
+    })
+    .catch((err) => {
+      console.error("Failed to initialize transporter on startup:", err);
     });
-  })
-  .catch((err) => {
-    console.error("Failed to initialize transporter on startup:", err);
-  });
+} else {
+  console.log("Using Resend HTTP API for sending emails");
+}
 
 exports.sendMail = async ({ to, subject, html, text }) => {
   try {
     console.log("A. Entered sendMail");
+
+    // If Resend API Key is configured, use the HTTP API to bypass SMTP port block
+    if (process.env.RESEND_API_KEY) {
+      console.log("Sending email via Resend HTTP API...");
+      
+      // Parse from address. Resend requires valid format or defaults to onboarding@resend.dev
+      let fromEmail = "onboarding@resend.dev";
+      if (process.env.MAIL_FROM) {
+        // Extract email if format is "Name <email@domain.com>"
+        const match = process.env.MAIL_FROM.match(/<(.+)>/);
+        fromEmail = match ? match[1] : process.env.MAIL_FROM;
+      }
+
+      // If domain is not verified on Resend, they require sending from onboarding@resend.dev
+      const sender = (fromEmail === "crm360.team@gmail.com" || fromEmail.includes("gmail.com"))
+        ? "onboarding@resend.dev"
+        : process.env.MAIL_FROM || "onboarding@resend.dev";
+
+      const response = await axios.post("https://api.resend.com/emails", {
+        from: sender,
+        to: [to],
+        subject,
+        html,
+        text: text || html.replace(/<[^>]*>/g, ""), // simple fallback text
+      }, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        }
+      });
+
+      console.log("B. Mail sent successfully via Resend API", response.data);
+      return true;
+    }
+
+    // Fallback to standard SMTP (useful for localhost or paid Render tier)
+    console.log("Sending email via SMTP...");
     const transporter = await getTransporter();
 
     const info = await transporter.sendMail({
@@ -79,7 +122,7 @@ exports.sendMail = async ({ to, subject, html, text }) => {
       html,
     });
 
-    console.log("B. Mail sent successfully");
+    console.log("B. Mail sent successfully via SMTP");
     console.log(info);
 
     console.log("EMAIL_FROM:", process.env.EMAIL_FROM);
@@ -87,7 +130,8 @@ exports.sendMail = async ({ to, subject, html, text }) => {
 
     return true;
   } catch (err) {
-    console.error("SMTP Mail Error:", err);
+    console.error("Mail Send Error:", err);
     throw err;
   }
-};
+};
+

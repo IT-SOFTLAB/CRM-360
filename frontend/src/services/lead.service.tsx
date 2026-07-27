@@ -40,5 +40,14 @@ export const leadService = {
       console.warn('API error converting lead, fallback to offline', err);
       return null;
     }
+  },
+  bulkAssignLeads: async (ids: string[], payload: { assignedUserId: string; assignedUser: string }) => {
+    try {
+      const res = await api.put('/leads/bulk-assign', { ids, ...payload });
+      return res.data;
+    } catch (err) {
+      console.warn('API error bulk assigning leads, fallback to offline', err);
+      return null;
+    }
   }
 };

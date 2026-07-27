@@ -10,7 +10,7 @@ const {
   deleteOpportunity,
     bulkDeleteOpportunities,
   convertLeadToOpportunity,
-
+  bulkAssignOpportunities
 }=require("../controllers/opportunityController");
 const authenticateJWT = require("../middlewares/authMiddleware");
 
@@ -22,6 +22,7 @@ router.get("/:id",getOpportunity);
 
 router.post("/",createOpportunity);
 
+router.put("/bulk-assign", bulkAssignOpportunities);
 router.put("/:id",updateOpportunity);
 router.delete("/bulk-delete", bulkDeleteOpportunities);
 router.delete("/:id",deleteOpportunity);

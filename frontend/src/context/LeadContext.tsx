@@ -14,6 +14,7 @@ export interface LeadContextType {
   handleCreateLeadFromView: (leadForm: any) => Promise<void>;
   handleUpdateLeadFromView: (leadId: string, leadData: any) => Promise<void>;
   handleDeleteLeadFromView: (leadId: string) => Promise<void>;
+  handleBulkAssignLeads: (leadIds: string[], assignedUserId: string, assignedUser: string) => Promise<void>;
 }
 
 export const LeadContext = createContext<LeadContextType | undefined>(undefined);
@@ -94,6 +95,24 @@ export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const handleBulkAssignLeads = async (leadIds: string[], assignedUserId: string, assignedUser: string) => {
+    // Optimistic update
+    setLeads(prev => prev.map(l => leadIds.includes(l.id) ? { ...l, assignedUserId, assignedUser } : l));
+
+    try {
+      const res = await leadService.bulkAssignLeads(leadIds, { assignedUserId, assignedUser });
+      if (res && res.success) {
+        if (toastCtx) toastCtx.addToast('success', `Assigned ${leadIds.length} leads successfully`);
+      } else {
+        if (toastCtx) toastCtx.addToast('error', 'Failed to assign leads');
+        await loadLeads();
+      }
+    } catch (err) {
+      if (toastCtx) toastCtx.addToast('error', 'Failed to assign leads');
+      await loadLeads();
+    }
+  };
+
   return (
     <LeadContext.Provider value={{
       leads,
@@ -103,7 +122,8 @@ export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children
       loadLeads,
       handleCreateLeadFromView,
       handleUpdateLeadFromView,
-      handleDeleteLeadFromView
+      handleDeleteLeadFromView,
+      handleBulkAssignLeads
     }}>
       {children}
     </LeadContext.Provider>

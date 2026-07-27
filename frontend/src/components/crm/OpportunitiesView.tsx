@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from 'react';
-import { ChevronRight, Trash2, Plus, X, Briefcase, Calendar, DollarSign, User, Mail, Phone, Tag, Clipboard, Info, CheckCircle2, List, LayoutGrid, Star, Clock, Upload } from 'lucide-react';
+import { ChevronRight, ChevronDown, Trash2, Plus, X, Briefcase, Calendar, DollarSign, User, Mail, Phone, Tag, Clipboard, Info, CheckCircle2, List, LayoutGrid, Star, Clock, Upload } from 'lucide-react';
 import QuotationForm from "./QuotationForm";
 import { emailService } from '../../services/email.service';
 import { useCRM } from '../../context/CRMContext';
@@ -24,6 +24,8 @@ interface OpportunitiesViewProps {
   addToast: (type: 'success' | 'error' | 'info', msg: string) => void;
   leads: any[];
   onUpdateOpportunity: (oppId: string, oppData: any) => Promise<void> | void;
+  settingsUsers?: any[];
+  onBulkAssignOpportunities?: (oppIds: string[], assignedSalespersonId: string, assignedSalesperson: string) => Promise<void>;
 }
 
 export default function OpportunitiesView({
@@ -42,8 +44,16 @@ export default function OpportunitiesView({
   setShowStageModal,
   addToast,
   leads,
-  onUpdateOpportunity
+  onUpdateOpportunity,
+  settingsUsers = [],
+  onBulkAssignOpportunities
 }: OpportunitiesViewProps) {
+  const salespersonsList = settingsUsers.filter((u: any) => {
+    const roleStr = (u.role || '').toLowerCase();
+    const nameStr = (u.name || '').toLowerCase();
+    const emailStr = (u.email || '').toLowerCase();
+    return !roleStr.includes('super') && !nameStr.includes('superadmin') && !emailStr.includes('superadmin');
+  });
   const crmCtx = useCRM();
   const activities = crmCtx.activities || [];
   const theme = crmCtx.theme || 'light';
@@ -664,8 +674,8 @@ const handleBulkDelete = async () => {
         <div className="flex items-center space-x-2">
           <span className="font-extrabold text-sm text-txt-primary">Pipeline</span>
           {viewMode === 'list' && selectedOppIds.length > 0 && (
-            <div className="flex items-center space-x-2 ml-4 animate-in fade-in slide-in-from-left-2 duration-200">
-              <span className="text-xs text-txt-secondary font-semibold bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
+            <div className="flex items-center space-x-3.5 ml-4 animate-in fade-in slide-in-from-left-2 duration-200">
+              <span className="text-[10px] text-txt-secondary font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
                 {selectedOppIds.length} Selected
               </span>
               <button
@@ -678,16 +688,45 @@ const handleBulkDelete = async () => {
     body:
         "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin"
 });
-                  setShowBulkEmailModal(true);
+                   setShowBulkEmailModal(true);
                 }}
-                className="bg-primary hover:bg-primary-hover text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow flex items-center gap-1.5 transition cursor-pointer"
+                className="bg-primary hover:bg-primary-hover text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow flex items-center gap-1 transition cursor-pointer"
               >
                 <Mail className="w-3.5 h-3.5" />
                 <span>Send Bulk Email</span>
               </button>
+              {userRole !== 'USER' && (
+                <div className="flex items-center whitespace-nowrap">
+                  <span className="font-semibold text-txt-secondary text-[11px] mr-2">Assign User:</span>
+                  <div className="relative flex items-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg border border-border-crm/30 transition shadow-sm cursor-pointer pl-2.5 pr-7 py-1.5">
+                    <User className="w-3.5 h-3.5 text-primary mr-1.5 shrink-0" />
+                    <select
+                      className="bg-transparent text-txt-primary focus:outline-none text-[11px] font-bold cursor-pointer appearance-none pr-1 outline-none"
+                      value=""
+                      onChange={async (e) => {
+                        const newId = e.target.value;
+                        const foundUser = settingsUsers.find((u: any) => u.id === newId);
+                        const newName = foundUser ? foundUser.name : 'Unassigned';
+                        if (confirm(`Assign ${selectedOppIds.length} opportunities to ${newName}?`)) {
+                          if (onBulkAssignOpportunities) {
+                            await onBulkAssignOpportunities(selectedOppIds, newId, newName);
+                            setSelectedOppIds([]);
+                          }
+                        }
+                      }}
+                    >
+                      <option value="" disabled>Select salesperson...</option>
+                      {salespersonsList.map((u: any) => (
+                        <option key={u.id} value={u.id}>{u.name}</option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 pointer-events-none" />
+                  </div>
+                </div>
+              )}
               <button
   onClick={handleBulkDelete}
-  className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow flex items-center gap-1.5 transition cursor-pointer"
+  className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow flex items-center gap-1 transition cursor-pointer"
 >
   <Trash2 className="w-3.5 h-3.5" />
   <span>Delete Selected</span>
@@ -695,21 +734,21 @@ const handleBulkDelete = async () => {
             </div>
           )}
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-4">
           {/* Export File Button */}
           <button
             onClick={handleExportCSV}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-txt-primary hover:text-primary rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-border-crm/30"
+            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-txt-primary hover:text-primary rounded-lg text-[11px] font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-border-crm/30"
             title="Export Opportunities to CSV"
           >
             <Upload className="w-3.5 h-3.5" />
             <span>Export File</span>
           </button>
 
-          <div className="flex items-center space-x-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+          <div className="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
             <button
               onClick={() => handleToggleViewMode('kanban')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                 viewMode === 'kanban'
                   ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
                   : 'text-txt-secondary hover:text-txt-primary'
@@ -720,7 +759,7 @@ const handleBulkDelete = async () => {
             </button>
             <button
               onClick={() => handleToggleViewMode('list')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                 viewMode === 'list'
                   ? 'bg-white dark:bg-slate-700 text-primary shadow-sm'
                   : 'text-txt-secondary hover:text-txt-primary'
@@ -1182,8 +1221,36 @@ const handleBulkDelete = async () => {
                       />
                     </div>
                     <div>
-                      <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Assigned Rep</p>
-                      <p className="font-bold text-txt-primary text-xs">{assignedUser}</p>
+                      <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">Assigned Rep</p>
+                      {userRole !== 'USER' ? (
+                        <select
+                          className="border border-border-crm rounded-lg px-2 py-1 text-xs text-txt-primary bg-card focus:outline-none w-full font-bold"
+                          value={selectedOpp.assignedSalespersonId || ''}
+                          onChange={async (e) => {
+                            const newId = e.target.value;
+                            const foundUser = settingsUsers.find((u: any) => u.id === newId);
+                            const newName = foundUser ? foundUser.name : 'Unassigned';
+                            setSelectedOpp({
+                              ...selectedOpp,
+                              assignedSalespersonId: newId || null,
+                              assignedSalesperson: newName
+                            });
+                            if (onUpdateOpportunity) {
+                              await onUpdateOpportunity(selectedOpp.id, {
+                                assignedSalespersonId: newId || null,
+                                assignedSalesperson: newName
+                              });
+                            }
+                          }}
+                        >
+                          <option value="">Unassigned</option>
+                          {salespersonsList.map((u: any) => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <p className="font-bold text-txt-primary text-xs">{assignedUser}</p>
+                      )}
                     </div>
                     <div>
                       <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Service Type</p>
