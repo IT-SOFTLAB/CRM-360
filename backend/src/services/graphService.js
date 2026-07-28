@@ -158,19 +158,28 @@ function getGraphClient(accessToken) {
     });
 }
 
+function isTokenExpired(token) {
+    try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return true;
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+        const exp = payload.exp;
+        if (!exp) return true;
+        return (Date.now() / 1000) > (exp - 300); // 5 minute buffer
+    } catch (err) {
+        return true;
+    }
+}
+
 /**
  * Robustly retrieves valid Outlook tokens for a request.
- * Checks req.session.outlook first, then falls back to User DB.
+ * Prioritizes DB (to allow automated token refreshes), and falls back to Session.
  * Automatically refreshes expired access tokens.
  */
 async function getOutlookTokens(req) {
-    // 1. Session check
-    if (req.session?.outlook?.accessToken) {
-        return req.session.outlook;
-    }
-
-    // 2. Database fallback via authenticated User ID
     const userId = req.user?.id || req.user?.userId;
+
+    // 1. Prioritize Database Token (so we can automatically refresh it)
     if (userId) {
         try {
             const user = await prisma.user.findUnique({
@@ -178,8 +187,9 @@ async function getOutlookTokens(req) {
             });
 
             if (user?.outlookAccessToken) {
-                // Try refreshing if refresh token exists
-                if (user.outlookRefreshToken) {
+                // If it's expired, attempt refresh
+                if (isTokenExpired(user.outlookAccessToken) && user.outlookRefreshToken) {
+                    console.log("GraphService: DB access token expired, attempting refresh...");
                     try {
                         const refreshed = await refreshAccessToken(user.outlookRefreshToken);
                         if (refreshed?.accessToken) {
@@ -203,10 +213,36 @@ async function getOutlookTokens(req) {
                             return tokenData;
                         }
                     } catch (refreshErr) {
-                        console.warn("GraphService: Token refresh failed, using stored token:", refreshErr.message);
+                        console.warn("GraphService: Token refresh failed, checking if token is expired/revoked:", refreshErr.message);
+                        const isAuthError = refreshErr.errorCode?.includes("invalid_grant") || 
+                                            refreshErr.message?.includes("invalid_grant") || 
+                                            refreshErr.message?.includes("expired") || 
+                                            refreshErr.message?.includes("validation failed") ||
+                                            refreshErr.message?.includes("interaction_required") ||
+                                            refreshErr.errorCode?.includes("invalid_client");
+                        if (isAuthError) {
+                            console.log("GraphService: Clearing invalid Outlook tokens from DB.");
+                            try {
+                                await prisma.user.update({
+                                    where: { id: user.id },
+                                    data: {
+                                        outlookAccessToken: null,
+                                        outlookRefreshToken: null,
+                                        outlookEmail: null
+                                    }
+                                });
+                            } catch (dbUpdateErr) {
+                                console.error("GraphService: Failed to clear invalid Outlook tokens from DB:", dbUpdateErr);
+                            }
+                            if (req.session) {
+                                delete req.session.outlook;
+                            }
+                            return null;
+                        }
                     }
                 }
 
+                // Stored token is still valid (or refresh wasn't possible/didn't fail auth check)
                 const tokenData = {
                     accessToken: user.outlookAccessToken,
                     refreshToken: user.outlookRefreshToken,
@@ -218,6 +254,65 @@ async function getOutlookTokens(req) {
         } catch (dbErr) {
             console.error("GraphService: Error fetching user Outlook tokens from DB:", dbErr);
         }
+    }
+
+    // 2. Session Fallback
+    if (req.session?.outlook?.accessToken) {
+        const sessionOutlook = req.session.outlook;
+        
+        // If session token is expired, try to refresh it
+        if (isTokenExpired(sessionOutlook.accessToken) && sessionOutlook.refreshToken) {
+            console.log("GraphService: Session access token expired, attempting refresh...");
+            try {
+                const refreshed = await refreshAccessToken(sessionOutlook.refreshToken);
+                if (refreshed?.accessToken) {
+                    sessionOutlook.accessToken = refreshed.accessToken;
+                    sessionOutlook.refreshToken = refreshed.refreshToken || sessionOutlook.refreshToken;
+                    req.session.outlook = sessionOutlook;
+
+                    // If we have a logged in user, also update DB
+                    if (userId) {
+                        await prisma.user.update({
+                            where: { id: userId },
+                            data: {
+                                outlookAccessToken: sessionOutlook.accessToken,
+                                outlookRefreshToken: sessionOutlook.refreshToken
+                            }
+                        });
+                    }
+                }
+            } catch (refreshErr) {
+                console.warn("GraphService: Session token refresh failed:", refreshErr.message);
+                const isAuthError = refreshErr.errorCode?.includes("invalid_grant") || 
+                                    refreshErr.message?.includes("invalid_grant") || 
+                                    refreshErr.message?.includes("expired") || 
+                                    refreshErr.message?.includes("validation failed") ||
+                                    refreshErr.message?.includes("interaction_required") ||
+                                    refreshErr.errorCode?.includes("invalid_client");
+                if (isAuthError) {
+                    if (req.session) {
+                        delete req.session.outlook;
+                    }
+                    if (userId) {
+                        try {
+                            await prisma.user.update({
+                                where: { id: userId },
+                                data: {
+                                    outlookAccessToken: null,
+                                    outlookRefreshToken: null,
+                                    outlookEmail: null
+                                }
+                            });
+                        } catch (dbUpdateErr) {
+                            console.error("GraphService: Failed to clear invalid Outlook tokens from DB:", dbUpdateErr);
+                        }
+                    }
+                    return null;
+                }
+            }
+        }
+        
+        return sessionOutlook;
     }
 
     return null;

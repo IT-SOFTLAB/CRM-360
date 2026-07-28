@@ -5,7 +5,8 @@ import { useCRM } from '@/context/CRMContext';
 import { 
   Users, Plus, Shield, Trash2, X, BarChart3, 
   TrendingUp, CheckCircle, AlertCircle, FileText, 
-  Calendar, Phone, Mail, Award, Briefcase, ListCollapse
+  Calendar, Phone, Mail, Award, Briefcase, ListCollapse,
+  ChevronDown, Upload, Download
 } from 'lucide-react';
 import api from '@/services/api';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -36,6 +37,124 @@ export default function SalesTeamView() {
   const [selectedTeam, setSelectedTeam] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<'performance' | 'leads'>('performance');
   const [kanbanDeals, setKanbanDeals] = useState<any[]>([]);
+  const [selectedTeamLeadIds, setSelectedTeamLeadIds] = useState<string[]>([]);
+  const [importing, setImporting] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleTermsAccept = () => {
+    setShowImportModal(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleDownloadSample = () => {
+    const headers = [
+      'contactName',
+      'category',
+      'serviceType',
+      'company',
+      'email',
+      'phone',
+      'assignedUser',
+      'createdAt'
+    ];
+
+    const sampleRow = [
+      'John Doe',
+      'Healthcare',
+      'Service Based',
+      'Apex Ltd',
+      'john@apex.com',
+      '9876543210',
+      selectedTeam?.leader?.name || 'Sarah Connor',
+      new Date().toISOString()
+    ];
+
+    const csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(','), sampleRow.join(',')].join('\n');
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "crm_leads_import_template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  useEffect(() => {
+    setSelectedTeamLeadIds([]);
+  }, [selectedTeam, activeTab]);
+
+  const handleImportLeads = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    const isCsv = file.type === 'text/csv' || file.name.endsWith('.csv');
+    const isExcel = 
+      file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || 
+      file.type === 'application/vnd.ms-excel' || 
+      file.name.endsWith('.xlsx') || 
+      file.name.endsWith('.xls');
+
+    if (!isCsv && !isExcel) {
+      alert("Invalid file format. Please upload a .csv, .xlsx or .xls file.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setImporting(true);
+    crm.addToast('info', 'Uploading leads file...');
+
+    try {
+      const url = selectedTeam ? `/leads/import?teamId=${selectedTeam.id}` : '/leads/import';
+      const response = await api.post(url, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      const data = response.data;
+
+      if (data.success) {
+        crm.addToast('success', data.message || 'Leads imported successfully!');
+        if (crm.loadCRMData) {
+          await crm.loadCRMData();
+        }
+      } else {
+        crm.addToast('error', data.message || 'Failed to import leads.');
+        alert(data.message || 'uploading failed the csv file does not match the required fields');
+      }
+    } catch (error) {
+      console.error(error);
+      crm.addToast('error', 'Error uploading file. Server may be offline.');
+    } finally {
+      setImporting(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleBulkAssignTeamLeads = async (userId: string) => {
+    if (selectedTeamLeadIds.length === 0 || !selectedTeam) return;
+
+    let userName = 'Unassigned';
+    if (selectedTeam.leader?.id === userId) {
+      userName = selectedTeam.leader.name;
+    } else {
+      const memberObj = (selectedTeam.members || []).find((m: any) => m.id === userId);
+      if (memberObj) userName = memberObj.name;
+    }
+
+    if (confirm(`Assign ${selectedTeamLeadIds.length} selected leads to ${userName}?`)) {
+      await crm.handleBulkAssignLeads(selectedTeamLeadIds, userId, userName);
+      setSelectedTeamLeadIds([]);
+    }
+  };
 
   // Individual User Search & Filter States
   const [selectedUserId, setSelectedUserId] = useState<string>('');
@@ -719,6 +838,26 @@ export default function SalesTeamView() {
             </div>
           )} */}
 
+          {selectedTeam && (
+            <>
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                accept=".csv, .xlsx, .xls"
+                onChange={handleImportLeads}
+              />
+              <button
+                onClick={() => setShowImportModal(true)}
+                disabled={importing}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-4 py-2 text-xs font-semibold transition flex items-center space-x-1.5 shadow-lg shadow-emerald-500/10 cursor-pointer shrink-0 disabled:opacity-50"
+              >
+                <Upload className="w-4 h-4" />
+                <span>{importing ? 'Uploading...' : 'Import Leads'}</span>
+              </button>
+            </>
+          )}
+
           <button
             onClick={() => setShowCreateModal(true)}
             className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 text-xs font-semibold transition flex items-center space-x-1.5 shadow-lg shadow-indigo-500/10 cursor-pointer shrink-0"
@@ -1191,15 +1330,62 @@ export default function SalesTeamView() {
                   <div className="space-y-6">
                     {/* Leads List */}
                     <div className="bg-card border border-border-crm rounded-xl p-5 space-y-3">
-                      <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary flex items-center gap-1.5">
-                        <ListCollapse className="w-4 h-4 text-primary" />
-                        <span>Team Lead Allocation</span>
-                      </h4>
+                      <div className="flex justify-between items-center">
+                        <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary flex items-center gap-1.5">
+                          <ListCollapse className="w-4 h-4 text-primary" />
+                          <span>Team Lead Allocation</span>
+                        </h4>
+
+                        {/* Bulk actions bar inside teams leads tab */}
+                        {selectedTeamLeadIds.length > 0 && selectedTeam && (
+                          <div className="flex items-center space-x-3.5 bg-slate-50 dark:bg-slate-900 border border-border-crm/30 py-1.5 px-3 rounded-xl animate-in fade-in duration-200">
+                            <span className="text-[10px] text-txt-secondary font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                              {selectedTeamLeadIds.length} Selected
+                            </span>
+                            <div className="flex items-center whitespace-nowrap">
+                              <span className="font-semibold text-txt-secondary text-[11px] mr-2">Assign:</span>
+                              <div className="relative flex items-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg border border-border-crm/30 transition shadow-sm cursor-pointer pl-2.5 pr-7 py-1">
+                                <Users className="w-3.5 h-3.5 text-primary mr-1.5 shrink-0" />
+                                <select
+                                  className="bg-transparent text-txt-primary focus:outline-none text-[11px] font-bold cursor-pointer appearance-none pr-1 outline-none"
+                                  value=""
+                                  onChange={(e) => handleBulkAssignTeamLeads(e.target.value)}
+                                >
+                                  <option value="" disabled>Select member...</option>
+                                  {selectedTeam.leader && (
+                                    <option value={selectedTeam.leader.id}>{selectedTeam.leader.name} (Leader)</option>
+                                  )}
+                                  {(selectedTeam.members || []).map((m: any) => (
+                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                  ))}
+                                </select>
+                                <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 pointer-events-none" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
 
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs border-collapse">
                           <thead>
-                            <tr className="border-b border-border-crm text-[10px] text-txt-secondary font-bold uppercase">
+                            <tr className="border-b border-border-crm text-[10px] text-txt-secondary font-bold uppercase select-none">
+                              <th className="py-2.5 w-10">
+                                <input
+                                  type="checkbox"
+                                  className="rounded text-primary border-border-crm focus:ring-0 cursor-pointer w-3.5 h-3.5"
+                                  checked={metrics.leadsList.length > 0 && metrics.leadsList.every((l: any) => selectedTeamLeadIds.includes(l.id))}
+                                  onChange={() => {
+                                    const areAllSelected = metrics.leadsList.length > 0 && metrics.leadsList.every((l: any) => selectedTeamLeadIds.includes(l.id));
+                                    if (areAllSelected) {
+                                      setSelectedTeamLeadIds(prev => prev.filter(id => !metrics.leadsList.some((l: any) => l.id === id)));
+                                    } else {
+                                      const idsToAdd = metrics.leadsList.map((l: any) => l.id).filter((id: string) => !selectedTeamLeadIds.includes(id));
+                                      setSelectedTeamLeadIds(prev => [...prev, ...idsToAdd]);
+                                    }
+                                  }}
+                                />
+                              </th>
                               <th className="py-2.5">Lead Title</th>
                               <th className="py-2.5">Contact Name</th>
                               <th className="py-2.5">Assigned To</th>
@@ -1209,15 +1395,59 @@ export default function SalesTeamView() {
                           <tbody className="divide-y divide-border-crm text-txt-primary">
                             {metrics.leadsList.map((lead: any) => (
                               <tr key={lead.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                                <td className="py-3 w-10">
+                                  <input
+                                    type="checkbox"
+                                    className="rounded text-primary border-border-crm focus:ring-0 cursor-pointer w-3.5 h-3.5"
+                                    checked={selectedTeamLeadIds.includes(lead.id)}
+                                    onChange={() => {
+                                      setSelectedTeamLeadIds(prev =>
+                                        prev.includes(lead.id) ? prev.filter(id => id !== lead.id) : [...prev, lead.id]
+                                      );
+                                    }}
+                                  />
+                                </td>
                                 <td className="py-3 font-bold text-blue-600 dark:text-blue-400">{lead.title || lead.company || 'Unnamed Lead'}</td>
                                 <td className="py-3 text-txt-secondary">{lead.customerName || lead.contactName || lead.name || 'N/A'}</td>
-                                <td className="py-3 font-semibold">{lead.assignedUser || lead.assignedSalesperson || 'Unassigned'}</td>
+                                <td className="py-3">
+                                  {selectedTeam && (
+                                    <div className="relative inline-flex items-center bg-slate-50 dark:bg-slate-900 border border-border-crm/30 rounded-lg pl-2 pr-6 py-1 cursor-pointer">
+                                      <select
+                                        className="bg-transparent text-txt-primary focus:outline-none text-[11px] font-semibold cursor-pointer appearance-none pr-1 outline-none"
+                                        value={lead.assignedUserId || ''}
+                                        onChange={async (e) => {
+                                          const newId = e.target.value;
+                                          let newName = 'Unassigned';
+                                          if (selectedTeam.leader?.id === newId) {
+                                            newName = selectedTeam.leader.name;
+                                          } else {
+                                            const memberObj = (selectedTeam.members || []).find((m: any) => m.id === newId);
+                                            if (memberObj) newName = memberObj.name;
+                                          }
+                                          await crm.handleUpdateLeadFromView(lead.id, {
+                                            assignedUserId: newId || null,
+                                            assignedUser: newName
+                                          });
+                                        }}
+                                      >
+                                        <option value="">Unassigned</option>
+                                        {selectedTeam.leader && (
+                                          <option value={selectedTeam.leader.id}>{selectedTeam.leader.name} (Leader)</option>
+                                        )}
+                                        {(selectedTeam.members || []).map((m: any) => (
+                                          <option key={m.id} value={m.id}>{m.name}</option>
+                                        ))}
+                                      </select>
+                                      <ChevronDown className="w-2.5 h-2.5 text-slate-400 absolute right-1.5 pointer-events-none" />
+                                    </div>
+                                  )}
+                                </td>
                                 <td className="py-3 text-right font-extrabold text-txt-primary">₹{(parseFloat(lead.dealValue) || 0).toLocaleString()}</td>
                               </tr>
                             ))}
                             {metrics.leadsList.length === 0 && (
                               <tr>
-                                <td colSpan={4} className="text-center py-6 text-txt-secondary italic">No active leads associated with this team.</td>
+                                <td colSpan={5} className="text-center py-6 text-txt-secondary italic">No active leads associated with this team.</td>
                               </tr>
                             )}
                           </tbody>
@@ -1328,6 +1558,81 @@ export default function SalesTeamView() {
                 Create Team
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* CSV Import Terms & Conditions Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-card border border-border-crm rounded-2xl shadow-2xl p-6 max-w-lg w-full text-txt-primary flex flex-col max-h-[85vh]">
+            
+            <h4 className="font-bold text-sm tracking-tight mb-4 flex items-center gap-2 border-b border-border-crm pb-2 uppercase text-primary font-extrabold">
+              <Upload className="w-4 h-4" />
+              CSV Leads Import Terms & Format Rules
+            </h4>
+            
+            {/* Scrollable Terms Text Container */}
+            <div className="overflow-y-auto pr-1 space-y-4 mb-5 text-txt-secondary leading-relaxed bg-bg-main p-4 rounded-xl border border-border-crm max-h-[50vh]">
+               <p className="font-bold text-txt-primary">
+                Please read and accept the instructions below before importing your leads list.
+              </p>
+
+              {/* Sample Template Download Call-to-action */}
+              <div className="flex items-center justify-between bg-card border border-border-crm p-3 rounded-xl gap-3">
+                <div className="min-w-0">
+                  <p className="font-bold text-txt-primary text-xs">Need a sample file?</p>
+                  <p className="text-[10px] text-txt-secondary mt-0.5 leading-snug">Get a pre-formatted template with all the correct column headings.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleDownloadSample}
+                  className="px-2.5 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-[10px] font-semibold transition cursor-pointer flex items-center gap-1 shrink-0 shadow-sm"
+                >
+                  <Download className="w-3.5 h-3.5" style={{ strokeWidth: 2.5 }} />
+                  <span>Get Template</span>
+                </button>
+              </div>
+              
+              <div>
+                <h5 className="font-bold text-txt-primary mb-1">Required CSV/Excel Columns</h5>
+                <p>The sheet must contain the following column headers exactly (case-sensitive):</p>
+                <ul className="list-disc pl-5 mt-1 space-y-1">
+                  <li><span className="font-bold text-txt-primary">contactName</span> (Required): The full name of the lead contact (minimum 3 characters).</li>
+                  <li><span className="font-bold text-txt-primary">category</span> (Required): Industry category (e.g. "Healthcare", "Manufacturing", "IT Services").</li>
+                  <li><span className="font-bold text-txt-primary">serviceType</span> (Required): Sales classification (e.g. "Service Based", "Product Based").</li>
+                  <li><span className="font-bold text-txt-primary">company</span>: Organization / Company name.</li>
+                  <li><span className="font-bold text-txt-primary">email</span>: Email address.</li>
+                  <li><span className="font-bold text-txt-primary">phone</span>: 10-digit phone number.</li>
+                  <li><span className="font-bold text-txt-primary">assignedUser</span>: Full name of the assigned sales representative.</li>
+                  <li><span className="font-bold text-txt-primary">createdAt</span>: Creation date. Defaults to current date and time if omitted.</li>
+                </ul>
+              </div>
+
+              <div className="border-t border-border-crm pt-3">
+                <p className="italic text-[10px]">
+                  By clicking "OK", you acknowledge that your spreadsheet complies with the format above and consent to saving this data.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Controls */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setShowImportModal(false)}
+                className="flex-1 border border-border-crm hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl py-2.5 font-semibold text-txt-primary cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleTermsAccept}
+                className="flex-1 bg-primary hover:bg-primary-hover text-white rounded-xl py-2.5 font-semibold shadow cursor-pointer"
+              >
+                OK
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -33,6 +33,7 @@ const logOutgoingEmail = async (logData) => {
     // 1. Save to Prisma
     await prisma.emailLog.create({
       data: {
+        id: 'elog_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
         recipientEmail: logData.recipientEmail,
         subject: logData.subject,
         leadId: logData.leadId || null,
@@ -42,7 +43,8 @@ const logOutgoingEmail = async (logData) => {
         errorMessage: logData.errorMessage || null,
         attachments: logData.attachments || null,
         emailBody: logData.emailBody,
-        sentAt: new Date()
+        sentAt: new Date(),
+        updatedAt: new Date()
       }
     });
   } catch (err) {

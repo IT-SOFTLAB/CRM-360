@@ -263,6 +263,30 @@ const importLeads = async (req, res) => {
     // Convert sheet to JSON array of objects
     const results = xlsx.utils.sheet_to_json(worksheet);
     const createdLeads = [];
+
+    const { teamId } = req.query;
+    let initialAssigneeName = req.user?.name || 'Admin';
+    let initialAssigneeId = req.user?.id || null;
+
+    if (teamId) {
+      try {
+        const team = await prisma.salesTeam.findUnique({
+          where: { id: teamId },
+          include: { leader: true, members: { select: { id: true, name: true } } }
+        });
+        if (team) {
+          if (team.leader) {
+            initialAssigneeName = team.leader.name;
+            initialAssigneeId = team.leader.id;
+          } else if (team.members && team.members.length > 0) {
+            initialAssigneeName = team.members[0].name;
+            initialAssigneeId = team.members[0].id;
+          }
+        }
+      } catch (teamErr) {
+        console.warn('Failed to resolve team leader for import:', teamErr.message);
+      }
+    }
     
     const db = readDB();
     if (!db.leads) db.leads = [];
@@ -291,7 +315,8 @@ const importLeads = async (req, res) => {
       const trimmedPhone = phone ? phone.toString().trim() : null;
       const trimmedCategory = category.toString().trim();
       const trimmedServiceType = serviceType.toString().trim();
-      const trimmedAssignedUser = assignedUser ? assignedUser.toString().trim() : null;
+      const trimmedAssignedUser = initialAssigneeName;
+      const trimmedAssignedUserId = initialAssigneeId;
 
       // Handle createdAt date parsing (supporting strings and Excel serial date numbers)
       let parsedCreatedAt = new Date();
@@ -322,6 +347,7 @@ const importLeads = async (req, res) => {
             category: trimmedCategory,
             serviceType: trimmedServiceType,
             assignedUser: trimmedAssignedUser,
+            assignedUserId: trimmedAssignedUserId,
             status: 'New', // Automatically set status to "New"
             createdAt: parsedCreatedAt
           }
@@ -346,6 +372,7 @@ const importLeads = async (req, res) => {
         category: trimmedCategory,
         serviceType: trimmedServiceType,
         assignedUser: trimmedAssignedUser,
+        assignedUserId: trimmedAssignedUserId,
         status: 'New',              // Automatically set status to "New"
         createdAt: parsedCreatedAt.toISOString().split('T')[0],
         createdDate: parsedCreatedAt.toISOString().split('T')[0]

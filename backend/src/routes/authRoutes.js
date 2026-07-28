@@ -16,7 +16,7 @@ router.post("/forgot-password", auth.forgotPassword);
 router.post('/verify-otp', auth.verifyOtp);
 router.post('/reset-password', auth.resetPassword);
 
-router.get("/login/outlook", auth.outlookLogin);
+router.get("/login/outlook", authenticateJWT, auth.outlookLogin);
 router.get("/callback", auth.outlookCallback);
 
 router.post('/refresh', auth.refresh);
