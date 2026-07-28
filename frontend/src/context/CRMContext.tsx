@@ -75,8 +75,9 @@ export interface CRMContextType {
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   activeFilters: any;
   setActiveFilters: React.Dispatch<React.SetStateAction<any>>;
-  customFilters: string[];
-  setCustomFilters: React.Dispatch<React.SetStateAction<string[]>>;
+  savedFilters: any[];
+  setSavedFilters: React.Dispatch<React.SetStateAction<any[]>>;
+  handleDeleteSavedFilter: (id: string) => Promise<void>;
   customFilterName: string;
   setCustomFilterName: React.Dispatch<React.SetStateAction<string>>;
   showFilterDrawer: boolean;
@@ -247,7 +248,16 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
   // Local filter and UI states
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
   const [activeFilters, setActiveFilters] = useState<any>(DEFAULT_ACTIVE_FILTERS);
-  const [customFilters, setCustomFilters] = useState<string[]>([]);
+  const [savedFilters, setSavedFilters] = useState<any[]>([]);
+
+  const loadSavedFilters = async () => {
+    try {
+      const res = await api.get('/filters');
+      setSavedFilters(res.data || []);
+    } catch (err) {
+      console.warn('Failed to load saved filters:', err);
+    }
+  };
   const [customFilterName, setCustomFilterName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -294,6 +304,7 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
         if (companyBranding !== undefined) settingsCtx.setCompanyBranding(companyBranding);
         if (settingsUsers !== undefined) settingsCtx.setSettingsUsers(settingsUsers ?? []);
         if (notifications !== undefined) notificationsCtx.setNotifications(notifications ?? []);
+        await loadSavedFilters();
         return;
       }
     } catch (err) {
@@ -302,16 +313,16 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
 
     await Promise.all([
       leadsCtx.loadLeads(),
-    oppCtx.loadOpportunities(),
-    customerCtx.loadCustomers(),
-    activityCtx.loadActivities(),
-    quoteCtx.loadQuotations(),
-    referralCtx.loadReferrals(),
-    pipelineCtx.loadStages(),
-    settingsCtx.loadSettings(),
-
-    emailCtx.loadInbox()
-]);
+      oppCtx.loadOpportunities(),
+      customerCtx.loadCustomers(),
+      activityCtx.loadActivities(),
+      quoteCtx.loadQuotations(),
+      referralCtx.loadReferrals(),
+      pipelineCtx.loadStages(),
+      settingsCtx.loadSettings(),
+      emailCtx.loadInbox(),
+      loadSavedFilters()
+    ]);
   };
 
   // Compatibility API call
@@ -456,11 +467,31 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
     await customerCtx.loadCustomers();
   };
 
-  const handleSaveCustomFilter = () => {
+  const handleSaveCustomFilter = async () => {
     if (!customFilterName) return;
-    setCustomFilters(prev => [...prev, customFilterName]);
-    toastCtx.addToast('success', `Saved custom filter: ${customFilterName}`);
-    setCustomFilterName('');
+    try {
+      const res = await api.post('/filters', {
+        name: customFilterName,
+        filters: activeFilters
+      });
+      setSavedFilters(prev => [res.data, ...prev]);
+      toastCtx.addToast('success', `Saved custom filter: ${customFilterName}`);
+      setCustomFilterName('');
+    } catch (err: any) {
+      console.error('Failed to save filter:', err);
+      toastCtx.addToast('error', err.response?.data?.message || 'Failed to save filter');
+    }
+  };
+
+  const handleDeleteSavedFilter = async (id: string) => {
+    try {
+      await api.delete(`/filters/${id}`);
+      setSavedFilters(prev => prev.filter(f => f.id !== id));
+      toastCtx.addToast('success', 'Saved filter deleted');
+    } catch (err: any) {
+      console.error('Failed to delete filter:', err);
+      toastCtx.addToast('error', 'Failed to delete filter');
+    }
   };
 
   const clearAllFilters = () => {
@@ -470,7 +501,7 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
   };
 
   const applyFilters = (data: any[], type: 'leads' | 'opportunities' | 'emails') => {
-    return applyFiltersUtil(data, type, searchQuery, activeFilters, auth.user);
+    return applyFiltersUtil(data, type, searchQuery, activeFilters, auth.user, leadsCtx.leads);
   };
 
   return (
@@ -529,8 +560,9 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       setSearchQuery,
       activeFilters,
       setActiveFilters,
-      customFilters,
-      setCustomFilters,
+      savedFilters,
+      setSavedFilters,
+      handleDeleteSavedFilter,
       customFilterName,
       setCustomFilterName,
       showFilterDrawer,

@@ -270,7 +270,12 @@ export default function LeadsView({
                 <td className="px-6 py-4 text-txt-secondary">{ld.serviceType}</td>
                 <td className="px-6 py-4 font-medium">{ld.assignedUser || 'Unassigned'}</td>
                 <td className="px-6 py-4 text-txt-secondary">
-                  {new Date(ld.createdAt || ld.createdDate).toLocaleDateString()}
+                  {(() => {
+                    const dateStr = ld.createdAt || ld.createdDate;
+                    if (!dateStr) return '—';
+                    const cleanStr = typeof dateStr === 'string' ? dateStr.replace(/Z$/, '') : dateStr;
+                    return new Date(cleanStr).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+                  })()}
                 </td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${ld.status === 'New' ? 'bg-blue-50 border-blue-200 text-primary' :

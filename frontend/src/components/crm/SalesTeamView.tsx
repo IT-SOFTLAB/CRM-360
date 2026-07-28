@@ -6,7 +6,7 @@ import {
   Users, Plus, Shield, Trash2, X, BarChart3, 
   TrendingUp, CheckCircle, AlertCircle, FileText, 
   Calendar, Phone, Mail, Award, Briefcase, ListCollapse,
-  ChevronDown, Upload, Download
+  ChevronDown, Upload, Download, Star
 } from 'lucide-react';
 import api from '@/services/api';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -35,9 +35,12 @@ export default function SalesTeamView() {
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<any | null>(null);
-  const [activeTab, setActiveTab] = useState<'performance' | 'leads'>('performance');
+  const [activeTab, setActiveTab] = useState<'performance' | 'leads' | 'opportunities' | 'activities'>('performance');
   const [kanbanDeals, setKanbanDeals] = useState<any[]>([]);
   const [selectedTeamLeadIds, setSelectedTeamLeadIds] = useState<string[]>([]);
+  const [selectedTeamOppIds, setSelectedTeamOppIds] = useState<string[]>([]);
+  const [starredLeads, setStarredLeads] = useState<string[]>([]);
+  const [starredOpps, setStarredOpps] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -86,6 +89,7 @@ export default function SalesTeamView() {
 
   useEffect(() => {
     setSelectedTeamLeadIds([]);
+    setSelectedTeamOppIds([]);
   }, [selectedTeam, activeTab]);
 
   const handleImportLeads = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -725,7 +729,9 @@ export default function SalesTeamView() {
       revenue: totalRevenue,
       stageCounts,
       membersPerformance,
-      leadsList: [...teamLeads, ...teamOpps],
+      leadsList: teamLeads,
+      oppsList: teamOpps,
+      oppsCount: teamOpps.length,
       activities: teamActivities
     };
   };
@@ -1160,84 +1166,77 @@ export default function SalesTeamView() {
       ) : (
         metrics && (
           <div className="space-y-6 animate-fade-in">
-            {/* Team Pipeline Stage Board (Kanban) */}
-            <div className="bg-card border border-border-crm rounded-2xl p-6 space-y-4">
-              <div>
-                <h3 className="font-extrabold text-sm tracking-tight text-txt-primary mb-1">{selectedTeam.name} Pipeline Stage board</h3>
-                <p className="text-[10px] text-txt-secondary">Drag and drop deal opportunities to shift pipeline stages interactively.</p>
+
+            {/* Team Header Banner */}
+            <div className="bg-card border border-border-crm rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm">
+              <div className="flex items-center space-x-3.5">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-extrabold text-lg shadow-md shrink-0">
+                  {selectedTeam.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-extrabold text-txt-primary tracking-tight">{selectedTeam.name}</h2>
+                    {selectedTeam.category && (
+                      <span className="bg-indigo-900/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase">
+                        {selectedTeam.category}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Leader details */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-txt-secondary mt-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold">Team Leader:</span>
+                      <span className="font-bold text-txt-primary">{selectedTeam.leader?.name || 'No Leader Assigned'}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Users className="w-3.5 h-3.5 text-slate-400" />
+                      <span>{(selectedTeam.members?.length || 0) + (selectedTeam.leader ? 1 : 0)} Members</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <DragDropContext onDragEnd={onDragEnd}>
-                <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 pt-2">
-                  {["New", "Qualified", "Proposal", "Negotiation", "Won"].map((col) => {
-                    const dealsInCol = kanbanDeals.filter(d => d.stage === col);
-                    return (
-                      <div key={col} className="bg-slate-50 dark:bg-slate-900/50 border border-slate-150 dark:border-border-crm rounded-xl p-3 flex flex-col space-y-2.5 min-h-64">
-                        <div className="flex justify-between items-center border-b border-border-crm pb-2">
-                          <span className="text-xs font-bold text-txt-primary flex items-center gap-1.5">
-                            {col === 'New' ? '📥' : col === 'Qualified' ? '🎯' : col === 'Proposal' ? '📄' : col === 'Negotiation' ? '🤝' : '🎉'} {col}
-                          </span>
-                          <span className="bg-blue-100/50 dark:bg-slate-800 text-primary text-[9px] px-2 py-0.5 rounded-full font-bold">
-                            {dealsInCol.length}
-                          </span>
-                        </div>
-
-                        <Droppable droppableId={col}>
-                          {(provided) => (
-                            <div 
-                              ref={provided.innerRef}
-                              {...provided.droppableProps}
-                              className="space-y-2 flex-1 overflow-y-auto max-h-72 min-h-[120px]"
-                            >
-                              {dealsInCol.map((deal, index) => (
-                                <Draggable key={deal.id} draggableId={deal.id} index={index}>
-                                  {(providedDrag) => (
-                                    <div 
-                                      ref={providedDrag.innerRef}
-                                      {...providedDrag.draggableProps}
-                                      {...providedDrag.dragHandleProps}
-                                      className="bg-card border border-border-crm rounded-lg p-3 shadow-xs space-y-2 text-txt-primary text-xs hover:border-primary/40 transition cursor-grab"
-                                    >
-                                      <div className="font-bold text-txt-primary truncate">{deal.name}</div>
-                                      <div className="flex justify-between text-[10px] text-txt-secondary font-medium">
-                                        <span>Rep: {deal.rep}</span>
-                                        <span className="font-bold text-primary">{deal.value}</span>
-                                      </div>
-                                    </div>
-                                  )}
-                                </Draggable>
-                              ))}
-                              {dealsInCol.length === 0 && (
-                                <div className="text-center py-10 text-[10px] text-slate-400 select-none">Empty stage</div>
-                              )}
-                              {provided.placeholder}
-                            </div>
-                          )}
-                        </Droppable>
-                      </div>
-                    );
-                  })}
-                </div>
-              </DragDropContext>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleTeamSelectChange('all')}
+                  className="bg-slate-100 hover:bg-slate-200 border border-border-crm text-txt-primary font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer"
+                >
+                  ← Back to Teams
+                </button>
+              </div>
             </div>
+
 
             {/* Performance Dashboard Panel */}
             <div className="bg-card border border-border-crm rounded-2xl overflow-hidden shadow-sm flex flex-col text-txt-primary">
               
               {/* Tab Links */}
-              <div className="flex border-b border-border-crm bg-bg-main px-6">
+              <div className="flex border-b border-border-crm bg-bg-main px-6 overflow-x-auto">
                 <button
                   onClick={() => setActiveTab('performance')}
-                  className={`py-3 px-4 font-bold text-xs border-b-2 transition-colors ${activeTab === 'performance' ? 'border-primary text-primary' : 'border-transparent text-txt-secondary hover:text-txt-primary'}`}
+                  className={`py-3 px-4 font-bold text-xs border-b-2 transition-colors whitespace-nowrap ${activeTab === 'performance' ? 'border-primary text-primary' : 'border-transparent text-txt-secondary hover:text-txt-primary'}`}
                 >
                   Performance & Workload
                 </button>
                 <button
                   onClick={() => setActiveTab('leads')}
-                  className={`py-3 px-4 font-bold text-xs border-b-2 transition-colors ${activeTab === 'leads' ? 'border-primary text-primary' : 'border-transparent text-txt-secondary hover:text-txt-primary'}`}
+                  className={`py-3 px-4 font-bold text-xs border-b-2 transition-colors whitespace-nowrap ${activeTab === 'leads' ? 'border-primary text-primary' : 'border-transparent text-txt-secondary hover:text-txt-primary'}`}
                 >
-                  Team Leads & Pipeline
+                  Leads 
                 </button>
+                <button
+                  onClick={() => setActiveTab('opportunities')}
+                  className={`py-3 px-4 font-bold text-xs border-b-2 transition-colors whitespace-nowrap ${activeTab === 'opportunities' ? 'border-primary text-primary' : 'border-transparent text-txt-secondary hover:text-txt-primary'}`}
+                >
+                  Pipeline 
+                </button>
+                {/* <button
+                  onClick={() => setActiveTab('activities')}
+                  className={`py-3 px-4 font-bold text-xs border-b-2 transition-colors whitespace-nowrap ${activeTab === 'activities' ? 'border-primary text-primary' : 'border-transparent text-txt-secondary hover:text-txt-primary'}`}
+                >
+                  Activities ({metrics.activities.length})
+                </button> */}
               </div>
 
               {/* Tab Contents */}
@@ -1269,11 +1268,11 @@ export default function SalesTeamView() {
 
                       <div className="bg-bg-main border border-border-crm p-4 rounded-xl flex items-center space-x-3">
                         <div className="bg-indigo-600/10 p-2 rounded-lg text-indigo-600 dark:text-indigo-400">
-                          <TrendingUp className="w-5 h-5" />
+                          <BarChart3 className="w-5 h-5" />
                         </div>
                         <div>
-                          <span className="text-[10px] text-txt-secondary block font-semibold uppercase">Win Rate</span>
-                          <span className="text-lg font-extrabold text-txt-primary">{metrics.conversionRate}%</span>
+                          <span className="text-[10px] text-txt-secondary block font-semibold uppercase">Pipeline Count</span>
+                          <span className="text-lg font-extrabold text-txt-primary">{metrics.oppsCount}</span>
                         </div>
                       </div>
 
@@ -1330,15 +1329,17 @@ export default function SalesTeamView() {
                   <div className="space-y-6">
                     {/* Leads List */}
                     <div className="bg-card border border-border-crm rounded-xl p-5 space-y-3">
-                      <div className="flex justify-between items-center">
-                        <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary flex items-center gap-1.5">
-                          <ListCollapse className="w-4 h-4 text-primary" />
-                          <span>Team Lead Allocation</span>
-                        </h4>
+                      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pb-3 border-b border-border-crm/40">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="font-extrabold text-sm text-txt-primary">Leads</h4>
+                          <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                            {metrics.totalLeads}
+                          </span>
+                        </div>
 
                         {/* Bulk actions bar inside teams leads tab */}
                         {selectedTeamLeadIds.length > 0 && selectedTeam && (
-                          <div className="flex items-center space-x-3.5 bg-slate-50 dark:bg-slate-900 border border-border-crm/30 py-1.5 px-3 rounded-xl animate-in fade-in duration-200">
+                          <div className="flex items-center space-x-3.5 bg-slate-50 dark:bg-slate-900 border border-border-crm/30 py-1 px-3 rounded-xl animate-in fade-in duration-200">
                             <span className="text-[10px] text-txt-secondary font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
                               {selectedTeamLeadIds.length} Selected
                             </span>
@@ -1386,68 +1387,81 @@ export default function SalesTeamView() {
                                   }}
                                 />
                               </th>
-                              <th className="py-2.5">Lead Title</th>
+                              <th className="py-2.5 font-extrabold text-txt-primary">Lead</th>
                               <th className="py-2.5">Contact Name</th>
-                              <th className="py-2.5">Assigned To</th>
-                              <th className="py-2.5 text-right">Value</th>
+                              <th className="py-2.5">Email</th>
+                              <th className="py-2.5">Phone</th>
+                              <th className="py-2.5">Salesperson</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-border-crm text-txt-primary">
-                            {metrics.leadsList.map((lead: any) => (
-                              <tr key={lead.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-                                <td className="py-3 w-10">
-                                  <input
-                                    type="checkbox"
-                                    className="rounded text-primary border-border-crm focus:ring-0 cursor-pointer w-3.5 h-3.5"
-                                    checked={selectedTeamLeadIds.includes(lead.id)}
-                                    onChange={() => {
-                                      setSelectedTeamLeadIds(prev =>
-                                        prev.includes(lead.id) ? prev.filter(id => id !== lead.id) : [...prev, lead.id]
-                                      );
-                                    }}
-                                  />
-                                </td>
-                                <td className="py-3 font-bold text-blue-600 dark:text-blue-400">{lead.title || lead.company || 'Unnamed Lead'}</td>
-                                <td className="py-3 text-txt-secondary">{lead.customerName || lead.contactName || lead.name || 'N/A'}</td>
-                                <td className="py-3">
-                                  {selectedTeam && (
-                                    <div className="relative inline-flex items-center bg-slate-50 dark:bg-slate-900 border border-border-crm/30 rounded-lg pl-2 pr-6 py-1 cursor-pointer">
-                                      <select
-                                        className="bg-transparent text-txt-primary focus:outline-none text-[11px] font-semibold cursor-pointer appearance-none pr-1 outline-none"
-                                        value={lead.assignedUserId || ''}
-                                        onChange={async (e) => {
-                                          const newId = e.target.value;
-                                          let newName = 'Unassigned';
-                                          if (selectedTeam.leader?.id === newId) {
-                                            newName = selectedTeam.leader.name;
-                                          } else {
-                                            const memberObj = (selectedTeam.members || []).find((m: any) => m.id === newId);
-                                            if (memberObj) newName = memberObj.name;
-                                          }
-                                          await crm.handleUpdateLeadFromView(lead.id, {
-                                            assignedUserId: newId || null,
-                                            assignedUser: newName
-                                          });
-                                        }}
-                                      >
-                                        <option value="">Unassigned</option>
-                                        {selectedTeam.leader && (
-                                          <option value={selectedTeam.leader.id}>{selectedTeam.leader.name} (Leader)</option>
-                                        )}
-                                        {(selectedTeam.members || []).map((m: any) => (
-                                          <option key={m.id} value={m.id}>{m.name}</option>
-                                        ))}
-                                      </select>
-                                      <ChevronDown className="w-2.5 h-2.5 text-slate-400 absolute right-1.5 pointer-events-none" />
+                            {metrics.leadsList.map((lead: any) => {
+                              return (
+                                <tr key={lead.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                                  <td className="py-3 w-10">
+                                    <input
+                                      type="checkbox"
+                                      className="rounded text-primary border-border-crm focus:ring-0 cursor-pointer w-3.5 h-3.5"
+                                      checked={selectedTeamLeadIds.includes(lead.id)}
+                                      onChange={() => {
+                                        setSelectedTeamLeadIds(prev =>
+                                          prev.includes(lead.id) ? prev.filter(id => id !== lead.id) : [...prev, lead.id]
+                                        );
+                                      }}
+                                    />
+                                  </td>
+                                  <td className="py-3">
+                                    <span className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
+                                      LDS/{new Date(lead.createdAt || Date.now()).getFullYear()}/{(lead.id || '').slice(-5).toUpperCase()}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 text-txt-secondary font-semibold">{lead.customerName || lead.contactName || lead.company || 'N/A'}</td>
+                                  <td className="py-3 text-txt-secondary">{lead.email || '—'}</td>
+                                  <td className="py-3 text-txt-secondary">{lead.phone || '—'}</td>
+                                  <td className="py-3">
+                                    <div className="flex items-center space-x-2">
+                                      <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-extrabold text-[9px] uppercase shadow-xs">
+                                        {(lead.assignedUser || 'U').charAt(0).toUpperCase()}
+                                      </div>
+                                      {selectedTeam && (
+                                        <div className="relative inline-flex items-center bg-slate-50 dark:bg-slate-900 border border-border-crm/30 rounded-lg pl-2 pr-6 py-0.5 cursor-pointer">
+                                          <select
+                                            className="bg-transparent text-txt-primary focus:outline-none text-[10px] font-semibold cursor-pointer appearance-none pr-1 outline-none"
+                                            value={lead.assignedUserId || ''}
+                                            onChange={async (e) => {
+                                              const newId = e.target.value;
+                                              let newName = 'Unassigned';
+                                              if (selectedTeam.leader?.id === newId) {
+                                                newName = selectedTeam.leader.name;
+                                              } else {
+                                                const memberObj = (selectedTeam.members || []).find((m: any) => m.id === newId);
+                                                if (memberObj) newName = memberObj.name;
+                                              }
+                                              await crm.handleUpdateLeadFromView(lead.id, {
+                                                assignedUserId: newId || null,
+                                                assignedUser: newName
+                                              });
+                                            }}
+                                          >
+                                            <option value="">Unassigned</option>
+                                            {selectedTeam.leader && (
+                                              <option value={selectedTeam.leader.id}>{selectedTeam.leader.name} (Leader)</option>
+                                            )}
+                                            {(selectedTeam.members || []).map((m: any) => (
+                                              <option key={m.id} value={m.id}>{m.name}</option>
+                                            ))}
+                                          </select>
+                                          <ChevronDown className="w-2 h-2 text-slate-400 absolute right-1.5 pointer-events-none" />
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
-                                </td>
-                                <td className="py-3 text-right font-extrabold text-txt-primary">₹{(parseFloat(lead.dealValue) || 0).toLocaleString()}</td>
-                              </tr>
-                            ))}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                             {metrics.leadsList.length === 0 && (
                               <tr>
-                                <td colSpan={5} className="text-center py-6 text-txt-secondary italic">No active leads associated with this team.</td>
+                                <td colSpan={7} className="text-center py-6 text-txt-secondary italic">No active leads associated with this team.</td>
                               </tr>
                             )}
                           </tbody>
@@ -1457,11 +1471,238 @@ export default function SalesTeamView() {
                   </div>
                 )}
 
+                {activeTab === 'opportunities' && (
+                  <div className="space-y-6 animate-fade-in">
+                    {/* Opportunities List */}
+                    <div className="bg-card border border-border-crm rounded-xl p-5 space-y-3">
+                      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 pb-3 border-b border-border-crm/40">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="font-extrabold text-sm text-txt-primary">Opportunities</h4>
+                          <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400 text-[10px] font-extrabold px-2 py-0.5 rounded-full">
+                            {metrics.oppsCount}
+                          </span>
+                        </div>
 
+                        {/* Bulk actions bar for opportunities */}
+                        {selectedTeamOppIds.length > 0 && selectedTeam && (
+                          <div className="flex items-center space-x-3.5 bg-slate-50 dark:bg-slate-900 border border-border-crm/30 py-1 px-3 rounded-xl animate-in fade-in duration-200">
+                            <span className="text-[10px] text-txt-secondary font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                              {selectedTeamOppIds.length} Selected
+                            </span>
+                            <div className="flex items-center whitespace-nowrap">
+                              <span className="font-semibold text-txt-secondary text-[11px] mr-2">Assign:</span>
+                              <div className="relative flex items-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg border border-border-crm/30 transition shadow-sm cursor-pointer pl-2.5 pr-7 py-1">
+                                <Users className="w-3.5 h-3.5 text-primary mr-1.5 shrink-0" />
+                                <select
+                                  className="bg-transparent text-txt-primary focus:outline-none text-[11px] font-bold cursor-pointer appearance-none pr-1 outline-none"
+                                  value=""
+                                  onChange={async (e) => {
+                                    const newId = e.target.value;
+                                    let newName = 'Unassigned';
+                                    if (selectedTeam.leader?.id === newId) {
+                                      newName = selectedTeam.leader.name;
+                                    } else {
+                                      const memberObj = (selectedTeam.members || []).find((m: any) => m.id === newId);
+                                      if (memberObj) newName = memberObj.name;
+                                    }
+                                    await crm.handleBulkAssignOpportunities(selectedTeamOppIds, newId, newName);
+                                    setSelectedTeamOppIds([]);
+                                  }}
+                                >
+                                  <option value="" disabled>Select member...</option>
+                                  {selectedTeam.leader && (
+                                    <option value={selectedTeam.leader.id}>{selectedTeam.leader.name} (Leader)</option>
+                                  )}
+                                  {(selectedTeam.members || []).map((m: any) => (
+                                    <option key={m.id} value={m.id}>{m.name}</option>
+                                  ))}
+                                </select>
+                                <ChevronDown className="w-3 h-3 text-slate-400 absolute right-2 pointer-events-none" />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b border-border-crm text-[10px] text-txt-secondary font-bold uppercase select-none">
+                              <th className="py-2.5 w-10">
+                                <input
+                                  type="checkbox"
+                                  className="rounded text-primary border-border-crm focus:ring-0 cursor-pointer w-3.5 h-3.5"
+                                  checked={metrics.oppsList.length > 0 && metrics.oppsList.every((o: any) => selectedTeamOppIds.includes(o.id))}
+                                  onChange={() => {
+                                    const areAllSelected = metrics.oppsList.length > 0 && metrics.oppsList.every((o: any) => selectedTeamOppIds.includes(o.id));
+                                    if (areAllSelected) {
+                                      setSelectedTeamOppIds(prev => prev.filter(id => !metrics.oppsList.some((o: any) => o.id === id)));
+                                    } else {
+                                      const idsToAdd = metrics.oppsList.map((o: any) => o.id).filter((id: string) => !selectedTeamOppIds.includes(id));
+                                      setSelectedTeamOppIds(prev => [...prev, ...idsToAdd]);
+                                    }
+                                  }}
+                                />
+                              </th>
+                              <th className="py-2.5 font-extrabold text-txt-primary">Opportunity</th>
+                              <th className="py-2.5">Customer</th>
+                              <th className="py-2.5">Expected Revenue</th>
+                              <th className="py-2.5">Salesperson</th>
+                              <th className="py-2.5">Stage</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border-crm text-txt-primary">
+                            {metrics.oppsList.map((opp: any) => {
+                              const dbStage = crm.pipelines?.find((p: any) => p.id === opp.stageId);
+                              const stageName = dbStage ? dbStage.name : (opp.stage || 'New');
+
+                              const normalized = stageName.toLowerCase();
+                              let colorClass = 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/20 dark:text-blue-400 dark:border-blue-900/30';
+                              if (normalized.includes('qualified')) {
+                                colorClass = 'bg-cyan-50 text-cyan-700 border-cyan-100 dark:bg-cyan-950/20 dark:text-cyan-400 dark:border-cyan-900/30';
+                              } else if (normalized.includes('proposition')) {
+                                colorClass = 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/30';
+                              } else if (normalized.includes('negotiation')) {
+                                colorClass = 'bg-orange-50 text-orange-700 border-orange-100 dark:bg-orange-950/20 dark:text-orange-400 dark:border-orange-900/30';
+                              } else if (normalized.includes('won')) {
+                                colorClass = 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/30';
+                              } else if (normalized.includes('lost')) {
+                                colorClass = 'bg-rose-50 text-rose-700 border-rose-100 dark:bg-rose-950/20 dark:text-rose-400 dark:border-rose-900/30';
+                              }
+
+                              return (
+                                <tr key={opp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                                  <td className="py-3 w-10">
+                                    <input
+                                      type="checkbox"
+                                      className="rounded text-primary border-border-crm focus:ring-0 cursor-pointer w-3.5 h-3.5"
+                                      checked={selectedTeamOppIds.includes(opp.id)}
+                                      onChange={() => {
+                                        setSelectedTeamOppIds(prev =>
+                                          prev.includes(opp.id) ? prev.filter(id => id !== opp.id) : [...prev, opp.id]
+                                        );
+                                      }}
+                                    />
+                                  </td>
+                                  <td className="py-3">
+                                    <span className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer">
+                                      OPP/{new Date(opp.createdAt || opp.createdDate || Date.now()).getFullYear()}/{(opp.id || '').slice(-5).toUpperCase()}
+                                    </span>
+                                  </td>
+                                  <td className="py-3 text-txt-secondary font-semibold">{opp.customerName || opp.company}</td>
+                                  <td className="py-3 text-txt-primary font-bold">₹{(parseFloat(opp.dealValue) || 0).toLocaleString()}</td>
+                                  <td className="py-3">
+                                    <div className="flex items-center space-x-2">
+                                      <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-extrabold text-[9px] uppercase shadow-xs">
+                                        {(opp.assignedSalesperson || 'U').charAt(0).toUpperCase()}
+                                      </div>
+                                      {selectedTeam && (
+                                        <div className="relative inline-flex items-center bg-slate-50 dark:bg-slate-900 border border-border-crm/30 rounded-lg pl-2 pr-6 py-0.5 cursor-pointer">
+                                          <select
+                                            className="bg-transparent text-txt-primary focus:outline-none text-[10px] font-semibold cursor-pointer appearance-none pr-1 outline-none"
+                                            value={opp.assignedSalespersonId || ''}
+                                            onChange={async (e) => {
+                                              const newId = e.target.value;
+                                              let newName = 'Unassigned';
+                                              if (selectedTeam.leader?.id === newId) {
+                                                newName = selectedTeam.leader.name;
+                                              } else {
+                                                const memberObj = (selectedTeam.members || []).find((m: any) => m.id === newId);
+                                                if (memberObj) newName = memberObj.name;
+                                              }
+                                              await crm.handleUpdateOpportunity(opp.id, {
+                                                assignedSalespersonId: newId || null,
+                                                assignedSalesperson: newName
+                                              });
+                                            }}
+                                          >
+                                            <option value="">Unassigned</option>
+                                            {selectedTeam.leader && (
+                                              <option value={selectedTeam.leader.id}>{selectedTeam.leader.name} (Leader)</option>
+                                            )}
+                                            {(selectedTeam.members || []).map((m: any) => (
+                                              <option key={m.id} value={m.id}>{m.name}</option>
+                                            ))}
+                                          </select>
+                                          <ChevronDown className="w-2 h-2 text-slate-400 absolute right-1.5 pointer-events-none" />
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="py-3">
+                                    <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase border ${colorClass}`}>
+                                      {stageName}
+                                    </span>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                            {metrics.oppsList.length === 0 && (
+                              <tr>
+                                <td colSpan={7} className="text-center py-6 text-txt-secondary italic">No active opportunities associated with this team.</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'activities' && (
+                  <div className="space-y-6">
+                    {/* Activities list */}
+                    <div className="bg-card border border-border-crm rounded-xl p-5 space-y-3">
+                      <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary flex items-center gap-1.5">
+                        <Calendar className="w-4 h-4 text-primary" />
+                        <span>Team Activities Log</span>
+                      </h4>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead>
+                            <tr className="border-b border-border-crm text-[10px] text-txt-secondary font-bold uppercase select-none">
+                              <th className="py-2.5">Activity Title</th>
+                              <th className="py-2.5">Description</th>
+                              <th className="py-2.5">Date & Time</th>
+                              <th className="py-2.5">Salesperson</th>
+                              <th className="py-2.5 text-right">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border-crm text-txt-primary">
+                            {metrics.activities.map((act: any) => (
+                              <tr key={act.id} className="hover:bg-slate-50 dark:hover:bg-slate-800 transition">
+                                <td className="py-3 font-bold text-txt-primary">{act.title}</td>
+                                <td className="py-3 text-txt-secondary line-clamp-1 max-w-[250px]">{act.description || 'No description'}</td>
+                                <td className="py-3 text-txt-secondary">
+                                  {new Date(act.date).toLocaleDateString()} at {act.time || 'N/A'}
+                                </td>
+                                <td className="py-3 text-txt-secondary">{act.salesperson || 'Unassigned'}</td>
+                                <td className="py-3 text-right">
+                                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
+                                    act.done 
+                                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400' 
+                                      : 'bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400'
+                                  }`}>
+                                    {act.done ? 'Completed' : 'Pending'}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                            {metrics.activities.length === 0 && (
+                              <tr>
+                                <td colSpan={5} className="text-center py-6 text-txt-secondary italic">No logged activities for this team.</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
               </div>
             </div>
-
           </div>
         )
       )}

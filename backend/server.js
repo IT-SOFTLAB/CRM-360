@@ -29,6 +29,7 @@ const pipelineRoutes = require("./src/routes/pipeline.routes.js");
 const bootstrapRoutes = require("./src/routes/bootstrapRoutes.js");
 const notificationRoutes = require("./src/routes/notificationRoutes.js");
 const calendarRoutes = require("./src/routes/calenderRoutes.js");
+const savedFilterRoutes = require("./src/routes/savedFilterRoutes.js");
 const isProduction = process.env.NODE_ENV === "production";
 
 if (isProduction) {
@@ -87,6 +88,7 @@ app.use("/api/referral-pipeline", pipelineRoutes);
 app.use("/api/bootstrap", bootstrapRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/calendar", calendarRoutes);
+app.use("/api/filters", savedFilterRoutes);
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "src", "uploads"))

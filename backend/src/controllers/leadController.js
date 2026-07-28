@@ -4,7 +4,8 @@ const prisma = new PrismaClient();
 const createLead = async (req, res) => {
   try {
     const now = new Date();
-    const localDateZeroTime = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    // Shift manual creation time to IST timezone (+5.5 hours)
+    const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
     const user = req.user;
 
     const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
@@ -22,7 +23,7 @@ const createLead = async (req, res) => {
         assignedUser: assignedUser || null,
         assignedUserId: assignedUserId || null,
         status: 'New',
-        createdAt: localDateZeroTime
+        createdAt: istNow
       }
     });
 
@@ -332,8 +333,8 @@ const importLeads = async (req, res) => {
           }
         }
       }
-      // Zero out the time portion to keep only the date
-      parsedCreatedAt = new Date(Date.UTC(parsedCreatedAt.getFullYear(), parsedCreatedAt.getMonth(), parsedCreatedAt.getDate()));
+      // Shift import creation time to IST timezone (+5.5 hours)
+      const istParsedCreatedAt = new Date(parsedCreatedAt.getTime() + 5.5 * 60 * 60 * 1000);
 
       // 1. Save to Prisma Database (PostgreSQL)
       let lead;
@@ -349,14 +350,14 @@ const importLeads = async (req, res) => {
             assignedUser: trimmedAssignedUser,
             assignedUserId: trimmedAssignedUserId,
             status: 'New', // Automatically set status to "New"
-            createdAt: parsedCreatedAt
+            createdAt: istParsedCreatedAt
           }
         });
       } catch (dbErr) {
         console.warn('Prisma lead create failed, proceeding to save to db.json only:', dbErr.message);
         lead = {
           id: 'l_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-          createdAt: parsedCreatedAt.toISOString()
+          createdAt: istParsedCreatedAt.toISOString()
         };
       }
 
