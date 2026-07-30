@@ -507,13 +507,13 @@ export default function QuotationsView({
           <table className="w-full">
             <thead>
               <tr className="bg-bg-main border-b border-black  text-xs font-bold text-black uppercase tracking-wider select-none">
-                <th className="px-6 py-4 text-left">Quotation No.</th>
-                <th className="px-6 py-4 text-left">Client</th>
-                <th className="px-6 py-4 text-left">Company</th>
-                <th className="px-6 py-4 text-left">Quotation Date</th>
-                <th className="px-6 py-4 text-right">Total</th>
-                <th className="px-6 py-4 text-center">Status</th>
-                <th className="px-6 py-4 text-center">Actions</th>
+                <th className="px-6 py-4 text-left text-black dark:text-white">Quotation No.</th>
+                <th className="px-6 py-4 text-left text-black dark:text-white">Client</th>
+                <th className="px-6 py-4 text-left text-black dark:text-white">Company</th>
+                <th className="px-6 py-4 text-left text-black dark:text-white">Quotation Date</th>
+                <th className="px-6 py-4 text-right text-black dark:text-white">Total</th>
+                <th className="px-6 py-4 text-center text-black dark:text-white">Status</th>
+                <th className="px-6 py-4 text-center text-black dark:text-white">Actions</th>
               </tr>
             </thead>
             <tbody>

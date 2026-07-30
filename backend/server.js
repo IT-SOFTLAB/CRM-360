@@ -758,7 +758,67 @@ app.post('/api/opportunities', (req, res) => {
   res.status(201).json(opp);
 });
 
+app.put('/api/opportunities/bulk-assign', async (req, res) => {
+  const { ids, assignedSalesperson, assignedSalespersonId } = req.body;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ success: false, message: 'No opportunities selected' });
+  }
 
+  const db = readDB();
+
+  // 1. Update in db.json
+  const leadIdsToUpdate = [];
+  ids.forEach(id => {
+    const index = db.opportunities.findIndex(o => o.id === id);
+    if (index !== -1) {
+      db.opportunities[index].assignedSalesperson = assignedSalesperson;
+      db.opportunities[index].assignedSalespersonId = assignedSalespersonId;
+      logActivity(db, null, 'UPDATE_OPPORTUNITY', 'Opportunities', `Bulk assigned opportunity ID: ${id} to ${assignedSalesperson}`);
+
+      const leadId = db.opportunities[index].leadId;
+      if (leadId) {
+        leadIdsToUpdate.push(leadId);
+        const lIdx = db.leads.findIndex(l => l.id === leadId);
+        if (lIdx !== -1) {
+          db.leads[lIdx].assignedUser = assignedSalesperson;
+          db.leads[lIdx].assignedUserId = assignedSalespersonId;
+        }
+      }
+    }
+  });
+  writeDB(db);
+
+  // 2. Update in PostgreSQL
+  try {
+    // Update opportunities
+    await prisma.opportunity.updateMany({
+      where: {
+        id: { in: ids }
+      },
+      data: {
+        assignedSalesperson,
+        assignedSalespersonId
+      }
+    });
+
+    // Update associated leads
+    if (leadIdsToUpdate.length > 0) {
+      await prisma.lead.updateMany({
+        where: {
+          id: { in: leadIdsToUpdate }
+        },
+        data: {
+          assignedUser: assignedSalesperson,
+          assignedUserId: assignedSalespersonId
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Prisma error during bulk assign opportunities:", err);
+  }
+
+  res.json({ success: true, message: `Successfully assigned ${ids.length} opportunities` });
+});
 
 app.put('/api/opportunities/:id', async (req, res) => {
   const { id } = req.params;

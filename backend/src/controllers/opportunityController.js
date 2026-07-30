@@ -2,24 +2,18 @@ const { PrismaClient } = require("@prisma/client");
 const fs = require('fs');
 const path = require('path');
 const DB_FILE = path.join(__dirname, '../../db.json');
-const { sendAssignmentEmail } = require("../services/assignmentEmailService");
 
 const prisma = new PrismaClient();
 
 function readDB() {
   if (fs.existsSync(DB_FILE)) {
     try {
-      return JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+      return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
     } catch (e) {
-      console.error("Error reading db.json", e);
+      console.error("Error reading db.json in opportunityController", e);
     }
   }
-
-  return {
-    opportunities: [],
-    leads: [],
-    customers: [],
-  };
+  return { opportunities: [] };
 }
 
 function writeDB(data) {
@@ -29,7 +23,6 @@ function writeDB(data) {
     console.error("Error writing db.json in opportunityController", e);
   }
 }
-
 
 /*
 GET ALL
@@ -390,7 +383,6 @@ exports.bulkDeleteOpportunities = async (req, res) => {
 exports.bulkAssignOpportunities = async (req, res) => {
   try {
     const { ids, assignedSalesperson, assignedSalespersonId } = req.body;
-    const adminUserId = req.user.userId || req.user.id;
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({
@@ -440,54 +432,38 @@ exports.bulkAssignOpportunities = async (req, res) => {
     });
 
     // 4. Update db.json
-    // const db = readDB();
-    // ids.forEach(id => {
-    //   const idx = db.opportunities.findIndex(o => o.id === id);
-    //   if (idx !== -1) {
-    //     db.opportunities[idx].assignedSalesperson = assignedSalesperson;
-    //     db.opportunities[idx].assignedSalespersonId = assignedSalespersonId;
+    const db = readDB();
+    ids.forEach(id => {
+      const idx = db.opportunities.findIndex(o => o.id === id);
+      if (idx !== -1) {
+        db.opportunities[idx].assignedSalesperson = assignedSalesperson;
+        db.opportunities[idx].assignedSalespersonId = assignedSalespersonId;
 
-    //     // Find associated lead in db.json
-    //     const lId = db.opportunities[idx].leadId;
-    //     if (lId) {
-    //       const lIdx = db.leads.findIndex(l => l.id === lId);
-    //       if (lIdx !== -1) {
-    //         db.leads[lIdx].assignedUser = assignedSalesperson;
-    //         db.leads[lIdx].assignedUserId = assignedSalespersonId;
-    //       }
-    //     }
+        // Find associated lead in db.json
+        const lId = db.opportunities[idx].leadId;
+        if (lId) {
+          const lIdx = db.leads.findIndex(l => l.id === lId);
+          if (lIdx !== -1) {
+            db.leads[lIdx].assignedUser = assignedSalesperson;
+            db.leads[lIdx].assignedUserId = assignedSalespersonId;
+          }
+        }
 
-    //     // Update associated customer in db.json
-    //     const custIdx = db.customers.findIndex(c => c.opportunityId === id);
-    //     if (custIdx !== -1) {
-    //       db.customers[custIdx].assignedSalesperson = assignedSalesperson;
-    //       db.customers[custIdx].assignedSalespersonId = assignedSalespersonId;
-    //     }
-    //   }
-    // });
-    // writeDB(db);
-
-
-
-try {
-    console.log("Calling sendAssignmentEmail...");
-
-    await sendAssignmentEmail({
-        userId: adminUserId,
-        assignedSalespersonId,
-        opportunityIds: ids,
+        // Update associated customer in db.json
+        const custIdx = db.customers.findIndex(c => c.opportunityId === id);
+        if (custIdx !== -1) {
+          db.customers[custIdx].assignedSalesperson = assignedSalesperson;
+          db.customers[custIdx].assignedSalespersonId = assignedSalespersonId;
+        }
+      }
     });
+    writeDB(db);
 
-    console.log("Assignment email completed.");
-} catch (err) {
-    console.error("Assignment email failed:", err);
-}
-
-return res.status(200).json({
-    success: true,
-    message: `Successfully assigned ${ids.length} opportunities`,
-    updatedCount: updated.count,
-});
+    res.status(200).json({
+      success: true,
+      message: `Successfully assigned ${ids.length} opportunities`,
+      updatedCount: updated.count
+    });
 
   } catch (error) {
     console.error(error);

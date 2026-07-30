@@ -231,14 +231,30 @@ export default function LeadsView({
                   />
                 </th>
               )}
-              <th className="px-6 py-4 text-black font-bold">Lead Contact</th>
-              <th className="px-6 py-4  text-black font-bold">Company</th>
-              <th className="px-6 py-4  text-black font-bold">Category</th>
-              <th className="px-6 py-4  text-black font-bold">Service Type</th>
-              <th className="px-6 py-4  text-black font-bold">Assigned User</th>
-              <th className="px-6 py-4  text-black font-bold">Created Date</th>
-              <th className="px-6 py-4  text-black font-bold">Status</th>
-              <th className="px-6 py-4 text-right  text-black font-bold">Actions</th>
+             <th className="px-6 py-4 font-bold text-black dark:text-white">
+  Lead Contact
+</th>
+<th className="px-6 py-4 font-bold text-black dark:text-white">
+  Company
+</th>
+<th className="px-6 py-4 font-bold text-black dark:text-white">
+  Category
+</th>
+<th className="px-6 py-4 font-bold text-black dark:text-white">
+  Service Type
+</th>
+<th className="px-6 py-4 font-bold text-black dark:text-white">
+  Assigned User
+</th>
+<th className="px-6 py-4 font-bold text-black dark:text-white">
+  Created Date
+</th>
+<th className="px-6 py-4 font-bold text-black dark:text-white">
+  Status
+</th>
+<th className="px-6 py-4 text-right font-bold text-black dark:text-white">
+  Actions
+</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border-crm text-xs">
