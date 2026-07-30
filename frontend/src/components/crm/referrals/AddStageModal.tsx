@@ -62,7 +62,7 @@ const handleSubmit = async () => {
 
       <div className="fixed inset-0 flex items-center justify-center z-50">
 
-        <div className="bg-card rounded-2xl shadow-xl border border-border-crm w-[500px]">
+        <div className="bg-card rounded-2xl shadow-xl border border-border-crm w-[500px] max-w-[95vw]">
 
           {/* Header */}
 

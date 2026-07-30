@@ -397,9 +397,9 @@ setShowActivityModal(false);
           </div>
 
           {/* Simulated Month Grid layout */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-auto">
             {calendarView === 'month' ? (
-              <div className="grid grid-cols-7 border-t border-l border-border-crm text-xs">
+              <div className="grid grid-cols-7 border-t border-l border-border-crm text-xs min-w-[700px] md:min-w-0">
                 {/* Day headers */}
                 {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
                   <div key={d} className="bg-bg-main p-2 border-r border-b border-border-crm font-bold text-center text-txt-secondary select-none">
@@ -513,7 +513,7 @@ setShowActivityModal(false);
             ) : (
               /* Dynamic Weekly Grid Layout */
               <div className="overflow-auto h-[600px]">
-                <div className="grid grid-cols-8 border border-border-crm">
+                <div className="grid grid-cols-8 border border-border-crm min-w-[700px] md:min-w-0">
                   <div className="bg-bg-main border-r border-b border-border-crm p-3 font-bold text-center">Time</div>
                   {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((dayName, idx) => {
                     const d = currentWeekDates[idx];

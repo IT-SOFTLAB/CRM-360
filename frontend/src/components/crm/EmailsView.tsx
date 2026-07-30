@@ -871,7 +871,7 @@ showCompose && (
 
 <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
 
-<div className="bg-card rounded-2xl w-[700px] max-h-[90vh] flex flex-col shadow-xl border border-border-crm">
+<div className="bg-card rounded-2xl w-[700px] max-w-[95vw] max-h-[90vh] flex flex-col shadow-xl border border-border-crm">
 
 <div className="flex justify-between items-center p-5 border-b">
 

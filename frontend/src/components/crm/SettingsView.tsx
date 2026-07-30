@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, X, Trash2, Plus, Pencil, Eye, EyeOff } from 'lucide-react';
 import { authService } from '@/services/auth.service';
+import ThemeToggle from '@/components/crm/ThemeToggle';
 
 interface SettingsViewProps {
   companyBranding: any;
@@ -244,6 +245,15 @@ export default function SettingsView({
             </div>
           </div>
         )}
+
+        {/* Appearance Theme */}
+        {/* <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4">
+          <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Appearance Theme</h4>
+          <p className="text-[11px] text-txt-secondary">
+            Switch between Light and Dark mode options. Your preference will be saved.
+          </p>
+          <ThemeToggle />
+        </div> */}
 
         {/* Change Password */}
         <div className="bg-white-300 border border-slate-700/60 rounded-2xl p-5 space-y-4">

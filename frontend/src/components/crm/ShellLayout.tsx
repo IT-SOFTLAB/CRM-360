@@ -38,6 +38,7 @@ import {
 import { useCRM } from '@/context/CRMContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import api from '@/services/api';
+import ThemeToggle from '@/components/crm/ThemeToggle';
 
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -339,84 +340,160 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
           <div className="max-w-7xl mx-auto px-4 py-2.5 md:py-3 flex flex-col md:flex-row md:items-center justify-between gap-3 w-full">
             
             {/* Breadcrumbs, Mobile Toggle & Primary Actions */}
-            <div className="flex items-center space-x-3 flex-wrap gap-y-2">
-              {/* Mobile menu trigger */}
-              <button
-                onClick={() => setShowMobileMenu(true)}
-                className="md:hidden p-2 rounded-xl text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary transition cursor-pointer shrink-0"
-                title="Open Menu"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-              
-              <div className="text-sm font-semibold tracking-tight flex items-center space-x-1">
-                <span className="text-txt-secondary select-none">CRM</span>
-                <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-                <span className="capitalize text-txt-primary">{displayName}</span>
-              </div>
+            <div className="flex items-center justify-between w-full md:w-auto gap-3">
+              <div className="flex items-center space-x-3 flex-wrap gap-y-2">
+                {/* Mobile menu trigger */}
+                <button
+                  onClick={() => setShowMobileMenu(true)}
+                  className="md:hidden p-2 rounded-xl text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary transition cursor-pointer shrink-0"
+                  title="Open Menu"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+                
+                <div className="text-sm font-semibold tracking-tight flex items-center space-x-1">
+                  <span className="text-txt-secondary select-none">CRM</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="capitalize text-txt-primary">{displayName}</span>
+                </div>
 
-              {/* Action CTAs depending on active route */}
-              <div className="flex items-center space-x-2">
-                {currentTab === 'leads' && (
-                  <>
+                {/* Action CTAs depending on active route */}
+                <div className="flex items-center space-x-2">
+                  {currentTab === 'leads' && (
+                    <>
+                      <button
+                        onClick={() => crm.setShowLeadCreateModal(true)}
+                        className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Create Lead</span>
+                      </button>
+                      <button
+                        onClick={() => setShowImportModal(true)}
+                        disabled={isUploading}
+                        className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer disabled:opacity-50"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>{isUploading ? 'Uploading...' : 'Import CSV'}</span>
+                      </button>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept=".csv, .xlsx, .xls"
+                        className="hidden"
+                      />
+                    </>
+                  )}
+                  
+                  {currentTab === 'opportunities' && (
                     <button
-                      onClick={() => crm.setShowLeadCreateModal(true)}
+                      onClick={() => crm.setShowStageModal(true)}
                       className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Create Lead</span>
+                      <span>Add Stage</span>
                     </button>
+                  )}
+                  {currentTab === 'activities' && (
                     <button
-                      onClick={() => setShowImportModal(true)}
-                      disabled={isUploading}
-                      className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer disabled:opacity-50"
+                      onClick={() => crm.setShowActivityModal(true)}
+                      className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      <span>{isUploading ? 'Uploading...' : 'Import CSV'}</span>
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Schedule Activity</span>
                     </button>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      accept=".csv, .xlsx, .xls"
-                      className="hidden"
-                    />
-                  </>
-                )}
-                
-                {currentTab === 'opportunities' && (
-                  <button
-                    onClick={() => crm.setShowStageModal(true)}
-                    className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Add Stage</span>
-                  </button>
-                )}
-                {currentTab === 'activities' && (
-                  <button
-                    onClick={() => crm.setShowActivityModal(true)}
-                    className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Schedule Activity</span>
-                  </button>
-                )}
-             
-                {currentTab === 'referrals' && (
-                  <button
-                    onClick={() => crm.setShowReferralModal(true)}
-                    className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Submit Retention</span>
-                  </button>
+                  )}
+               
+                  {currentTab === 'referrals' && (
+                    <button
+                      onClick={() => crm.setShowReferralModal(true)}
+                      className="bg-primary hover:bg-primary-hover text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center space-x-1 shadow transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Submit Retention</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Mobile controls: Theme Toggle + Shifted Notification */}
+              <div className="flex items-center gap-2 md:hidden">
+                <ThemeToggle variant="icon" />
+                {userRole !== 'SUPER_ADMIN' && currentTab !== 'leads' && currentTab !== 'opportunities' && (
+                  <div className="relative shrink-0">
+                    <button
+                      onClick={() => {
+                        setShowNotifications(!showNotifications);
+                        setShowProfileMenu(false);
+                      }}
+                      className="p-2 rounded-xl text-txt-secondary hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-txt-primary transition relative cursor-pointer flex items-center justify-center border border-border-crm bg-bg-main"
+                      title="Notifications"
+                    >
+                      <div className="relative w-4 h-4 flex items-center justify-center">
+                        <MessageSquare className="w-4 h-4 text-txt-secondary" />
+                        <MessageSquare className="w-3 h-3 text-txt-secondary absolute -bottom-0.5 -right-0.5 bg-card border border-card rounded" style={{ transform: 'translate(1px, 1px)' }} />
+                      </div>
+                      {unreadCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full text-[8px] font-bold h-3.5 min-w-3.5 px-0.5 flex items-center justify-center border border-card">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </button>
+
+                    {showNotifications && (
+                      <div className="absolute right-0 mt-2 w-80 bg-card border border-border-crm rounded-xl shadow-lg z-50 text-txt-primary flex flex-col max-h-[480px]">
+                        <div className="px-4 py-3 border-b border-border-crm flex items-center justify-between">
+                          <span className="font-semibold text-xs text-txt-primary">Notifications</span>
+                          {unreadCount > 0 && (
+                            <button onClick={markAllAsRead} className="text-[10px] text-primary hover:underline font-semibold flex items-center space-x-1 cursor-pointer">
+                              <CheckCheck className="w-3 h-3" />
+                              <span>Mark all read</span>
+                            </button>
+                          )}
+                        </div>
+                        <div className="overflow-y-auto flex-1 py-1 max-h-[300px] divide-y divide-border-crm">
+                          {notifications.length === 0 ? (
+                            <div className="px-4 py-8 text-center text-txt-secondary text-xs">No notifications</div>
+                          ) : (
+                            notifications.map(notif => (
+                              <div
+                                key={notif.id}
+                                onClick={() => { if (!notif.read) markAsRead(notif.id); }}
+                                className={`px-4 py-2.5 text-left text-xs transition cursor-pointer flex gap-2 items-start relative ${
+                                  !notif.read ? 'bg-slate-50 dark:bg-slate-950' : 'hover:bg-slate-50 dark:hover:bg-slate-900/20'
+                                }`}
+                              >
+                                {!notif.read && <span className="w-1.5 h-1.5 bg-primary rounded-full absolute left-1.5 top-4 mt-0.5 shrink-0" />}
+                                <div className={`flex-1 ${!notif.read ? 'pl-1' : ''}`}>
+                                  <p className="font-semibold text-txt-primary mb-0.5 leading-tight">{notif.title}</p>
+                                  <p className="text-txt-secondary text-[11px] leading-snug">{notif.message}</p>
+                                  <p className="text-[10px] text-slate-400 mt-1">
+                                    {new Date(notif.createdAt).toLocaleDateString()} {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                                <button
+                                  onClick={e => { e.stopPropagation(); deleteNotification(notif.id); }}
+                                  className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-txt-secondary hover:text-rose-500 transition cursor-pointer self-start"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
 
             {/* Search, Filters & Notifications Bar */}
-            <div className="flex items-center space-x-2 w-full md:w-auto shrink-0 justify-end flex-wrap gap-y-2">
+            <div className={`flex items-center space-x-2 w-full md:w-auto shrink-0 justify-end flex-wrap gap-y-2 ${
+              currentTab !== 'leads' && currentTab !== 'opportunities' ? 'hidden md:flex' : ''
+            }`}>
               {/* Search Input, Filters and Clear triggers shown ONLY in leads and pipeline/opportunities */}
               {(currentTab === 'leads' || currentTab === 'opportunities') && (
                 <>
@@ -464,6 +541,11 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                   )}
                 </>
               )}
+
+              {/* Theme Toggle for desktop */}
+              <div className="hidden md:block">
+                <ThemeToggle variant="icon" />
+              </div>
 
               {/* Notifications shifted from 1st navbar - hidden for SUPER_ADMIN */}
               {userRole !== 'SUPER_ADMIN' && (

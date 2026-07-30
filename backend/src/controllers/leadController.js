@@ -27,6 +27,19 @@ const createLead = async (req, res) => {
       }
     });
 
+    // Send assignment notification email
+    if (assignedUserId) {
+      const { sendLeadAssignmentEmail } = require('../services/leadEmailService');
+      const leadInfoForEmail = [{
+        contactName: lead.contactName,
+        company: lead.company,
+        email: lead.email
+      }];
+      sendLeadAssignmentEmail(req, assignedUserId, leadInfoForEmail).catch(err => {
+        console.error("Error sending assignment email in createLead:", err);
+      });
+    }
+
     res.status(201).json(lead);
   } catch (error) {
     console.error(error);
@@ -95,6 +108,11 @@ const updateLead = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Get current lead to check if assignee changed
+    const currentLead = await prisma.lead.findUnique({
+      where: { id }
+    });
+
     const lead = await prisma.lead.update({
       where: {
     id: id
@@ -112,6 +130,23 @@ const updateLead = async (req, res) => {
     status: req.body.status
   }
     });
+
+    // Send single lead assignment email if assignee changed and is not null
+    const assignedUserIdChanged = 
+      req.body.assignedUserId !== undefined && 
+      req.body.assignedUserId !== currentLead?.assignedUserId;
+
+    if (assignedUserIdChanged && req.body.assignedUserId) {
+      const { sendLeadAssignmentEmail } = require('../services/leadEmailService');
+      const leadInfoForEmail = [{
+        contactName: lead.contactName,
+        company: lead.company,
+        email: lead.email
+      }];
+      sendLeadAssignmentEmail(req, req.body.assignedUserId, leadInfoForEmail).catch(err => {
+        console.error("Error sending single lead assign email:", err);
+      });
+    }
 
     // Also update associated opportunity and customer if salesperson changes
     if (req.body.assignedUser !== undefined || req.body.assignedUserId !== undefined) {
@@ -406,6 +441,18 @@ const bulkAssignLeads = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No leads selected' });
     }
 
+    // Fetch leads details for email notification
+    const leadsForEmail = await prisma.lead.findMany({
+      where: {
+        id: { in: ids }
+      },
+      select: {
+        contactName: true,
+        company: true,
+        email: true
+      }
+    });
+
     // 1. Update in PostgreSQL
     const updated = await prisma.lead.updateMany({
       where: {
@@ -462,12 +509,20 @@ const bulkAssignLeads = async (req, res) => {
         const oppId = db.opportunities[oppIdx].id;
         const custIdx = db.customers.findIndex(c => c.opportunityId === oppId);
         if (custIdx !== -1) {
-          db.customers[custIdx].assignedSalesperson = assignedUser;
-          db.customers[custIdx].assignedSalespersonId = assignedUserId;
+          db.customers[custIdx].assignedSalesperson = req.body.assignedUser;
+          db.customers[custIdx].assignedSalespersonId = req.body.assignedUserId;
         }
       }
     });
     writeDB(db);
+
+    // Send email notification
+    if (assignedUserId) {
+      const { sendLeadAssignmentEmail } = require('../services/leadEmailService');
+      sendLeadAssignmentEmail(req, assignedUserId, leadsForEmail).catch(err => {
+        console.error("Error sending bulk lead assign email:", err);
+      });
+    }
 
     res.status(200).json({ success: true, message: `Successfully assigned ${ids.length} leads`, updatedCount: updated.count });
   } catch (error) {
