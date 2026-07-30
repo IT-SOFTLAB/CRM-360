@@ -5,6 +5,7 @@ import {
     Trash2,
     ListFilter,
     Search,
+    Info,
 } from "lucide-react";
 import { useCRM } from "../../context/CRMContext";
 import { customerService } from "../../services/customer.service";
@@ -103,7 +104,7 @@ const CustomerView = () => {
         <div className="space-y-6">
             {/* Unified Compact Control Bar */}
             <div className="bg-card border border-border-crm rounded-2xl p-2.5 shadow-xs text-xs">
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     {/* Left side: Search & Deal Range */}
                     <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
                         {/* Search Input */}
@@ -120,25 +121,26 @@ const CustomerView = () => {
                             </div>
                         </div>
 
-                        {/* Min Deal Value */}
-                        <div className="w-28 sm:w-32">
+                        {/* Deal Value Filters Group */}
+                        <div className="flex items-center gap-1.5 bg-slate-50/50 dark:bg-slate-900/30 border border-border-crm rounded-xl p-1 shrink-0" title="Filter clients by minimum and maximum contract deal value (₹)">
+                            <span className="text-[10px] font-bold text-txt-secondary uppercase tracking-wider px-1.5 select-none flex items-center gap-1">
+                                <span>Deal Size</span>
+                                <Info className="w-3 h-3 text-slate-400 cursor-help" />
+                            </span>
                             <input
                                 type="number"
                                 placeholder="Min ₹"
                                 value={minDealValue}
                                 onChange={(e) => setMinDealValue(e.target.value)}
-                                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-white dark:bg-slate-800 text-txt-primary text-xs focus:outline-none focus:border-primary transition"
+                                className="w-20 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-800 text-txt-primary text-xs focus:outline-none focus:border-primary transition"
                             />
-                        </div>
-
-                        {/* Max Deal Value */}
-                        <div className="w-28 sm:w-32">
+                            <span className="text-slate-400 text-xs select-none">to</span>
                             <input
                                 type="number"
                                 placeholder="Max ₹"
                                 value={maxDealValue}
                                 onChange={(e) => setMaxDealValue(e.target.value)}
-                                className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-1.5 bg-white dark:bg-slate-800 text-txt-primary text-xs focus:outline-none focus:border-primary transition"
+                                className="w-20 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 bg-white dark:bg-slate-800 text-txt-primary text-xs focus:outline-none focus:border-primary transition"
                             />
                         </div>
 
@@ -224,8 +226,8 @@ const CustomerView = () => {
                                     <td className="px-8 py-5 text-txt-secondary">{customer.phone}</td>
                                     <td className="px-8 py-5 font-semibold text-txt-primary">{customer.assignedSalesperson || 'Unassigned'}</td>
                                     <td className="px-8 py-5">
-                                        <span className="px-2.5 py-1 rounded-md text-xs font-bold border bg-emerald-50 border-emerald-200 text-success">
-                                            ₹ {customer.dealValue}
+                                        <span className="px-2.5 py-1 rounded-md text-xs font-bold border bg-emerald-50 border-emerald-200 text-success whitespace-nowrap">
+                                            ₹{customer.dealValue}
                                         </span>
                                     </td>
                                     <td
@@ -329,8 +331,8 @@ const CustomerView = () => {
                                             }
                                         />
                                         <div className="flex flex-wrap gap-1 mt-2 px-3">
-                                            <span className="bg-emerald-50 text-success border border-emerald-100 text-[10px] px-2 py-0.5 rounded font-semibold">
-                                                ₹ {selectedCustomer.dealValue}
+                                            <span className="bg-emerald-50 text-success border border-emerald-100 text-[10px] px-2 py-0.5 rounded font-semibold whitespace-nowrap">
+                                                ₹{selectedCustomer.dealValue}
                                             </span>
                                         </div>
                                     </div>

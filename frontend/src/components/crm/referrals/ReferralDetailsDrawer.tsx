@@ -60,7 +60,7 @@ export default function ReferralDetailsDrawer({
 
       {/* Drawer */}
 
-      <div className="fixed top-0 right-0 w-[470px] h-screen bg-card shadow-2xl z-50 flex flex-col text-black">
+      <div className="fixed top-0 right-0 w-[470px] max-w-full h-screen bg-card shadow-2xl z-50 flex flex-col text-black">
 
         {/* Header */}
 

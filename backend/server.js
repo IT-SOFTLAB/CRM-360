@@ -29,6 +29,7 @@ const pipelineRoutes = require("./src/routes/pipeline.routes.js");
 const bootstrapRoutes = require("./src/routes/bootstrapRoutes.js");
 const notificationRoutes = require("./src/routes/notificationRoutes.js");
 const calendarRoutes = require("./src/routes/calenderRoutes.js");
+const savedFilterRoutes = require("./src/routes/savedFilterRoutes.js");
 const isProduction = process.env.NODE_ENV === "production";
 
 if (isProduction) {
@@ -87,6 +88,7 @@ app.use("/api/referral-pipeline", pipelineRoutes);
 app.use("/api/bootstrap", bootstrapRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/calendar", calendarRoutes);
+app.use("/api/filters", savedFilterRoutes);
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "src", "uploads"))
@@ -432,6 +434,23 @@ app.put('/api/leads/bulk-assign', async (req, res) => {
   });
   writeDB(db);
 
+  // Fetch leads details for email notification
+  let leadsForEmail = [];
+  try {
+    leadsForEmail = await prisma.lead.findMany({
+      where: {
+        id: { in: ids }
+      },
+      select: {
+        contactName: true,
+        company: true,
+        email: true
+      }
+    });
+  } catch (err) {
+    console.error("Error fetching leads for email in server.js:", err);
+  }
+
   // 2. Update in PostgreSQL
   try {
     await prisma.lead.updateMany({
@@ -457,6 +476,14 @@ app.put('/api/leads/bulk-assign', async (req, res) => {
     console.error("Prisma error during bulk assign leads:", err);
   }
 
+  // Send email notification
+  if (assignedUserId) {
+    const { sendLeadAssignmentEmail } = require('./src/services/leadEmailService');
+    sendLeadAssignmentEmail(req, assignedUserId, leadsForEmail).catch(err => {
+      console.error("Error sending bulk assign email in server.js:", err);
+    });
+  }
+
   res.json({ success: true, message: `Successfully assigned ${ids.length} leads` });
 });
 
@@ -465,6 +492,11 @@ app.put('/api/leads/:id', async (req, res) => {
   const db = readDB();
   const index = db.leads.findIndex(l => l.id === id);
   if (index !== -1) {
+    const currentLead = db.leads[index];
+    const assignedUserIdChanged = 
+      req.body.assignedUserId !== undefined && 
+      req.body.assignedUserId !== currentLead?.assignedUserId;
+
     db.leads[index] = { ...db.leads[index], ...req.body };
     logActivity(db, null, 'UPDATE_LEAD', 'Leads', `Updated lead ID: ${id}`);
 
@@ -508,6 +540,19 @@ app.put('/api/leads/:id', async (req, res) => {
       }
     } catch (err) {
       console.error("Prisma sync error in PUT /api/leads/:id:", err);
+    }
+
+    // Send single lead assignment email if assignee changed and is not null
+    if (assignedUserIdChanged && req.body.assignedUserId) {
+      const { sendLeadAssignmentEmail } = require('./src/services/leadEmailService');
+      const leadInfoForEmail = [{
+        contactName: db.leads[index].contactName || db.leads[index].name || 'N/A',
+        company: db.leads[index].company || 'N/A',
+        email: db.leads[index].email || 'N/A'
+      }];
+      sendLeadAssignmentEmail(req, req.body.assignedUserId, leadInfoForEmail).catch(err => {
+        console.error("Error sending single assign email in server.js:", err);
+      });
     }
 
     return res.json(db.leads[index]);

@@ -77,7 +77,7 @@ function PipelinePieChart({
       {/* Donut pie — slices sized by revenue */}
       <div className="relative w-32 h-32 shrink-0">
         <svg viewBox="-2 -2 40 40" className="w-full h-full -rotate-90">
-          <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F1F5F9" strokeWidth="3.5" />
+          <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--color-border-crm)" strokeWidth="3.5" />
           {segments.map((seg, i) => (
             <circle
               key={i}
@@ -1045,7 +1045,7 @@ export default function DashboardView({
                       {/* Donut chart - centered and occupying full container width */}
                       <div className="relative w-28 h-28 my-0.5">
                         <svg viewBox="-2 -2 40 40" className="w-full h-full -rotate-90">
-                          <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F1F5F9" strokeWidth="4" />
+                          <circle cx="18" cy="18" r="15.915" fill="none" stroke="var(--color-border-crm)" strokeWidth="4" />
                           {pieSegs.map((seg, i) => (
                             <circle
                               key={i}

@@ -3,7 +3,8 @@ export const applyFilters = (
   type: 'leads' | 'opportunities' | 'emails',
   searchQuery: string,
   activeFilters: any,
-  user: any
+  user: any,
+  leads?: any[]
 ): any[] => {
   let filtered = data.filter(item => item !== null && item !== undefined);
 
@@ -64,12 +65,20 @@ export const applyFilters = (
     if (type === 'leads') {
       filtered = filtered.filter(l => l.category === activeFilters.category);
     } else if (type === 'opportunities') {
-      filtered = filtered.filter(o => o.tags?.includes(activeFilters.category));
+      filtered = filtered.filter(o => {
+        const lead = leads?.find(l => l.id === o.leadId);
+        return lead ? lead.category === activeFilters.category : false;
+      });
     }
   }
   if (activeFilters.serviceType) {
     if (type === 'leads') {
       filtered = filtered.filter(l => l.serviceType === activeFilters.serviceType);
+    } else if (type === 'opportunities') {
+      filtered = filtered.filter(o => {
+        const lead = leads?.find(l => l.id === o.leadId);
+        return lead ? lead.serviceType === activeFilters.serviceType : false;
+      });
     }
   }
   if (activeFilters.salesperson) {
