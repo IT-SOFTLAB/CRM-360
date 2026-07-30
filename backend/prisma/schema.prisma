@@ -33,6 +33,7 @@ model User {
   opportunities       Opportunity[]
   refreshTokens       RefreshToken[]
   ledTeams            SalesTeam[]    @relation("TeamLeader")
+  SavedFilter         SavedFilter[]
   tasksCreated        Task[]         @relation("TasksCreated")
   tasksAssigned       Task[]         @relation("TasksAssigned")
   admin               User?          @relation("UserToUser", fields: [adminId], references: [id])
@@ -325,4 +326,13 @@ model EmailLog {
   sentAt         DateTime @default(now())
   createdAt      DateTime @default(now())
   updatedAt      DateTime
+}
+
+model SavedFilter {
+  id        String   @id
+  name      String
+  filters   Json
+  userId    String?
+  createdAt DateTime @default(now())
+  User      User?    @relation(fields: [userId], references: [id])
 }

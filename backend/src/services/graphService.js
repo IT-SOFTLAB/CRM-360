@@ -87,6 +87,8 @@
 
 require("isomorphic-fetch");
 
+
+
 const {
     ConfidentialClientApplication
 } = require("@azure/msal-node");
@@ -318,11 +320,41 @@ async function getOutlookTokens(req) {
     return null;
 }
 
+async function getOutlookTokensByUserId(userId) {
+    console.log("Looking up Outlook tokens for user:", userId);
+
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            outlookAccessToken: true,
+            outlookRefreshToken: true,
+            outlookEmail: true,
+        },
+    });
+
+    console.log("User Outlook record:", {
+        hasAccessToken: !!user?.outlookAccessToken,
+        hasRefreshToken: !!user?.outlookRefreshToken,
+        email: user?.outlookEmail,
+    });
+
+    if (!user?.outlookAccessToken) {
+        return null;
+    }
+
+    return {
+        accessToken: user.outlookAccessToken,
+        refreshToken: user.outlookRefreshToken,
+        email: user.outlookEmail,
+    };
+}
 module.exports = {
     getAuthUrl,
     getTokenFromCode,
     refreshAccessToken,
     getGraphClient,
     getOutlookTokens,
-    SCOPES
+    getOutlookTokensByUserId,
+    SCOPES,
 };
+
