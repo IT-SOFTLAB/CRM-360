@@ -462,9 +462,9 @@ export default function QuotationsView({
       <div className="space-y-6 print:hidden">
         {/* Manager Filter Header */}
       {isManager && (
-        <div className="flex justify-between items-center bg-card border border-border-crm rounded-2xl p-2.5 shadow-xs text-xs">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-card border border-border-crm rounded-2xl p-2.5 shadow-xs text-xs gap-3">
           <div className="flex items-center space-x-2.5">
-            <div className="bg-primary/10 p-2 rounded-xl text-primary border border-primary/20">
+            <div className="bg-primary/10 p-2 rounded-xl text-primary border border-primary/20 shrink-0">
               <ListFilter className="w-5 h-5" />
             </div>
             <div>
@@ -473,7 +473,7 @@ export default function QuotationsView({
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 justify-end">
             {[
               { id: 'all', label: 'All Quotations' },
               { id: 'my', label: 'My Quotations' },
@@ -482,7 +482,7 @@ export default function QuotationsView({
               <button
                 key={f.id}
                 onClick={() => setActiveFilter(f.id as any)}
-                className={`px-3.5 py-2 rounded-xl text-[11px] font-semibold border transition cursor-pointer shadow-xs ${
+                className={`px-3.5 py-2 rounded-xl text-[11px] font-semibold border transition cursor-pointer shadow-xs flex-1 sm:flex-none text-center ${
                   activeFilter === f.id
                     ? 'bg-primary text-white border-primary/50'
                     : 'bg-card text-txt-secondary border-border-crm hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -506,14 +506,14 @@ export default function QuotationsView({
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-bg-main border-b border-black  text-xs font-bold text-black uppercase tracking-wider select-none">
-                <th className="px-6 py-4 text-left">Quotation No.</th>
-                <th className="px-6 py-4 text-left">Client</th>
-                <th className="px-6 py-4 text-left">Company</th>
-                <th className="px-6 py-4 text-left">Quotation Date</th>
-                <th className="px-6 py-4 text-right">Total</th>
-                <th className="px-6 py-4 text-center">Status</th>
-                <th className="px-6 py-4 text-center">Actions</th>
+              <tr className="bg-bg-main border-b border-black  text-xs font-bold text-txt-secondary uppercase tracking-wider select-none">
+                <th className="px-6 py-4 text-left text-txt-primary">Quotation No.</th>
+                <th className="px-6 py-4 text-left text-txt-primary">Client</th>
+                <th className="px-6 py-4 text-left text-txt-primary">Company</th>
+                <th className="px-6 py-4 text-left text-txt-primary">Quotation Date</th>
+                <th className="px-6 py-4 text-right text-txt-primary">Total</th>
+                <th className="px-6 py-4 text-center text-txt-primary">Status</th>
+                <th className="px-6 py-4 text-center text-txt-primary">Actions</th>
               </tr>
             </thead>
             <tbody>

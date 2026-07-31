@@ -420,6 +420,13 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
               {/* Mobile controls: Theme Toggle + Shifted Notification */}
               <div className="flex items-center gap-2 md:hidden">
                 <ThemeToggle variant="icon" />
+                <button
+                  onClick={handleLogoutClick}
+                  className="p-2 rounded-xl text-rose-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-rose-600 transition cursor-pointer border border-border-crm bg-bg-main flex items-center justify-center"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-4.5 h-4.5" />
+                </button>
                 {userRole !== 'SUPER_ADMIN' && currentTab !== 'leads' && currentTab !== 'opportunities' && (
                   <div className="relative shrink-0">
                     <button
@@ -1010,8 +1017,23 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
               })}
             </nav>
             
-            <div className="border-t border-border-crm pt-4 text-[10px] text-slate-400 text-center">
-              Logged in as <strong className="text-txt-primary block text-xs mt-0.5">{crm.user?.name || 'Guest'}</strong>
+            <div className="border-t border-border-crm pt-4 bg-slate-50/50 dark:bg-slate-900/10 -mx-5 -mb-5 p-4 rounded-b-xl">
+              <div className="flex items-center justify-between gap-2 p-1.5 rounded-xl bg-card border border-border-crm/30 shadow-xs">
+                <div className="w-8 h-8 rounded-full bg-bg-main text-txt-primary border border-border-crm flex items-center justify-center font-bold uppercase text-xs shrink-0">
+                  {crm.user?.name ? crm.user.name.substr(0, 2) : 'US'}
+                </div>
+                <div className="flex-1 min-w-0 text-left text-[10px]">
+                  <p className="font-bold text-txt-primary truncate">{crm.user?.name || 'Guest'}</p>
+                  <p className="text-txt-secondary truncate">{crm.user?.role || ''}</p>
+                </div>
+                <button
+                  onClick={handleLogoutClick}
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 text-rose-500 hover:text-rose-600 rounded-lg transition cursor-pointer shrink-0"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>

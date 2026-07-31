@@ -188,17 +188,17 @@ export default function LeadsView({
     <div className="flex flex-col gap-4">
       {/* Bulk actions bar */}
       {selectedLeadIds.length > 0 && isAdmin && (
-        <div className="flex justify-between items-center bg-card border border-border-crm rounded-2xl py-2.5 px-4 shrink-0 shadow-xs animate-in fade-in slide-in-from-left-2 duration-200">
-          <div className="flex items-center space-x-3.5">
-            <span className="text-[10px] text-txt-secondary font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-card border border-border-crm rounded-2xl py-2.5 px-4 shrink-0 shadow-xs animate-in fade-in slide-in-from-left-2 duration-200 gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-[10px] text-txt-secondary font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md shrink-0">
               {selectedLeadIds.length} Selected
             </span>
-            <div className="flex items-center whitespace-nowrap">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               <span className="font-semibold text-txt-secondary text-[11px] mr-2">Assign to Salesperson:</span>
-              <div className="relative flex items-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg border border-border-crm/30 transition shadow-sm cursor-pointer pl-2.5 pr-7 py-1.5">
+              <div className="relative flex items-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg border border-border-crm/30 transition shadow-sm cursor-pointer pl-2.5 pr-7 py-1.5 w-full sm:w-auto">
                 <User className="w-3.5 h-3.5 text-primary mr-1.5 shrink-0" />
                 <select
-                  className="bg-transparent text-txt-primary focus:outline-none text-[11px] font-bold cursor-pointer appearance-none pr-1 outline-none"
+                  className="bg-transparent text-txt-primary focus:outline-none text-[11px] font-bold cursor-pointer appearance-none pr-1 outline-none w-full"
                   value=""
                   onChange={(e) => handleBulkAssign(e.target.value)}
                 >
@@ -220,7 +220,7 @@ export default function LeadsView({
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-bg-main border-b border-black  text-xs font-bold text-txt-secondary uppercase tracking-wider select-none">
+            <tr className="bg-bg-main border-b border-black  text-xs font-bold  text-txt-primary uppercase tracking-wider select-none">
               {isAdmin && (
                 <th className="py-4 px-6 w-10">
                   <input
@@ -231,14 +231,14 @@ export default function LeadsView({
                   />
                 </th>
               )}
-              <th className="px-6 py-4 text-black font-bold">Lead Contact</th>
-              <th className="px-6 py-4  text-black font-bold">Company</th>
-              <th className="px-6 py-4  text-black font-bold">Category</th>
-              <th className="px-6 py-4  text-black font-bold">Service Type</th>
-              <th className="px-6 py-4  text-black font-bold">Assigned User</th>
-              <th className="px-6 py-4  text-black font-bold">Created Date</th>
-              <th className="px-6 py-4  text-black font-bold">Status</th>
-              <th className="px-6 py-4 text-right  text-black font-bold">Actions</th>
+              <th className="px-6 py-4 font-bold text-txt-primary">Lead Contact</th>
+              <th className="px-6 py-4 font-bold text-txt-primary">Company</th>
+              <th className="px-6 py-4 font-bold text-txt-primary">Category</th>
+              <th className="px-6 py-4 font-bold text-txt-primary">Service Type</th>
+              <th className="px-6 py-4 font-bold text-txt-primary">Assigned User</th>
+              <th className="px-6 py-4 font-bold text-txt-primary">Created Date</th>
+              <th className="px-6 py-4 font-bold text-txt-primary">Status</th>
+              <th className="px-6 py-4 text-right font-bold text-txt-primary">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border-crm text-xs">

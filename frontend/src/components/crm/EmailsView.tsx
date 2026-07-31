@@ -394,16 +394,16 @@ const filteredEmails = emails;
   return (
     <div className="space-y-4">
       {/* Header and Toggle Button */}
-      <div className="flex justify-between items-center bg-card border border-border-crm rounded-2xl p-2.5 shadow-xs text-xs">
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-card border border-border-crm rounded-2xl p-2.5 shadow-xs text-xs gap-3">
         <div className="flex items-center gap-2">
-          <Mail className="w-5 h-5 text-primary" />
+          <Mail className="w-5 h-5 text-primary shrink-0" />
           <span className="font-extrabold text-sm tracking-tight text-txt-primary">
             {currentView === 'outlook' ? 'Outlook Email Client' : 'Email Status Dashboard'}
           </span>
         </div>
         <button
           onClick={() => setCurrentView(prev => prev === 'outlook' ? 'dashboard' : 'outlook')}
-          className="bg-primary hover:bg-blue-600 text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl transition cursor-pointer shadow-xs"
+          className="bg-primary hover:bg-blue-600 text-white text-xs font-semibold px-3.5 py-1.5 rounded-xl transition cursor-pointer shadow-xs w-full sm:w-auto text-center"
         >
           {currentView === 'outlook' ? 'Email Status' : 'Outlook Email'}
         </button>
@@ -826,7 +826,7 @@ hist.receivedDateTime || hist.date
 </div>
 
 <div
-className="leading-relaxed"
+className="leading-relaxed break-words overflow-x-auto max-w-full"
 dangerouslySetInnerHTML={{
 __html: hist.body
 }}
@@ -899,7 +899,7 @@ className="text-slate-500"
 
 onSubmit={handleComposeSend}
 
-className="p-5 space-y-3 overflow-y-auto"
+className="p-5 space-y-3 overflow-y-auto flex-1"
 
 >
 
@@ -1235,7 +1235,7 @@ Send
               <div className="border-t border-border-crm pt-4">
                 <p className="text-slate-400 font-semibold uppercase text-[10px] mb-2">Email Body</p>
                 <div 
-                  className="p-4 bg-slate-50 border border-slate-200 rounded-xl max-h-96 overflow-y-auto text-xs whitespace-pre-wrap leading-relaxed"
+                  className="p-4 bg-slate-50 border border-slate-200 rounded-xl max-h-96 overflow-y-auto overflow-x-auto text-xs whitespace-pre-wrap break-words leading-relaxed max-w-full"
                   dangerouslySetInnerHTML={{ __html: selectedLog.emailBody }}
                 />
               </div>

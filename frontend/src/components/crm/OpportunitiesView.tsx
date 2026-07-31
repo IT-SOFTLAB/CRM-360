@@ -670,38 +670,38 @@ const handleBulkDelete = async () => {
   return (
     <div className="flex flex-col gap-4 text-xs text-txt-primary">
       {/* View Toggle Bar */}
-      <div className="flex justify-between items-center bg-card border border-border-crm rounded-2xl py-2.5 px-4 shrink-0 shadow-xs">
-        <div className="flex items-center space-x-2">
-          <span className="font-extrabold text-sm text-txt-primary">Pipeline</span>
+      <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center bg-card border border-border-crm rounded-2xl py-2.5 px-4 shrink-0 shadow-xs gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-extrabold text-sm text-txt-primary mr-2">Pipeline</span>
           {viewMode === 'list' && selectedOppIds.length > 0 && (
-            <div className="flex items-center space-x-3.5 ml-4 animate-in fade-in slide-in-from-left-2 duration-200">
-              <span className="text-[10px] text-txt-secondary font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+            <div className="flex flex-wrap items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-200">
+              <span className="text-[10px] text-txt-secondary font-semibold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md shrink-0">
                 {selectedOppIds.length} Selected
               </span>
               <button
                 onClick={() => {
-                setBulkEmailForm({
-    cc: "",
-    bcc: "",
-    template: "",
-    subject: "Update regarding your project/opportunity",
-    body:
-        "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin"
-});
-                   setShowBulkEmailModal(true);
+                  setBulkEmailForm({
+                    cc: "",
+                    bcc: "",
+                    template: "",
+                    subject: "Update regarding your project/opportunity",
+                    body:
+                      "Hi,\n\nI wanted to reach out regarding the status of our current project/opportunity. Let me know if you have any questions.\n\nBest regards,\nSuperadmin"
+                  });
+                  setShowBulkEmailModal(true);
                 }}
-                className="bg-primary hover:bg-primary-hover text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow flex items-center gap-1 transition cursor-pointer"
+                className="bg-primary hover:bg-primary-hover text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow flex items-center gap-1 transition cursor-pointer shrink-0"
               >
                 <Mail className="w-3.5 h-3.5" />
                 <span>Send Bulk Email</span>
               </button>
               {userRole !== 'USER' && (
-                <div className="flex items-center whitespace-nowrap">
-                  <span className="font-semibold text-txt-secondary text-[11px] mr-2">Assign User:</span>
-                  <div className="relative flex items-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg border border-border-crm/30 transition shadow-sm cursor-pointer pl-2.5 pr-7 py-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold text-txt-secondary text-[11px]">Assign User:</span>
+                  <div className="relative flex items-center bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg border border-border-crm/30 transition shadow-sm cursor-pointer pl-2.5 pr-7 py-1.5 w-full sm:w-auto">
                     <User className="w-3.5 h-3.5 text-primary mr-1.5 shrink-0" />
                     <select
-                      className="bg-transparent text-txt-primary focus:outline-none text-[11px] font-bold cursor-pointer appearance-none pr-1 outline-none"
+                      className="bg-transparent text-txt-primary focus:outline-none text-[11px] font-bold cursor-pointer appearance-none pr-1 outline-none w-full"
                       value=""
                       onChange={async (e) => {
                         const newId = e.target.value;
@@ -725,27 +725,27 @@ const handleBulkDelete = async () => {
                 </div>
               )}
               <button
-  onClick={handleBulkDelete}
-  className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow flex items-center gap-1 transition cursor-pointer"
->
-  <Trash2 className="w-3.5 h-3.5" />
-  <span>Delete Selected</span>
-</button>
+                onClick={handleBulkDelete}
+                className="bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow flex items-center gap-1 transition cursor-pointer shrink-0"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Selected</span>
+              </button>
             </div>
           )}
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-between sm:justify-end gap-3 w-full md:w-auto">
           {/* Export File Button */}
           <button
             onClick={handleExportCSV}
-            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-txt-primary hover:text-primary rounded-lg text-[11px] font-semibold transition flex items-center gap-1.5 cursor-pointer shadow-xs border border-border-crm/30"
+            className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-txt-primary hover:text-primary rounded-lg text-[11px] font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs border border-border-crm/30 flex-1 sm:flex-none"
             title="Export Opportunities to CSV"
           >
             <Upload className="w-3.5 h-3.5" />
             <span>Export File</span>
           </button>
 
-          <div className="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg">
+          <div className="flex items-center space-x-1.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg shrink-0">
             <button
               onClick={() => handleToggleViewMode('kanban')}
               className={`px-2.5 py-1 rounded-md text-[11px] font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${

@@ -756,18 +756,18 @@ export default function SalesTeamView() {
       </div> */}
 
       {/* Team Select & Individual Executive Search Toolbar */}
-      <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-3 bg-card border border-border-crm rounded-2xl p-3 shadow-xs text-xs">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-col xl:flex-row justify-between items-stretch xl:items-center gap-4 bg-card border border-border-crm rounded-2xl p-4 shadow-xs text-xs">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4 w-full xl:w-auto">
           {/* Team Dropdown */}
-          <div className="flex items-center space-x-2">
-            <span className="text-xs font-bold text-txt-secondary uppercase tracking-wider">Team:</span>
+          <div className="flex items-center justify-start gap-2 w-full lg:w-auto">
+            <span className="text-xs font-bold text-txt-secondary uppercase tracking-wider shrink-0">Team:</span>
             <select
               value={selectedTeam?.id || 'all'}
               onChange={(e) => {
                 setSelectedUserId('');
                 handleTeamSelectChange(e.target.value);
               }}
-              className="border border-border-crm rounded-xl px-3 py-1.5 text-xs bg-bg-main text-txt-primary font-bold focus:outline-none"
+              className="border border-border-crm rounded-xl px-3 py-1.5 text-xs bg-bg-main text-txt-primary font-bold focus:outline-none flex-1 sm:flex-none max-w-[240px] sm:max-w-none w-full sm:w-auto cursor-pointer"
             >
               <option value="all">🌍 All Teams</option>
               {teams.map(t => (
@@ -777,15 +777,15 @@ export default function SalesTeamView() {
           </div>
 
           {/* User Search & Dropdown Selector */}
-          <div className="flex items-center space-x-2 border-l border-border-crm/50 pl-3">
-            <span className="text-xs font-bold text-txt-secondary uppercase tracking-wider">User Performance:</span>
-            <div className="relative flex items-center gap-1.5">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-2 border-t lg:border-t-0 lg:border-l border-border-crm/50 pt-3 lg:pt-0 lg:pl-4 w-full lg:w-auto">
+            <span className="text-xs font-bold text-txt-secondary uppercase tracking-wider shrink-0">User Performance:</span>
+            <div className="flex flex-wrap lg:flex-nowrap items-center gap-1.5 w-full lg:w-auto">
               <input
                 type="text"
                 placeholder="Search user..."
                 value={userSearchQuery}
                 onChange={e => handleUserSearchInput(e.target.value)}
-                className="w-36 border border-border-crm rounded-xl px-2.5 py-1 text-[11px] bg-bg-main text-txt-primary focus:outline-none focus:border-primary"
+                className="flex-1 lg:flex-none w-full lg:w-36 border border-border-crm rounded-xl px-2.5 py-1 text-[11px] bg-bg-main text-txt-primary focus:outline-none focus:border-primary"
               />
               <select
                 value={selectedUserId}
@@ -798,7 +798,7 @@ export default function SalesTeamView() {
                     if (found) setUserSearchQuery(found.name);
                   }
                 }}
-                className="border border-border-crm rounded-xl px-3 py-1.5 text-xs bg-bg-main text-txt-primary font-bold focus:outline-none max-w-[200px] cursor-pointer"
+                className="flex-1 lg:flex-none w-full lg:w-auto border border-border-crm rounded-xl px-3 py-1.5 text-xs bg-bg-main text-txt-primary font-bold focus:outline-none max-w-[200px] cursor-pointer"
               >
                 <option value="">👤 Select User</option>
                 {filteredUsersList.map(u => (
@@ -811,7 +811,7 @@ export default function SalesTeamView() {
                     setSelectedUserId('');
                     setUserSearchQuery('');
                   }}
-                  className="text-xs text-rose-500 hover:text-rose-600 font-bold px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/30 border border-rose-200 cursor-pointer"
+                  className="text-xs text-rose-500 hover:text-rose-600 font-bold px-1.5 py-0.5 rounded bg-rose-50 dark:bg-rose-950/30 border border-rose-200 cursor-pointer shrink-0"
                   title="Clear user search"
                 >
                   ✕
@@ -821,29 +821,7 @@ export default function SalesTeamView() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-3 justify-end">
-          {/* Time Period Filter Toggle (Current Month vs Overall) */}
-          {/* {(selectedUserId || selectedTeam) && (
-            <div className="flex items-center bg-bg-main border border-border-crm rounded-xl p-1 gap-1">
-              <button
-                onClick={() => setUserPeriodFilter('month')}
-                className={`px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase transition-all cursor-pointer ${
-                  userPeriodFilter === 'month' ? 'bg-primary text-white shadow-xs' : 'text-txt-secondary hover:text-txt-primary'
-                }`}
-              >
-                Current Month
-              </button>
-              <button
-                onClick={() => setUserPeriodFilter('overall')}
-                className={`px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase transition-all cursor-pointer ${
-                  userPeriodFilter === 'overall' ? 'bg-primary text-white shadow-xs' : 'text-txt-secondary hover:text-txt-primary'
-                }`}
-              >
-                Overall
-              </button>
-            </div>
-          )} */}
-
+        <div className="flex flex-wrap items-center gap-2.5 justify-end w-full xl:w-auto">
           {selectedTeam && (
             <>
               <input
@@ -856,7 +834,7 @@ export default function SalesTeamView() {
               <button
                 onClick={() => setShowImportModal(true)}
                 disabled={importing}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-4 py-2 text-xs font-semibold transition flex items-center space-x-1.5 shadow-lg shadow-emerald-500/10 cursor-pointer shrink-0 disabled:opacity-50"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl px-4 py-2 text-xs font-semibold transition flex items-center justify-center space-x-1.5 shadow-lg shadow-emerald-500/10 cursor-pointer flex-1 xl:flex-none w-full xl:w-auto disabled:opacity-50"
               >
                 <Upload className="w-4 h-4" />
                 <span>{importing ? 'Uploading...' : 'Import Leads'}</span>
@@ -866,7 +844,7 @@ export default function SalesTeamView() {
 
           <button
             onClick={() => setShowCreateModal(true)}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 text-xs font-semibold transition flex items-center space-x-1.5 shadow-lg shadow-indigo-500/10 cursor-pointer shrink-0"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 text-xs font-semibold transition flex items-center justify-center space-x-1.5 shadow-lg shadow-indigo-500/10 cursor-pointer flex-1 xl:flex-none w-full xl:w-auto"
           >
             <Plus className="w-4 h-4" />
             <span>Create Team</span>
@@ -879,18 +857,18 @@ export default function SalesTeamView() {
         <div className="space-y-6 animate-fade-in border-b border-border-crm/40 pb-6">
           {/* Header Banner */}
           <div className="bg-card border border-border-crm rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center space-x-3.5">
+            <div className="flex items-start sm:items-center space-x-3.5 w-full sm:w-auto">
               <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-extrabold text-lg shadow-md shrink-0">
                 {(selectedUserObj.name || 'U').charAt(0).toUpperCase()}
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-extrabold text-txt-primary tracking-tight">{selectedUserObj.name}</h2>
-                  <span className="bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-extrabold text-txt-primary tracking-tight truncate max-w-[200px] sm:max-w-none">{selectedUserObj.name}</h2>
+                  <span className="bg-blue-50 text-blue-600 border border-blue-200 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full shrink-0">
                     {selectedUserObj.role || 'Sales Executive'}
                   </span>
                 </div>
-                <p className="text-xs text-txt-secondary mt-0.5">{selectedUserObj.email || 'Individual Sales Analytics'}</p>
+                <p className="text-xs text-txt-secondary mt-0.5 truncate">{selectedUserObj.email || 'Individual Sales Analytics'}</p>
               </div>
             </div>
 
@@ -903,7 +881,7 @@ export default function SalesTeamView() {
           </div>
 
           {/* 3 Top KPI Cards: Total Customers Won, Total Leads, Total Revenue */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             <div className="bg-card border border-border-crm rounded-2xl p-5 shadow-xs flex items-center justify-between">
               <div className="space-y-1">
                 <p className="text-[10px] font-bold text-txt-secondary uppercase tracking-wider">Total Customers Won</p>
@@ -1169,15 +1147,15 @@ export default function SalesTeamView() {
 
             {/* Team Header Banner */}
             <div className="bg-card border border-border-crm rounded-2xl p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-sm">
-              <div className="flex items-center space-x-3.5">
+              <div className="flex items-start space-x-3.5 w-full md:w-auto">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center font-extrabold text-lg shadow-md shrink-0">
                   {selectedTeam.name.charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-extrabold text-txt-primary tracking-tight">{selectedTeam.name}</h2>
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-lg font-extrabold text-txt-primary tracking-tight truncate max-w-[200px] sm:max-w-none">{selectedTeam.name}</h2>
                     {selectedTeam.category && (
-                      <span className="bg-indigo-900/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase">
+                      <span className="bg-indigo-900/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[9px] font-extrabold px-2 py-0.5 rounded-md uppercase shrink-0">
                         {selectedTeam.category}
                       </span>
                     )}
@@ -1197,10 +1175,10 @@ export default function SalesTeamView() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full md:w-auto justify-end">
                 <button
                   onClick={() => handleTeamSelectChange('all')}
-                  className="bg-slate-100 hover:bg-slate-200 border border-border-crm text-txt-primary font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer"
+                  className="bg-slate-100 hover:bg-slate-200 border border-border-crm text-txt-primary font-bold text-xs px-4 py-2 rounded-xl transition cursor-pointer w-full md:w-auto text-center"
                 >
                   ← Back to Teams
                 </button>
@@ -1245,7 +1223,7 @@ export default function SalesTeamView() {
                 {activeTab === 'performance' && (
                   <>
                     {/* Top Key Metrics Cards */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                       <div className="bg-bg-main border border-border-crm p-4 rounded-xl flex items-center space-x-3">
                         <div className="bg-blue-600/10 p-2 rounded-lg text-blue-600 dark:text-blue-400">
                           <Briefcase className="w-5 h-5" />
