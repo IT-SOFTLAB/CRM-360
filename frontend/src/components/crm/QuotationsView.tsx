@@ -506,8 +506,7 @@ export default function QuotationsView({
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-<<<<<<< HEAD
-              <tr className="bg-bg-main border-b border-black  text-xs font-bold text-txt-secondary uppercase tracking-wider select-none">
+              <tr className="bg-bg-main border-b border-black text-xs font-bold text-txt-secondary uppercase tracking-wider select-none">
                 <th className="px-6 py-4 text-left text-txt-primary">Quotation No.</th>
                 <th className="px-6 py-4 text-left text-txt-primary">Client</th>
                 <th className="px-6 py-4 text-left text-txt-primary">Company</th>
@@ -515,16 +514,6 @@ export default function QuotationsView({
                 <th className="px-6 py-4 text-right text-txt-primary">Total</th>
                 <th className="px-6 py-4 text-center text-txt-primary">Status</th>
                 <th className="px-6 py-4 text-center text-txt-primary">Actions</th>
-=======
-              <tr className="bg-bg-main border-b border-black  text-xs font-bold text-black uppercase tracking-wider select-none">
-                <th className="px-6 py-4 text-left text-black dark:text-white">Quotation No.</th>
-                <th className="px-6 py-4 text-left text-black dark:text-white">Client</th>
-                <th className="px-6 py-4 text-left text-black dark:text-white">Company</th>
-                <th className="px-6 py-4 text-left text-black dark:text-white">Quotation Date</th>
-                <th className="px-6 py-4 text-right text-black dark:text-white">Total</th>
-                <th className="px-6 py-4 text-center text-black dark:text-white">Status</th>
-                <th className="px-6 py-4 text-center text-black dark:text-white">Actions</th>
->>>>>>> 3b17f96fb1b5f31fa77d605edb9238421868e52d
               </tr>
             </thead>
             <tbody>
