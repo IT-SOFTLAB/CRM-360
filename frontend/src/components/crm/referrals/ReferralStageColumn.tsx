@@ -49,13 +49,13 @@ export default function ReferralStageColumn({
               }}
             />
 
-            <h3 className="font-semibold text-sm text-black">
+            <h3 className="font-semibold text-sm text-txt-primary">
               {stage.name}
             </h3>
 
           </div>
 
-          <p className="text-xs text-muted-foreground mt-1 text-slate-700">
+          <p className="text-xs text-muted-foreground mt-1 text-txt-primary">
             {(referrals ?? []).length} Referral
             {(referrals ?? []).length !== 1 && "s"}
           </p>

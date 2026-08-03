@@ -60,11 +60,11 @@ export default function ReferralPipelineBoard({
 
         <div>
 
-          <h3 className="font-bold text-sm text-blue-900">
+          <h3 className="font-bold text-sm  text-txt-primary">
             Retention Pipeline
           </h3>
 
-          <p className="text-xs text-black">
+          <p className="text-xs text-txt-primary">
             Manage referral workflow visually
           </p>
 

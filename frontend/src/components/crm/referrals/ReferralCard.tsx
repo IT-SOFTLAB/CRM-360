@@ -45,10 +45,10 @@ export default function ReferralCard({
         >
           {/* Referrer */}
 
-          <div className="flex items-center gap-2 mb-3 text-black">
+          <div className="flex items-center gap-2 mb-3 text-txt-primary">
             <User size={15} />
 
-            <span className="font-semibold text-sm text-gray-700">
+            <span className="font-semibold text-sm text-txt-primary">
               {referral.referrerName || "-"}
             </span>
           </div>
@@ -63,7 +63,7 @@ export default function ReferralCard({
 
           {/* Referred Lead */}
 
-          <div className="flex items-center gap-2 text-xs mb-3 text-black">
+          <div className="flex items-center gap-2 text-xs mb-3 text-txt-primary">
             <User size={14} />
 
             <span className="font-medium text-gray-800">

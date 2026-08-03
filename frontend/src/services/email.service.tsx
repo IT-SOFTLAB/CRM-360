@@ -40,10 +40,20 @@ export const emailService = {
     return res.data;
   },
 
-  sendEmail: async (payload: any) => {
-    const res = await api.post("/emails/send", payload);
+sendEmail: async (payload: FormData) => {
+
+    const res = await api.post(
+        "/emails/send",
+        payload,
+        {
+            headers: {
+                "Content-Type": "multipart/form-data"
+            }
+        }
+    );
+
     return res.data;
-  },
+},
 
 sendBulkEmail: async (payload: {
    opportunityIds: string[];

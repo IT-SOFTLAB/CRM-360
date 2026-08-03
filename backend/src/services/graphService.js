@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-
-=======
->>>>>>> 3b17f96fb1b5f31fa77d605edb9238421868e52d
 require("isomorphic-fetch");
 
 const {

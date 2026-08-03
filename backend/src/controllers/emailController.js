@@ -257,10 +257,23 @@ exports.markRead = async (req, res) => {
 };
 
 exports.sendMail = async (req, res) => {
+  const uploadedFiles = req.files || [];
+  const graphAttachments = uploadedFiles.map(file => ({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.originalname,
+    contentType: file.mimetype,
+    contentBytes: file.buffer.toString("base64")
+}));
   const recipientEmail = req.body.to;
   const subject = req.body.subject || "(No Subject)";
   const body = req.body.body || "";
-  const attachments = req.body.attachments ? JSON.stringify(req.body.attachments) : null;
+ const attachments = JSON.stringify(
+    uploadedFiles.map(file => ({
+        name: file.originalname,
+        size: file.size,
+        type: file.mimetype
+    }))
+);
   const userId = req.user?.id || "System";
 
   // Validate email address
@@ -317,25 +330,29 @@ exports.sendMail = async (req, res) => {
       // Send via real Microsoft Graph API
       try {
         const client = getGraphClient(outlookTokens.accessToken);
-        await client.api("/me/sendMail").post({
-          message: {
-            subject: subject,
-           body: {
-  contentType: "HTML",
-  content: body
-    .split("\n\n")
-    .map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`)
-    .join("")
-},
-            toRecipients: [
-              {
+       await client.api("/me/sendMail").post({
+    message: {
+        subject: subject,
+
+        body: {
+            contentType: "HTML",
+            content: body
+                .split("\n\n")
+                .map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+                .join("")
+        },
+
+        toRecipients: [
+            {
                 emailAddress: {
-                  address: recipientEmail
+                    address: recipientEmail
                 }
-              }
-            ]
-          }
-        });
+            }
+        ],
+
+        attachments: graphAttachments
+    }
+});
       } catch (graphErr) {
         console.error("Microsoft Graph send failed, marking as Failed:", graphErr);
         status = "Failed";
@@ -975,6 +992,8 @@ exports.getEmailLogs = async (req, res) => {
 };
 
 exports.sendBulkMail = async (req, res) => {
+  const uploadedFiles = req.files || [];
+ 
 const {
     opportunityIds,
     cc,
@@ -1037,40 +1056,25 @@ const {
     }
 
     const client = getGraphClient(outlookTokens.accessToken);
-
+const graphAttachments = uploadedFiles.map(file => ({
+    "@odata.type": "#microsoft.graph.fileAttachment",
+    name: file.originalname,
+    contentType: file.mimetype,
+    contentBytes: file.buffer.toString("base64")
+}));
   await client.api("/me/sendMail").post({
-    message: {
-        subject,
+    message:{
+    subject,
 
-      body: {
-    contentType: "HTML",
-    content: body
-        .split("\n\n")
-        .map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`)
-        .join("")
-},
+    body:{
+        contentType:"HTML",
+        content:body
+    },
 
-        toRecipients: [],
+    toRecipients:recipients,
 
-        ccRecipients: cc
-            ? [{
-                emailAddress: {
-                    address: cc
-                }
-            }]
-            : [],
-
-        bccRecipients: [
-            ...recipients,
-            ...(bcc
-                ? [{
-                    emailAddress: {
-                        address: bcc
-                    }
-                }]
-                : [])
-        ]
-    }
+    attachments:graphAttachments
+}
 });
 
     for (const opp of opportunities) {
@@ -1084,7 +1088,13 @@ const {
         sentByUserId: userId,
         status: "Sent",
         emailBody: body,
-        attachments: null
+      attachments: JSON.stringify(
+    uploadedFiles.map(f => ({
+        name:f.originalname,
+        size:f.size,
+        type:f.mimetype
+    }))
+)
       });
 
     }
