@@ -15,6 +15,27 @@
   --color-txt-primary: #1E293B;
   --color-txt-secondary: #64748B;
   --radius-crm: 12px;
+
+  --animate-heroFly: heroFly 3s ease-in-out infinite;
+  --animate-heroTilt: heroTilt 5s ease-in-out infinite;
+
+  @keyframes heroFly {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  @keyframes heroTilt {
+    0%, 100% {
+      transform: rotate(0deg);
+    }
+    50% {
+      transform: rotate(3deg);
+    }
+  }
 }
 
 html {
