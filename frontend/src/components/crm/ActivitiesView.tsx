@@ -605,20 +605,20 @@ setShowActivityModal(false);
               {filteredActivities.filter(a => !a.done).map(act => (
                 <div
                   key={act.id}
-                  onClick={() => setSelectedActivity(act)}
-                  className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer transition border border-transparent hover:border-border-crm"
+                  //onClick={() => setSelectedActivity(act)}
+                  className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition border border-transparent hover:border-border-crm"
                 >
-                  <input
+         <input
   type="checkbox"
   checked={act.done}
-  disabled={act.isOutlookSynced}
   onChange={(e) => {
-    if (act.isOutlookSynced) return;
-    e.stopPropagation();
-    onToggleActivityDone(act.id, act.done);
+    onToggleActivityDone(act.id, e.target.checked);
   }}
 />
-                  <div className="text-xs space-y-0.5">
+                  <div
+  className="text-xs space-y-0.5 flex-1 cursor-pointer"
+  onClick={() => setSelectedActivity(act)}
+>
                     <p className="font-bold text-txt-primary truncate max-w-[150px]">{act.title}</p>
                     <p className="text-[10px] text-txt-secondary">📅 {new Date(act.date).toLocaleDateString()}</p>
                     <p className="text-[10px] text-txt-secondary">🕒 {act.time} ({act.type})</p>

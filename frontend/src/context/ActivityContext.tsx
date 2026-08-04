@@ -13,7 +13,10 @@ export interface ActivityContextType {
   setShowActivityModal: React.Dispatch<React.SetStateAction<boolean>>;
   loadActivities: () => Promise<void>;
   handleActivityCreate: (activityForm: any) => Promise<void>;
-  toggleActivityDone: (activityId: string, currentStatus: boolean) => Promise<void>;
+ toggleActivityDone: (
+    activityId: string,
+    done: boolean
+) => Promise<void>;
   calendarConnected: boolean;
 
 calendarEmail: string;
@@ -231,23 +234,24 @@ if (res) {
     }
   };
 
-  const toggleActivityDone = async (activityId: string, currentStatus: boolean) => {
-    // Optimistically toggle activity status immediately
-    setActivities(prev => prev.map(a => a.id === activityId ? { ...a, done: !currentStatus } : a));
+const toggleActivityDone = async (
+  activityId: string,
+  done: boolean
+) => {
 
-    try {
-      await activityService.updateActivity(activityId, { done: !currentStatus });
-      if (toastCtx) {
-        toastCtx.addToast("success", "Activity updated");
-      }
-    } catch {
-      // Revert if failed
-      setActivities(prev => prev.map(a => a.id === activityId ? { ...a, done: currentStatus } : a));
-      if (toastCtx) {
-        toastCtx.addToast("error", "Unable to update activity");
-      }
-    }
-  };
+  setActivities(prev =>
+    prev.map(a =>
+      a.id === activityId
+        ? { ...a, done }
+        : a
+    )
+  );
+
+  await activityService.updateActivity(activityId, {
+    done
+  });
+
+};
 
   return (
     <ActivityContext.Provider value={{

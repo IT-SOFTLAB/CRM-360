@@ -488,17 +488,16 @@ const bulkAssignLeads = async (req, res) => {
     }
 
     // Fetch leads details for email notification
-    const leadsForEmail = await prisma.lead.findMany({
-      where: {
-        id: { in: ids }
-      },
-      select: {
-        contactName: true,
-        company: true,
-        email: true
-      }
-    });
-
+  const leadsForEmail = await prisma.lead.findMany({
+  where: {
+    id: { in: ids }
+  },
+  select: {
+    contactName: true,
+    company: true,
+    email: true
+  }
+});
     // 1. Update in PostgreSQL
     const updated = await prisma.lead.updateMany({
       where: {
