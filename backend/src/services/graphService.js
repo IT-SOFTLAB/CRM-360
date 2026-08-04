@@ -1,4 +1,3 @@
-
 require("isomorphic-fetch");
 
 const {

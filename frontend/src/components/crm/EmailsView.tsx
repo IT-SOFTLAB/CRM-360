@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from "react";
 import {
   Mail,
   Send,
@@ -9,7 +9,7 @@ import {
   X
 } from "lucide-react";
 import { useToast } from '../../hooks/useToast';
-
+import { emailService } from "@/services/email.service";
 interface EmailsViewProps {
   emails: any[];
   user: any;
@@ -142,6 +142,11 @@ const [composeForm, setComposeForm] = useState({
   body: ""
 });
 
+const [attachments, setAttachments] = useState<File[]>([]);
+useEffect(() => {
+    console.log("Attachments:", attachments);
+}, [attachments]);
+const fileInputRef = useRef<HTMLInputElement>(null);
   const GENERAL_TEMPLATES = [
     { id: 'blank', label: 'Blank Email', subject: '', body: '' },
     {
@@ -293,42 +298,56 @@ const [composeForm, setComposeForm] = useState({
         });
     }
   };
-
 const handleComposeSend = async (
-  e: React.FormEvent
+    e: React.FormEvent
 ) => {
 
-  e.preventDefault();
+    e.preventDefault();
 
-  if (
-    !composeForm.to ||
-    !composeForm.subject ||
-    !composeForm.body
-  ) return;
+    if (
+        !composeForm.to ||
+        !composeForm.subject ||
+        !composeForm.body
+    ) {
+        return;
+    }
 
-  try {
-    await onSendReply(
-      composeForm.body,
-      {
-        sender: composeForm.to,
-        subject: composeForm.subject
-      }
-    );
+    try {
 
-    setComposeForm({
-      to:"",
-      cc:"",
-      bcc:"",
-      subject:"",
-      body:""
-    });
+        const formData = new FormData();
 
-    setShowCompose(false);
-  } catch (err) {
-    // Catch the error to prevent uncaught promise rejection developer overlays.
-  }
+        formData.append("to", composeForm.to);
+        formData.append("cc", composeForm.cc);
+        formData.append("bcc", composeForm.bcc);
+        formData.append("subject", composeForm.subject);
+        formData.append("body", composeForm.body);
+
+        attachments.forEach(file => {
+            formData.append("attachments", file);
+        });
+
+        await emailService.sendEmail(formData);
+
+        setComposeForm({
+            to: "",
+            cc: "",
+            bcc: "",
+            subject: "",
+            body: ""
+        });
+
+        setAttachments([]);
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+
+        setShowCompose(false);
+
+    } catch (err) {
+        console.error(err);
+    }
 };
-
 const handleSaveDraft = async () => {
 
   await createDraft({
@@ -340,12 +359,18 @@ const handleSaveDraft = async () => {
   });
 
   setComposeForm({
-    to: "",
-    cc: "",
-    bcc: "",
-    subject: "",
-    body: ""
-  });
+    to:"",
+    cc:"",
+    bcc:"",
+    subject:"",
+    body:""
+});
+
+setAttachments([]);
+
+if(fileInputRef.current){
+    fileInputRef.current.value="";
+}
 
   setShowCompose(false);
 
@@ -390,6 +415,19 @@ const handleSaveDraft = async () => {
   });
 
 const filteredEmails = emails;
+
+const removeAttachment = (index: number) => {
+
+    setAttachments(prev =>
+        prev.filter((_, i) => i !== index)
+    );
+
+    if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+    }
+
+};
+
 
   return (
     <div className="space-y-4">
@@ -477,6 +515,8 @@ const filteredEmails = emails;
     Compose
 
   </button>
+
+  
 
   {/* Refresh */}
 
@@ -661,6 +701,7 @@ email.receivedDateTime || email.date
 ).toLocaleDateString()}</span>
               </div>
               <div className="font-semibold text-txt-primary truncate">{email.subject}</div>
+       
               <div className="text-txt-secondary line-clamp-1">{email.body}</div>
             </div>
           ))}
@@ -1016,6 +1057,99 @@ className="w-full border rounded-xl px-4 py-2"
 
 />
 
+
+<div className="space-y-3">
+
+    <label className="block text-sm font-semibold">
+        Attach Files
+    </label>
+
+    {/* Hidden Input */}
+    <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        className="hidden"
+  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("INPUT CHANGED");
+
+    const files = e.currentTarget.files;
+
+    console.log(files);
+
+    if (!files) return;
+
+  const selectedFiles = Array.from(files);
+
+setAttachments(prev => {
+
+    const unique = selectedFiles.filter(file =>
+        !prev.some(
+            p =>
+                p.name === file.name &&
+                p.size === file.size
+        )
+    );
+
+    return [...prev, ...unique];
+
+});
+
+    e.currentTarget.value = "";
+}}
+    />
+
+    {/* Button */}
+    <button
+        type="button"
+       onClick={() => {
+    if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+        fileInputRef.current.click();
+    }
+}}
+        className="px-4 py-2 bg-primary text-white rounded-xl hover:bg-primary/90"
+    >
+        + Add Attachment
+    </button>
+
+
+
+    {/* Selected Files */}
+    {attachments.length > 0 && (
+
+        <div className="space-y-2">
+
+            {attachments.map((file, index) => (
+
+                <div
+                   key={`${file.name}-${file.size}-${index}`}
+                    className="flex justify-between items-center rounded-xl border px-3 py-2"
+                >
+
+                    <span className="truncate">
+                        📄 {file.name}
+                    </span>
+
+                    <button
+                        type="button"
+                        onClick={() => removeAttachment(index)}
+                        className="text-red-500 hover:text-red-700 font-medium"
+                    >
+                        Remove
+                    </button>
+
+                </div>
+
+            ))}
+
+        </div>
+
+    )}
+
+</div>
+
+
 <textarea
 
 rows={6}
@@ -1044,7 +1178,17 @@ className="w-full border rounded-xl px-4 py-3 resize-none"
 
 <button
 type="button"
-onClick={() => setShowCompose(false)}
+onClick={() => {
+
+    setShowCompose(false);
+
+    setAttachments([]);
+
+    if(fileInputRef.current){
+        fileInputRef.current.value="";
+    }
+
+}}
 className="px-5 py-2 border rounded-xl"
 >
 Cancel

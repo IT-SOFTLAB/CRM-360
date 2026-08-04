@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const authenticateJWT = require("../middlewares/authMiddleware");
-
+const upload = require("../middlewares/upload");
 const email = require("../controllers/emailController");
 
 router.get("/status", email.getConnectionStatus);
@@ -34,9 +34,17 @@ router.get(
     email.downloadAttachment
 );
 
-router.post("/send", email.sendMail);
+router.post(
+    "/send",
+    upload.array("attachments", 10),
+    email.sendMail
+);
 
-router.post("/send-bulk", email.sendBulkMail);
+router.post(
+    "/send-bulk",
+    upload.array("attachments", 10),
+    email.sendBulkMail
+);
 // ---------- Dynamic Routes ----------
 router.get("/:id", email.getEmailById);
 

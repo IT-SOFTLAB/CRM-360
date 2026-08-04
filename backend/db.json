@@ -244,8 +244,8 @@
       "phone": "8900012345",
       "category": "healthcare",
       "serviceType": "product-based",
-      "assignedUser": "user",
-      "assignedUserId": "cmrlwqb0c0008ur50wdriksdy",
+      "assignedUser": "Flashy",
+      "assignedUserId": "cmrvohdm0000jo0nc3gg4ebfe",
       "status": "New",
       "createdAt": "2026-07-27",
       "createdDate": "2026-07-27"
@@ -1280,6 +1280,36 @@
       "sentAt": "2026-07-28T05:26:55.696Z",
       "createdAt": "2026-07-28T05:26:55.696Z",
       "updatedAt": "2026-07-28T05:26:55.696Z"
+    },
+    {
+      "id": "elog_1785748633556_ixdil",
+      "recipientEmail": "parthika.mahajan@itsoftlab.com",
+      "subject": "Introducing CRM-360",
+      "leadId": "cmrngy75p0007urqk6z0fx63y",
+      "opportunityId": "cmrngylmi0008urqkjo9svp5b",
+      "sentByUserId": "cmrlwmzr30006ur50bv9ubmb9",
+      "status": "Sent",
+      "errorMessage": null,
+      "attachments": "[{\"name\":\"pbis.png\",\"size\":150685,\"type\":\"image/png\"}]",
+      "emailBody": "Hi happy,\r\n\r\nI hope you're doing well.\r\n\r\nI'd like to introduce CRM-360, a complete CRM platform designed to manage leads, opportunities, customer interactions, quotations, and sales activities efficiently.\r\n\r\nWe would love to demonstrate how CRM-360 can benefit your organization.\r\n\r\nPlease let us know if you'd like to schedule a demo.\r\n\r\nBest Regards,\r\n\r\nparthika\r\n\r\nCRM-360",
+      "sentAt": "2026-08-03T09:17:13.557Z",
+      "createdAt": "2026-08-03T09:17:13.557Z",
+      "updatedAt": "2026-08-03T09:17:13.557Z"
+    },
+    {
+      "id": "elog_1785748779844_a9nvq",
+      "recipientEmail": "parthika.mahajan@itsoftlab.com",
+      "subject": "Introducing CRM-360",
+      "leadId": "cmrngy75p0007urqk6z0fx63y",
+      "opportunityId": "cmrngylmi0008urqkjo9svp5b",
+      "sentByUserId": "cmrlwmzr30006ur50bv9ubmb9",
+      "status": "Sent",
+      "errorMessage": null,
+      "attachments": "[{\"name\":\"Assignment_theroy of machine.pdf\",\"size\":139196,\"type\":\"application/pdf\"}]",
+      "emailBody": "Hi happy,\r\n\r\nI hope you're doing well.\r\n\r\nI'd like to introduce CRM-360, a complete CRM platform designed to manage leads, opportunities, customer interactions, quotations, and sales activities efficiently.\r\n\r\nWe would love to demonstrate how CRM-360 can benefit your organization.\r\n\r\nPlease let us know if you'd like to schedule a demo.\r\n\r\nBest Regards,\r\n\r\nparthika\r\n\r\nCRM-360",
+      "sentAt": "2026-08-03T09:19:39.844Z",
+      "createdAt": "2026-08-03T09:19:39.844Z",
+      "updatedAt": "2026-08-03T09:19:39.844Z"
     }
   ]
 }

@@ -74,7 +74,7 @@ export default function ReferralDetailsDrawer({
 
             </h2>
 
-            <p className="text-xs text-muted-foreground text-gray-600">
+            <p className="text-xs text-muted-foreground text-txt-primary">
 
               {referral.referralCode}
 
@@ -98,7 +98,7 @@ export default function ReferralDetailsDrawer({
 
           <div className="bg-muted/30 rounded-xl p-4">
 
-            <div className="font-semibold mb-3 text-slate-700">
+            <div className="font-semibold mb-3 text-txt-primary">
 
               Referrer
 
@@ -106,7 +106,7 @@ export default function ReferralDetailsDrawer({
 
             <div className="space-y-3 text-sm">
 
-              <div className="flex items-center gap-2 text-slate-700">
+              <div className="flex items-center gap-2 text-txt-primary">
 
                 <User size={15} />
 
@@ -114,7 +114,7 @@ export default function ReferralDetailsDrawer({
 
               </div>
 
-              <div className="flex items-center gap-2 text-gray-800">
+              <div className="flex items-center gap-2 text-txt-primary">
 
                 <Building2 size={15} />
 
@@ -130,7 +130,7 @@ export default function ReferralDetailsDrawer({
 
           <div className="bg-muted/30 rounded-xl p-4">
 
-            <div className="font-semibold mb-3 text-slate-900">
+            <div className="font-semibold mb-3 text-txt-primary ">
 
               Referred Lead
 
@@ -138,7 +138,7 @@ export default function ReferralDetailsDrawer({
 
             <div className="space-y-3 text-sm">
 
-              <div className="flex items-center gap-2 text-slate-900">
+              <div className="flex items-center gap-2 text-txt-primary">
 
                 <User size={15} />
 
@@ -146,7 +146,7 @@ export default function ReferralDetailsDrawer({
 
               </div>
 
-              <div className="flex items-center gap-2 text-gray-900">
+              <div className="flex items-center gap-2 text-txt-primary">
 
                 <Building2 size={15} />
 
@@ -154,7 +154,7 @@ export default function ReferralDetailsDrawer({
 
               </div>
 
-              <div className="flex items-center gap-2 text-blue-600">
+              <div className="flex items-center gap-2 text-txt-primary">
 
                 <Mail size={15} />
 
@@ -178,7 +178,7 @@ export default function ReferralDetailsDrawer({
 
           <div className="bg-muted/30 rounded-xl p-4">
 
-            <div className="font-semibold mb-3 text-gray-800">
+            <div className="font-semibold mb-3 text-txt-primary">
 
               Reward
 
@@ -186,7 +186,7 @@ export default function ReferralDetailsDrawer({
 
             <div className="space-y-3 text-sm">
 
-              <div className="flex items-center gap-2 text-gray-800">
+              <div className="flex items-center gap-2 text-txt-primary">
 
                 <Gift size={15} />
 
@@ -224,13 +224,13 @@ export default function ReferralDetailsDrawer({
 
           <div className="bg-muted/30 rounded-xl p-4">
 
-            <div className="font-semibold mb-3 text-black">
+            <div className="font-semibold mb-3 text-txt-primary">
 
               Current Stage
 
             </div>
 
-            <div className="flex items-center gap-2 text-black">
+            <div className="flex items-center gap-2 text-txt-primary">
 
               <Hash size={15} />
 
@@ -244,13 +244,13 @@ export default function ReferralDetailsDrawer({
 
           <div className="bg-muted/30 rounded-xl p-4">
 
-            <div className="font-semibold mb-4 text-green-800 ">
+            <div className="font-semibold mb-4 text-green-600 ">
 
               Timeline
 
             </div>
 
-            <div className="space-y-4 text-black">
+            <div className="space-y-4 text-txt-primary">
 
               {
 
@@ -276,19 +276,19 @@ export default function ReferralDetailsDrawer({
 
                       <div>
 
-                        <div className="font-medium text-gray-800">
+                        <div className="font-medium text-txt-primary">
 
                           {history.pipeline?.name}
 
                         </div>
 
-                        <div className="text-xs text-muted-foreground text-gray-800">
+                        <div className="text-xs text-muted-foreground text-txt-primary">
 
                           {history.remarks}
 
                         </div>
 
-                        <div className="text-xs text-muted-foreground text-black">
+                        <div className="text-xs text-muted-foreground text-txt-primary">
 
                           {
 
