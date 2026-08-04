@@ -33,12 +33,15 @@ import {
   MessageSquare,
   Trash2,
   CheckCheck,
-  Download
+  Download,
+  Clock
 } from 'lucide-react';
 import { useCRM } from '@/context/CRMContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import api from '@/services/api';
 import ThemeToggle from '@/components/crm/ThemeToggle';
+
+
 
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -125,10 +128,12 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         crm.addToast('error', data.message || 'Failed to import CSV leads.');
         alert(data.message || 'uploading failed the csv file does not match the required fields');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      crm.addToast('error', 'Error uploading file. Server may be offline.');
-      alert('Error uploading file. Server may be offline.');
+      const serverMessage = error.response?.data?.message || error.response?.data?.error;
+      const errorMessage = serverMessage || 'Error uploading file. Server may be offline.';
+      crm.addToast('error', errorMessage);
+      alert(errorMessage);
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -145,8 +150,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       'company',
       'email',
       'phone',
-      'assignedUser',
-      'createdAt'
+      'linkedinId'
     ];
 
     const sampleRow = [
@@ -156,8 +160,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       'Apex Ltd',
       'john@apex.com',
       '9876543210',
-      'Sarah Connor',
-      new Date().toISOString()
+      'linkedin.com/in/johndoe'
     ];
 
     const csvContent = '\uFEFF' + [
@@ -225,8 +228,9 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
     crm.activeFilters.country || 
     crm.activeFilters.campaign || 
     crm.activeFilters.source || 
-    crm.activeFilters.createdDateStart || 
-    crm.activeFilters.createdDateEnd || 
+    crm.activeFilters.createdDate || 
+    crm.activeFilters.createdTimeFrom || 
+    crm.activeFilters.createdTimeTo || 
     crm.activeFilters.expectedClosingStart || 
     crm.activeFilters.expectedClosingEnd || 
     crm.activeFilters.closedDateStart || 
@@ -772,25 +776,48 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                 </div>
               </div>
 
-              {/* Date Ranges */}
+              {/* Date and Time Filters */}
               <div className="space-y-3">
-                <h4 className="text-[10px] font-extrabold text-txt-secondary uppercase tracking-wide border-b border-border-crm pb-1">Date Ranges</h4>
+                <h4 className="text-[10px] font-extrabold text-txt-secondary uppercase tracking-wide border-b border-border-crm pb-1">Created At</h4>
                 
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <div>
-                    <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-0.5">Creation Date Range</label>
-                    <div className="flex gap-1.5 items-center">
+                    <label className="block text-[9px] font-semibold text-slate-400 uppercase mb-0.5">Created Date</label>
+                    <div className="relative">
                       <input
-                        type="date" className="w-full border border-border-crm bg-bg-main rounded-xl p-1 text-[10px] focus:outline-none text-txt-primary bg-white dark:bg-slate-800"
-                        value={crm.activeFilters.createdDateStart}
-                        onChange={e => crm.setActiveFilters({ ...crm.activeFilters, createdDateStart: e.target.value })}
+                        type="date" className="w-full border border-border-crm bg-bg-main rounded-xl pl-8 pr-2 py-1.5 text-[10px] focus:outline-none text-txt-primary bg-white dark:bg-slate-800 cursor-pointer"
+                        value={crm.activeFilters.createdDate || ''}
+                        onChange={e => crm.setActiveFilters({ ...crm.activeFilters, createdDate: e.target.value })}
+                        onClick={(e) => { try { (e.target as any).showPicker(); } catch {} }}
                       />
-                      {/* <span className="text-slate-400 text-[10px]">to</span>
-                      <input
-                        type="date" className="w-full border border-border-crm bg-bg-main rounded-xl p-1 text-[10px] focus:outline-none text-txt-primary bg-white dark:bg-slate-800"
-                        value={crm.activeFilters.createdDateEnd}
-                        onChange={e => crm.setActiveFilters({ ...crm.activeFilters, createdDateEnd: e.target.value })}
-                      /> */}
+                      <CalendarIcon className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[9px] font-semibold text-slate-400 uppercase mb-0.5">Time From</label>
+                      <div className="relative">
+                        <input
+                          type="time" className="w-full border border-border-crm bg-bg-main rounded-xl pl-8 pr-2 py-1.5 text-[10px] focus:outline-none text-txt-primary bg-white dark:bg-slate-800 cursor-pointer"
+                          value={crm.activeFilters.createdTimeFrom || ''}
+                          onChange={e => crm.setActiveFilters({ ...crm.activeFilters, createdTimeFrom: e.target.value })}
+                          onClick={(e) => { try { (e.target as any).showPicker(); } catch {} }}
+                        />
+                        <Clock className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[9px] font-semibold text-slate-400 uppercase mb-0.5">Time To</label>
+                      <div className="relative">
+                        <input
+                          type="time" className="w-full border border-border-crm bg-bg-main rounded-xl pl-8 pr-2 py-1.5 text-[10px] focus:outline-none text-txt-primary bg-white dark:bg-slate-800 cursor-pointer"
+                          value={crm.activeFilters.createdTimeTo || ''}
+                          onChange={e => crm.setActiveFilters({ ...crm.activeFilters, createdTimeTo: e.target.value })}
+                          onClick={(e) => { try { (e.target as any).showPicker(); } catch {} }}
+                        />
+                        <Clock className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -909,34 +936,18 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                 </button>
               </div>
               
-              <div>
-                <h5 className="font-bold text-txt-primary mb-1"> Required CSV/Excel Columns</h5>
-                <p>The sheet must contain the following column headers exactly (case-sensitive):</p>
+              <div>                <h5 className="font-bold text-txt-primary mb-1">Required CSV/Excel Column Headers</h5>
+                <p>The sheet must contain the following column headers exactly (case-sensitive). If any column header is missing, the import will fail. Row values (cells) can be left blank to edit later:</p>
                 <ul className="list-disc pl-5 mt-1 space-y-1">
-                  <li><span className="font-bold text-txt-primary">contactName</span> (Required): The full name of the lead contact (minimum 3 characters).</li>
-                  <li><span className="font-bold text-txt-primary">category</span> (Required): Industry category (e.g. "Healthcare", "Manufacturing", "IT Services").</li>
-                  <li><span className="font-bold text-txt-primary">serviceType</span> (Required): Sales classification (e.g. "Service Based", "Product Based").</li>
-                {/* </ul>
-              </div>
-
-              <div>
-                <h5 className="font-bold text-txt-primary mb-1">3. Optional Columns</h5>
-                <p>These columns are optional. If present, they will be mapped; if omitted, they will be set to empty or default values:</p>
-                <ul className="list-disc pl-5 mt-1 space-y-1"> */}
+                  <li><span className="font-bold text-txt-primary">contactName</span>: The full name of the lead contact (minimum 3 characters).</li>
+                  <li><span className="font-bold text-txt-primary">category</span>: Industry category (e.g. "Healthcare", "Manufacturing", "IT Services").</li>
+                  <li><span className="font-bold text-txt-primary">serviceType</span>: Sales classification (e.g. "Service Based", "Product Based").</li>
                   <li><span className="font-bold text-txt-primary">company</span>: Organization / Company name.</li>
                   <li><span className="font-bold text-txt-primary">email</span>: Email address.</li>
                   <li><span className="font-bold text-txt-primary">phone</span>: 10-digit phone number.</li>
-                  <li><span className="font-bold text-txt-primary">assignedUser</span>: Full name of the assigned sales representative.</li>
-                  <li><span className="font-bold text-txt-primary">createdAt</span>: Creation date. Defaults to current date and time if omitted.</li>
+                  <li><span className="font-bold text-txt-primary">linkedinId</span>: LinkedIn ID / Profile URL.</li>
                 </ul>
               </div>
-
-              {/* <div>
-                <h5 className="font-bold text-txt-primary mb-1">4. Format Restrictions</h5>
-                <p>
-                  Any rows missing the <span className="font-bold text-txt-primary">contactName</span> header or containing empty names will be automatically skipped during processing. Standard CSV or Excel format is required.
-                </p>
-              </div> */}
 
               <div className="border-t border-border-crm pt-3">
                 <p className="italic text-[10px]">

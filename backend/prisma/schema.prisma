@@ -54,6 +54,8 @@ model Lead {
   assignedUser    String?
   assignedUserId  String?
   source          String?
+  dealValue       Float    @default(0)
+  linkedinId      String?
   assignedUserRel User?    @relation(fields: [assignedUserId], references: [id])
 }
 
@@ -155,6 +157,7 @@ model Opportunity {
   priority               Int       @default(0)
   tags                   String[]
   description            String?
+  linkedinId             String?
   assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
 }
 

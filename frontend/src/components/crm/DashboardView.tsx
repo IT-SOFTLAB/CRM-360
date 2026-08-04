@@ -168,6 +168,7 @@ export default function DashboardView({
   const [teamsList, setTeamsList] = useState<any[]>([]);
   const [finFilter, setFinFilter] = useState<'year' | 'month' | 'week'>('month');
   const [adminFinFilter, setAdminFinFilter] = useState<'year' | 'month' | 'week'>('month');
+  const [workloadType, setWorkloadType] = useState<'leads' | 'opportunities'>('opportunities');
 
 
   useEffect(() => {
@@ -492,22 +493,43 @@ export default function DashboardView({
     }));
   };
 
+  // Active opportunities (excluding Won/Lost)
+  const activeOpportunities = useMemo(() => {
+    return filteredOpps.filter(o => 
+      o.stageId !== 'p_6' && 
+      o.stageId !== 'p_7' &&
+      (o.stage || '').toLowerCase() !== 'won' && 
+      (o.stage || '').toLowerCase() !== 'lost'
+    );
+  }, [filteredOpps]);
+
   // Workload distribution
   const workloadData = useMemo(() => {
     const counts: { [name: string]: number } = {};
-    filteredLeads.forEach(ld => {
-      const rep = ld.assignedUser || "Unassigned";
-      counts[rep] = (counts[rep] || 0) + 1;
-    });
-    const totalLeads = filteredLeads.length || 1;
-    const list = Object.entries(counts).map(([name, count]) => ({
-      name,
-      count,
-      pct: Math.round((count / totalLeads) * 100)
-    })).sort((a, b) => b.count - a.count);
-    
-    return list;
-  }, [filteredLeads]);
+    if (workloadType === 'leads') {
+      filteredLeads.forEach(ld => {
+        const rep = ld.assignedUser || "Unassigned";
+        counts[rep] = (counts[rep] || 0) + 1;
+      });
+      const total = filteredLeads.length || 1;
+      return Object.entries(counts).map(([name, count]) => ({
+        name,
+        count,
+        pct: Math.round((count / total) * 100)
+      })).sort((a, b) => b.count - a.count);
+    } else {
+      activeOpportunities.forEach(o => {
+        const rep = o.assignedSalesperson || "Unassigned";
+        counts[rep] = (counts[rep] || 0) + 1;
+      });
+      const total = activeOpportunities.length || 1;
+      return Object.entries(counts).map(([name, count]) => ({
+        name,
+        count,
+        pct: Math.round((count / total) * 100)
+      })).sort((a, b) => b.count - a.count);
+    }
+  }, [filteredLeads, activeOpportunities, workloadType]);
 
   // Admin view team-wide KPI totals
   const teamKPIs = useMemo(() => {
@@ -600,12 +622,17 @@ export default function DashboardView({
   }, [opportunities, user]);
 
   const myPipelineStages = useMemo(() => {
-    const total = myOpps.length || 1;
-    const newCount = myOpps.filter(o => o.stageId === 'p_1').length;
-    const qualCount = myOpps.filter(o => o.stageId === 'p_2' || o.stageId === 'p_3').length;
-    const propCount = myOpps.filter(o => o.stageId === 'p_4').length;
-    const negoCount = myOpps.filter(o => o.stageId === 'p_5').length;
-    const wonCount = myOpps.filter(o => o.stageId === 'p_6').length;
+    const newCount = myOpps.filter(o => o.stageId === 'p_1' || (o.stage || '').toLowerCase() === 'new').length;
+    const qualCount = myOpps.filter(o => 
+      o.stageId === 'p_2' || 
+      o.stageId === 'p_3' || 
+      ['contacted', 'qualified', 'discussion'].includes((o.stage || '').toLowerCase())
+    ).length;
+    const propCount = myOpps.filter(o => o.stageId === 'p_4' || (o.stage || '').toLowerCase() === 'proposal').length;
+    const negoCount = myOpps.filter(o => o.stageId === 'p_5' || (o.stage || '').toLowerCase() === 'negotiation').length;
+    const wonCount = myOpps.filter(o => o.stageId === 'p_6' || (o.stage || '').toLowerCase() === 'won').length;
+    
+    const total = newCount + qualCount + propCount + negoCount + wonCount || 1;
     
     return [
       { stage: "New", count: newCount, pct: Math.round((newCount / total) * 100), color: "bg-blue-600" },
@@ -638,19 +665,33 @@ export default function DashboardView({
     };
   }, [activeLeads, myOpps, quotations, customers, user]);
 
-  const myRecentLeads = useMemo(() => {
-    const filtered = activeLeads.filter(l => l.assignedUser === user?.name || l.assignedUserId === user?.id);
-    return filtered.slice(0, 3).map(l => ({
-      name: l.contactName || "Unnamed Customer",
-      stage: l.status || "New",
-      color: l.status === "Converted" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
-    }));
-  }, [activeLeads, user]);
+  const myRecentOpportunities = useMemo(() => {
+    const sorted = [...myOpps].sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.createdDate || 0).getTime();
+      const dateB = new Date(b.createdAt || b.createdDate || 0).getTime();
+      return dateB - dateA;
+    });
+    return sorted.slice(0, 3).map(o => {
+      const stageLower = (o.stage || '').toLowerCase();
+      let color = "bg-blue-100 text-blue-800";
+      if (stageLower.includes('won') || o.stageId === 'p_6') {
+        color = "bg-green-100 text-green-800";
+      } else if (stageLower.includes('lost') || o.stageId === 'p_7') {
+        color = "bg-red-100 text-red-800";
+      }
+      return {
+        id: o.id,
+        name: o.customerName || "Unnamed Opportunity",
+        stage: o.stage || "New",
+        color
+      };
+    });
+  }, [myOpps]);
 
   const myRecentQuotations = useMemo(() => {
     const filtered = quotations.filter(q => q.salesperson === user?.name);
     return filtered.slice(0, 3).map(q => ({
-      name: q.customerName,
+      name: q.clientName || q.customerNameSnapshot || q.customerName || "Unknown Client",
       amt: `₹${(q.total || q.grandTotal || 0).toLocaleString()}`,
       status: q.status || "Draft",
       color: q.status === "Draft" ? "bg-gray-100 text-gray-700" : q.status === "Sent" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"
@@ -788,12 +829,10 @@ export default function DashboardView({
             { label: "Total Users", val: usersList.length.toString(), change: "Active across platform", icon: Users, isPrimary: false },
             { label: "Total Teams", val: teamsList.length.toString(), change: "Active divisions", icon: Briefcase, isPrimary: false },
             { label: "Total Customers", val: customers.length.toLocaleString(), change: "Accounts registered", icon: UserCheck, isPrimary: false },
-            { label: "Total Leads", val: activeLeads.length.toLocaleString(), change: "Unconverted entries", icon: Layers, isPrimary: false },
-            { label: "Total Opportunities", val: opportunities.length.toLocaleString(), change: "Active deals", icon: ClipboardList, isPrimary: false },
+            { label: "Total Opportunities", val: opportunities.length.toLocaleString(), change: "Active deals in pipeline", icon: ClipboardList, isPrimary: false },
             { label: "Total Quotations", val: quotations.length.toLocaleString(), change: "Sent to clients", icon: FileText, isPrimary: false },
             { label: "Total Retentions", val: referrals.length.toLocaleString(), change: "Referral submissions", icon: Share2, isPrimary: false },
             { label: "Total Revenue", val: displayRevenueStr, change: "Closed won statistics", icon: IndianRupee, isPrimary: true },
-          //  { label: "Conversion Rate", val: `${conversionRate}%`, change: "Lead conversion ratio", icon: TrendingUp, isPrimary: false }
           ].map((card, idx) => (
             <div
               key={idx}
@@ -1222,10 +1261,9 @@ export default function DashboardView({
         </div>
 
         {/* 1. Team KPI Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {[
             { label: "Members", val: teamKPIs.members.toString(), sub: "Active Reps" },
-            { label: "Leads", val: teamKPIs.leads.toString(), sub: "Unconverted entries" },
             { label: "Opportunities", val: teamKPIs.opps.toString(), sub: "Active Pipeline" },
             { label: "Quotations", val: teamKPIs.quotes.toString(), sub: "Sent to clients" },
             { label: "Clients", val: teamKPIs.cust.toString(), sub: "Converted accounts" },
@@ -1299,15 +1337,47 @@ export default function DashboardView({
 
           {/* Right: Workload Distribution Gauges */}
           <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4">
-            <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">Workload Distribution</h3>
-            <p className="text-[10px] text-txt-secondary">Percentage share of active leads assigned to team members.</p>
+            <div className="flex justify-between items-center">
+              <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">Workload Distribution</h3>
+              <div className="flex bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg border border-border-crm/40">
+                {/* <button
+                  type="button"
+                  onClick={() => setWorkloadType('leads')}
+                  className={`text-[9px] font-bold px-2.5 py-1 rounded-md transition-all ${
+                    workloadType === 'leads'
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-txt-secondary hover:text-txt-primary'
+                  }`}
+                >
+                  Leads
+                </button> */}
+                <button
+                  type="button"
+                  onClick={() => setWorkloadType('opportunities')}
+                  className={`text-[9px] font-bold px-2.5 py-1 rounded-md transition-all ${
+                    workloadType === 'opportunities'
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'text-txt-secondary hover:text-txt-primary'
+                  }`}
+                >
+                  Leads
+                </button>
+              </div>
+            </div>
+            <p className="text-[10px] text-txt-secondary">
+              {workloadType === 'leads'
+                ? 'Percentage share of active leads assigned to team members.'
+                : 'Percentage share of active opportunities (deals) assigned to team members.'}
+            </p>
             
             <div className="space-y-4 mt-2">
               {workloadData.map((row, idx) => (
                 <div key={idx} className="space-y-1.5 text-xs font-semibold">
                   <div className="flex justify-between">
                     <span className="text-txt-primary font-bold">{row.name}</span>
-                    <span className="text-txt-secondary">{row.count} Leads ({row.pct}%)</span>
+                    <span className="text-txt-secondary">
+                      {row.count} {workloadType === 'leads' ? 'Leads' : 'Deals'} ({row.pct}%)
+                    </span>
                   </div>
                   <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
                     <div 
@@ -1320,7 +1390,11 @@ export default function DashboardView({
                 </div>
               ))}
               {workloadData.length === 0 && (
-                <div className="text-center py-6 text-txt-secondary text-xs">No active workload registered.</div>
+                <div className="text-center py-6 text-txt-secondary text-xs">
+                  {workloadType === 'leads'
+                    ? 'No active lead workload registered.'
+                    : 'No active opportunity workload registered.'}
+                </div>
               )}
             </div>
           </div>
@@ -1584,9 +1658,8 @@ export default function DashboardView({
       </div>
 
       {/* 1. Personal KPI Row */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: "My Leads", val: myKPIs.leads.toString(), sub: "Total leads" },
           { label: "Opportunities", val: myKPIs.opps.toString(), sub: "Active deals" },
           { label: "My Quotations", val: myKPIs.quotes.toString(), sub: "Draft / Sent" },
           { label: "My Customers", val: myKPIs.cust.toString(), sub: "Won accounts" },
@@ -1681,19 +1754,19 @@ export default function DashboardView({
       {/* 3. Recent Leads & Recent Quotations (Row 2 - 2 Columns) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Table: My Recent Leads */}
+        {/* Table: My Recent Opportunities */}
         <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4">
-          <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">My Recent Leads</h3>
+          <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">My Recent Opportunities</h3>
           <div className="overflow-x-auto border border-border-crm/45 rounded-xl">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-bg-main border-b border-border-crm text-[10px] font-extrabold uppercase text-txt-secondary tracking-wider">
-                  <th className="px-4 py-3">Lead</th>
+                  <th className="px-4 py-3">Opportunity</th>
                   <th className="px-4 py-3 text-right">Stage</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border-crm text-txt-primary font-medium">
-                {myRecentLeads.map((row, idx) => (
+                {myRecentOpportunities.map((row, idx) => (
                   <tr key={idx} className="hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3 font-bold truncate max-w-28">{row.name}</td>
                     <td className="px-4 py-3 text-right">
@@ -1703,10 +1776,10 @@ export default function DashboardView({
                     </td>
                   </tr>
                 ))}
-                {myRecentLeads.length === 0 && (
+                {myRecentOpportunities.length === 0 && (
                   <tr>
                     <td colSpan={2} className="px-4 py-6 text-center text-txt-secondary">
-                      No leads assigned.
+                      No opportunities assigned.
                     </td>
                   </tr>
                 )}

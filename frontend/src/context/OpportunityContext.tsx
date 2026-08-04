@@ -26,6 +26,7 @@ export interface OpportunityContextType {
   handleDeleteOpportunity: (oppId: string) => Promise<void>;
   handleUpdateOpportunity: (oppId: string, oppData: any) => Promise<void>;
   handleBulkAssignOpportunities: (oppIds: string[], assignedSalespersonId: string, assignedSalesperson: string) => Promise<void>;
+  handleBulkDeleteOpportunities: (oppIds: string[]) => Promise<void>;
 }
 
 export const OpportunityContext = createContext<OpportunityContextType | undefined>(undefined);
@@ -89,6 +90,7 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (res) {
       // if (toastCtx) toastCtx.addToast('success', `Opportunity moved to stage`);
       await loadOpportunities();
+      if (leadCtx) await leadCtx.loadLeads();
     } else {
       if (stage) {
         const stageName = stage.name;
@@ -178,12 +180,17 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
   const handleDeleteOpportunity = async (oppId: string) => {
+    const opp = opportunities.find(o => o.id === oppId);
     const res = await opportunityService.deleteOpportunity(oppId);
     if (res) {
       if (toastCtx) toastCtx.addToast('success', 'Opportunity deleted successfully');
       await loadOpportunities();
+      if (leadCtx) await leadCtx.loadLeads();
     } else {
       setOpportunities(prev => prev.filter(o => o.id !== oppId));
+      if (leadCtx && opp && opp.leadId) {
+        leadCtx.setLeads(prev => prev.filter(l => l.id !== opp.leadId));
+      }
       if (toastCtx) toastCtx.addToast('success', 'Deleted opportunity');
     }
   };
@@ -192,14 +199,24 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
     // Optimistic update
     setOpportunities(prev => prev.map(o => o.id === oppId ? { ...o, ...oppData } : o));
 
-    // Also update associated lead if salesperson changes
-    if (oppData.assignedSalesperson !== undefined || oppData.assignedSalespersonId !== undefined) {
-      const oppObj = opportunities.find(o => o.id === oppId);
-      if (oppObj && oppObj.leadId && leadCtx) {
+    // Also update associated lead details optimistically
+    const oppObj = opportunities.find(o => o.id === oppId);
+    if (oppObj && oppObj.leadId && leadCtx) {
+      const leadUpdate: any = {};
+      if (oppData.customerName !== undefined) leadUpdate.contactName = oppData.customerName;
+      if (oppData.company !== undefined) leadUpdate.company = oppData.company;
+      if (oppData.email !== undefined) leadUpdate.email = oppData.email;
+      if (oppData.phone !== undefined) leadUpdate.phone = oppData.phone;
+      if (oppData.dealValue !== undefined) leadUpdate.dealValue = oppData.dealValue;
+      if (oppData.assignedSalesperson !== undefined) leadUpdate.assignedUser = oppData.assignedSalesperson;
+      if (oppData.assignedSalespersonId !== undefined) leadUpdate.assignedUserId = oppData.assignedSalespersonId;
+      if (oppData.stage !== undefined) leadUpdate.status = oppData.stage;
+      if (oppData.category !== undefined) leadUpdate.category = oppData.category;
+      if (oppData.serviceType !== undefined) leadUpdate.serviceType = oppData.serviceType;
+
+      if (Object.keys(leadUpdate).length > 0) {
         leadCtx.setLeads((prev: any[]) => prev.map(l =>
-          l.id === oppObj.leadId
-            ? { ...l, assignedUser: oppData.assignedSalesperson, assignedUserId: oppData.assignedSalespersonId }
-            : l
+          l.id === oppObj.leadId ? { ...l, ...leadUpdate } : l
         ));
       }
     }
@@ -251,6 +268,25 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   };
 
+  const handleBulkDeleteOpportunities = async (ids: string[]) => {
+    const oppsToDelete = opportunities.filter(o => ids.includes(o.id));
+    const leadIdsToDelete = oppsToDelete.map(o => o.leadId).filter(Boolean);
+
+    const res = await opportunityService.bulkDeleteOpportunities(ids);
+    if (res) {
+      if (toastCtx) toastCtx.addToast('success', 'Selected opportunities deleted successfully');
+      await loadOpportunities();
+      if (leadCtx) await leadCtx.loadLeads();
+    } else {
+      // Offline fallback
+      setOpportunities(prev => prev.filter(o => !ids.includes(o.id)));
+      if (leadCtx && leadIdsToDelete.length > 0) {
+        leadCtx.setLeads(prev => prev.filter(l => !leadIdsToDelete.includes(l.id)));
+      }
+      if (toastCtx) toastCtx.addToast('success', 'Deleted selected opportunities');
+    }
+  };
+
   return (
     <OpportunityContext.Provider value={{
       opportunities,
@@ -268,7 +304,8 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
       handleStageDelete,
       handleDeleteOpportunity,
       handleUpdateOpportunity,
-      handleBulkAssignOpportunities
+      handleBulkAssignOpportunities,
+      handleBulkDeleteOpportunities
     }}>
       {children}
     </OpportunityContext.Provider>

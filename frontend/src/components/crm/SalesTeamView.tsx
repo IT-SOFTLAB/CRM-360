@@ -60,8 +60,7 @@ export default function SalesTeamView() {
       'company',
       'email',
       'phone',
-      'assignedUser',
-      'createdAt'
+      'linkedinId'
     ];
 
     const sampleRow = [
@@ -71,8 +70,7 @@ export default function SalesTeamView() {
       'Apex Ltd',
       'john@apex.com',
       '9876543210',
-      selectedTeam?.leader?.name || 'Sarah Connor',
-      new Date().toISOString()
+      'linkedin.com/in/johndoe'
     ];
 
     const csvContent = "data:text/csv;charset=utf-8," 
@@ -134,9 +132,12 @@ export default function SalesTeamView() {
         crm.addToast('error', data.message || 'Failed to import leads.');
         alert(data.message || 'uploading failed the csv file does not match the required fields');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      crm.addToast('error', 'Error uploading file. Server may be offline.');
+      const serverMessage = error.response?.data?.message || error.response?.data?.error;
+      const errorMessage = serverMessage || 'Error uploading file. Server may be offline.';
+      crm.addToast('error', errorMessage);
+      alert(errorMessage);
     } finally {
       setImporting(false);
       e.target.value = '';
@@ -1197,12 +1198,12 @@ export default function SalesTeamView() {
                 >
                   Performance & Workload
                 </button>
-                <button
+                {/* <button
                   onClick={() => setActiveTab('leads')}
                   className={`py-3 px-4 font-bold text-xs border-b-2 transition-colors whitespace-nowrap ${activeTab === 'leads' ? 'border-primary text-primary' : 'border-transparent text-txt-secondary hover:text-txt-primary'}`}
                 >
                   Leads 
-                </button>
+                </button> */}
                 <button
                   onClick={() => setActiveTab('opportunities')}
                   className={`py-3 px-4 font-bold text-xs border-b-2 transition-colors whitespace-nowrap ${activeTab === 'opportunities' ? 'border-primary text-primary' : 'border-transparent text-txt-secondary hover:text-txt-primary'}`}
@@ -1224,7 +1225,7 @@ export default function SalesTeamView() {
                   <>
                     {/* Top Key Metrics Cards */}
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div className="bg-bg-main border border-border-crm p-4 rounded-xl flex items-center space-x-3">
+                      {/* <div className="bg-bg-main border border-border-crm p-4 rounded-xl flex items-center space-x-3">
                         <div className="bg-blue-600/10 p-2 rounded-lg text-blue-600 dark:text-blue-400">
                           <Briefcase className="w-5 h-5" />
                         </div>
@@ -1232,7 +1233,7 @@ export default function SalesTeamView() {
                           <span className="text-[10px] text-txt-secondary block font-semibold uppercase">Total Leads</span>
                           <span className="text-lg font-extrabold text-txt-primary">{metrics.totalLeads}</span>
                         </div>
-                      </div>
+                      </div> */}
 
                       <div className="bg-bg-main border border-border-crm p-4 rounded-xl flex items-center space-x-3">
                         <div className="bg-emerald-500/10 p-2 rounded-lg text-emerald-600 dark:text-emerald-400">
@@ -1814,17 +1815,16 @@ export default function SalesTeamView() {
               </div>
               
               <div>
-                <h5 className="font-bold text-txt-primary mb-1">Required CSV/Excel Columns</h5>
-                <p>The sheet must contain the following column headers exactly (case-sensitive):</p>
+                <h5 className="font-bold text-txt-primary mb-1">Required CSV/Excel Column Headers</h5>
+                <p>The sheet must contain the following column headers exactly (case-sensitive). If any column header is missing, the import will fail. Row values (cells) can be left blank to edit later:</p>
                 <ul className="list-disc pl-5 mt-1 space-y-1">
-                  <li><span className="font-bold text-txt-primary">contactName</span> (Required): The full name of the lead contact (minimum 3 characters).</li>
-                  <li><span className="font-bold text-txt-primary">category</span> (Required): Industry category (e.g. "Healthcare", "Manufacturing", "IT Services").</li>
-                  <li><span className="font-bold text-txt-primary">serviceType</span> (Required): Sales classification (e.g. "Service Based", "Product Based").</li>
+                  <li><span className="font-bold text-txt-primary">contactName</span>: The full name of the lead contact (minimum 3 characters).</li>
+                  <li><span className="font-bold text-txt-primary">category</span>: Industry category (e.g. "Healthcare", "Manufacturing", "IT Services").</li>
+                  <li><span className="font-bold text-txt-primary">serviceType</span>: Sales classification (e.g. "Service Based", "Product Based").</li>
                   <li><span className="font-bold text-txt-primary">company</span>: Organization / Company name.</li>
                   <li><span className="font-bold text-txt-primary">email</span>: Email address.</li>
                   <li><span className="font-bold text-txt-primary">phone</span>: 10-digit phone number.</li>
-                  <li><span className="font-bold text-txt-primary">assignedUser</span>: Full name of the assigned sales representative.</li>
-                  <li><span className="font-bold text-txt-primary">createdAt</span>: Creation date. Defaults to current date and time if omitted.</li>
+                  <li><span className="font-bold text-txt-primary">linkedinId</span>: LinkedIn ID / Profile URL.</li>
                 </ul>
               </div>
 

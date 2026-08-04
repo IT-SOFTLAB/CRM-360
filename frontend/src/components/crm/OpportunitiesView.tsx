@@ -26,6 +26,8 @@ interface OpportunitiesViewProps {
   onUpdateOpportunity: (oppId: string, oppData: any) => Promise<void> | void;
   settingsUsers?: any[];
   onBulkAssignOpportunities?: (oppIds: string[], assignedSalespersonId: string, assignedSalesperson: string) => Promise<void>;
+  onBulkDeleteOpportunities?: (oppIds: string[]) => Promise<void>;
+  settingsCategories?: string[];
 }
 
 export default function OpportunitiesView({
@@ -46,7 +48,9 @@ export default function OpportunitiesView({
   leads,
   onUpdateOpportunity,
   settingsUsers = [],
-  onBulkAssignOpportunities
+  onBulkAssignOpportunities,
+  onBulkDeleteOpportunities,
+  settingsCategories = []
 }: OpportunitiesViewProps) {
   const salespersonsList = settingsUsers.filter((u: any) => {
     const roleStr = (u.role || '').toLowerCase();
@@ -522,21 +526,16 @@ const handleBulkDelete = async () => {
   if (!confirmed) return;
 
   try {
-    const res = await opportunityService.bulkDeleteOpportunities(
-      selectedOppIds
-    );
-
-    if (res) {
-      addToast("success", "Selected opportunities deleted.");
-
-      setSelectedOppIds([]);
-
-      window.location.reload();
+    if (onBulkDeleteOpportunities) {
+      await onBulkDeleteOpportunities(selectedOppIds);
     } else {
-      addToast("error", "Failed to delete opportunities.");
+      await opportunityService.bulkDeleteOpportunities(selectedOppIds);
+      addToast("success", "Selected opportunities deleted.");
     }
+    setSelectedOppIds([]);
   } catch (err) {
-    addToast("error", "Something went wrong.");
+    console.error(err);
+    addToast("error", "Failed to delete opportunities.");
   }
 };
 
@@ -953,8 +952,8 @@ const handleBulkDelete = async () => {
                     />
                   </th>
                   <th className="py-3 px-4">Created on</th>
-                  <th className="py-3 px-4">Opportunity</th>
                   <th className="py-3 px-4">Contact Name</th>
+                  <th className="py-3 px-4">Company</th>
                   <th className="py-3 px-4">Email</th>
                   <th className="py-3 px-4">Salesperson</th>
                   <th className="py-3 px-4">Expected Revenue</th>
@@ -973,8 +972,12 @@ const handleBulkDelete = async () => {
                   const resolvedCompany = opp.company || associatedLead?.company || 'N/A';
 
                   return (
-                    <tr key={opp.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors">
-                      <td className="py-3.5 px-4 w-10">
+                    <tr
+                      key={opp.id}
+                      onClick={() => setSelectedOpp(opp)}
+                      className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors cursor-pointer text-txt-primary"
+                    >
+                      <td className="py-3.5 px-4 w-10" onClick={(e) => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           className="rounded text-primary border-border-crm focus:ring-0 cursor-pointer w-3.5 h-3.5"
@@ -985,13 +988,8 @@ const handleBulkDelete = async () => {
                       <td className="py-3.5 px-4 font-medium text-slate-500 whitespace-nowrap">
                         {formatCreatedOn(opp)}
                       </td>
-                      <td className="py-3.5 px-4 font-bold text-txt-primary">
-                        <button
-                          onClick={() => setSelectedOpp(opp)}
-                          className="hover:underline cursor-pointer text-left focus:outline-none"
-                        >
-                          {opp.customerName}
-                        </button>
+                      <td className="py-3.5 px-4 font-bold text-txt-primary hover:underline">
+                        {opp.customerName}
                       </td>
                       <td className="py-3.5 px-4 text-txt-secondary">
                         {resolvedCompany}
@@ -1037,7 +1035,7 @@ const handleBulkDelete = async () => {
                           {opp.stage || 'New'}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-end items-center space-x-2">
                           <button
                             onClick={() => handleOpenEmailModal(opp)}
@@ -1176,8 +1174,20 @@ const handleBulkDelete = async () => {
                         <p className="text-slate-400 font-semibold uppercase text-[9px]">Contact Name</p>
                         <input
                           type="text"
-                          value={contactName}
-                          readOnly
+                          value={selectedOpp.customerName ?? contactName}
+                          onChange={(e) =>
+                            setSelectedOpp({
+                              ...selectedOpp,
+                              customerName: e.target.value
+                            })
+                          }
+                          onBlur={async () => {
+                            if (onUpdateOpportunity && selectedOpp.customerName != null) {
+                              await onUpdateOpportunity(selectedOpp.id, {
+                                customerName: selectedOpp.customerName
+                              });
+                            }
+                          }}
                           className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 font-bold text-xs focus:outline-none"
                         />
                       </div>
@@ -1185,16 +1195,30 @@ const handleBulkDelete = async () => {
                         <p className="text-slate-400 font-semibold uppercase text-[9px]">Company</p>
                         <input
                           type="text"
-                          value={company}
-                          readOnly
+                          value={selectedOpp.company ?? company}
+                          onChange={(e) =>
+                            setSelectedOpp({
+                              ...selectedOpp,
+                              company: e.target.value
+                            })
+                          }
+                          onBlur={async () => {
+                            if (onUpdateOpportunity && selectedOpp.company != null) {
+                              await onUpdateOpportunity(selectedOpp.id, {
+                                company: selectedOpp.company
+                              });
+                            }
+                          }}
                           className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
                         />
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-1 mt-2">
-                      <span className="bg-blue-50 dark:bg-blue-950/40 text-primary border border-blue-100 dark:border-blue-900 text-[9px] px-2 py-0.5 rounded font-semibold">
-                        {category}
-                      </span>
+                      {(selectedOpp.category ?? category) && (
+                        <span className="bg-blue-50 dark:bg-blue-950/40 text-primary border border-blue-100 dark:border-blue-900 text-[9px] px-2 py-0.5 rounded font-semibold">
+                          {selectedOpp.category ?? category}
+                        </span>
+                      )}
                       <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-[9px] px-2 py-0.5 rounded font-semibold">
                         {associatedLead.source || 'Opportunity'}
                       </span>
@@ -1206,8 +1230,20 @@ const handleBulkDelete = async () => {
                       <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">Email</p>
                       <input
                         type="email"
-                        value={email}
-                        readOnly
+                        value={selectedOpp.email ?? email}
+                        onChange={(e) =>
+                          setSelectedOpp({
+                            ...selectedOpp,
+                            email: e.target.value
+                          })
+                        }
+                        onBlur={async () => {
+                          if (onUpdateOpportunity && selectedOpp.email != null) {
+                            await onUpdateOpportunity(selectedOpp.id, {
+                              email: selectedOpp.email
+                            });
+                          }
+                        }}
                         className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 focus:outline-none"
                       />
                     </div>
@@ -1215,8 +1251,20 @@ const handleBulkDelete = async () => {
                       <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">Phone</p>
                       <input
                         type="text"
-                        value={phone}
-                        readOnly
+                        value={selectedOpp.phone ?? phone}
+                        onChange={(e) =>
+                          setSelectedOpp({
+                            ...selectedOpp,
+                            phone: e.target.value
+                          })
+                        }
+                        onBlur={async () => {
+                          if (onUpdateOpportunity && selectedOpp.phone != null) {
+                            await onUpdateOpportunity(selectedOpp.id, {
+                              phone: selectedOpp.phone
+                            });
+                          }
+                        }}
                         className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 focus:outline-none"
                       />
                     </div>
@@ -1253,8 +1301,62 @@ const handleBulkDelete = async () => {
                       )}
                     </div>
                     <div>
-                      <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Service Type</p>
-                      <p className="font-bold text-txt-primary text-xs">{serviceType}</p>
+                      <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">Deal Value (₹)</p>
+                      <input
+                        type="number"
+                        min="0"
+                        value={selectedOpp.dealValue ?? 0}
+                        onChange={async (e) => {
+                          const val = Number(e.target.value);
+                          setSelectedOpp({
+                            ...selectedOpp,
+                            dealValue: val
+                          });
+                          if (onUpdateOpportunity) {
+                            await onUpdateOpportunity(selectedOpp.id, {
+                              dealValue: val
+                            });
+                          }
+                        }}
+                        className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1 text-xs focus:outline-none text-txt-primary bg-white dark:bg-slate-800"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">Category</p>
+                      <select
+                        className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1 text-xs focus:outline-none font-bold text-txt-primary bg-white dark:bg-slate-800"
+                        value={selectedOpp.category ?? category}
+                        onChange={async (e) => {
+                          const val = e.target.value;
+                          setSelectedOpp({ ...selectedOpp, category: val });
+                          if (onUpdateOpportunity) {
+                            await onUpdateOpportunity(selectedOpp.id, { category: val });
+                          }
+                        }}
+                      >
+                        <option value="">Select Category</option>
+                        {settingsCategories.map((c: string) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">Service Type</p>
+                      <select
+                        className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1 text-xs focus:outline-none font-bold text-txt-primary bg-white dark:bg-slate-800"
+                        value={selectedOpp.serviceType ?? serviceType}
+                        onChange={async (e) => {
+                          const val = e.target.value;
+                          setSelectedOpp({ ...selectedOpp, serviceType: val });
+                          if (onUpdateOpportunity) {
+                            await onUpdateOpportunity(selectedOpp.id, { serviceType: val });
+                          }
+                        }}
+                      >
+                        <option value="">Select Service Type</option>
+                        <option value="Service Based">Service Based</option>
+                        <option value="Product Based">Product Based</option>
+                      </select>
                     </div>
                     <div>
                       <p className="text-slate-400 font-semibold uppercase text-[9px] mb-0.5">Lead Sync</p>

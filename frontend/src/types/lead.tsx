@@ -16,4 +16,6 @@ export interface Lead {
   country?: string;
   team?: string;
   campaign?: string;
+  dealValue?: number;
+  linkedinId?: string;
 }
