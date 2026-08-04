@@ -25,6 +25,8 @@ export default function OpportunitiesPage() {
       onUpdateOpportunity={crm.handleUpdateOpportunity}
       settingsUsers={crm.settingsUsers}
       onBulkAssignOpportunities={crm.handleBulkAssignOpportunities}
+      onBulkDeleteOpportunities={crm.handleBulkDeleteOpportunities}
+      settingsCategories={crm.categories}
     />
   );
 }

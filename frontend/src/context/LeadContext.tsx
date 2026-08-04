@@ -27,7 +27,8 @@ export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loadLeads = async () => {
     const apiLeads = await leadService.getLeads();
     if (apiLeads) {
-      setLeads(apiLeads);
+      const sorted = [...apiLeads].sort((a, b) => new Date(b.createdAt || b.createdDate).getTime() - new Date(a.createdAt || a.createdDate).getTime());
+      setLeads(sorted);
     } else if (leads.length === 0) {
       setLeads([]);
     }
@@ -51,9 +52,10 @@ export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children
       phone: leadForm.phone,
       category: leadForm.category,
       serviceType: leadForm.serviceType,
-      assignedUser: leadForm.assignedUser || 'Unassigned'
+      assignedUser: leadForm.assignedUser || 'Unassigned',
+      dealValue: leadForm.dealValue ? Number(leadForm.dealValue) : 0
     };
-    setLeads(prev => [...prev, tempLead as any]);
+    setLeads(prev => [tempLead as any, ...prev]);
 
     try {
       const res = await leadService.createLead(leadForm);
@@ -74,7 +76,7 @@ export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const res = await leadService.updateLead(leadId, leadData);
     if (res) {
       setLeads(prev => prev.map(l => l.id === leadId ? res : l));
-      if (toastCtx) toastCtx.addToast('success', 'Lead updated');
+      // if (toastCtx) toastCtx.addToast('success', 'Lead updated');
     } else {
       if (toastCtx) toastCtx.addToast('error', 'Failed to update lead');
       await loadLeads(); // Revert/reload on failure

@@ -19,6 +19,7 @@ import { leadService } from '../services/lead.service';
 import api from '../services/api';
 import { usePipeline } from "../hooks/usePipeline";
 import { useNotifications } from "../hooks/useNotifications";
+import { usePathname } from 'next/navigation';
 
 export interface CRMContextType {
   mounted: boolean;
@@ -110,6 +111,7 @@ export interface CRMContextType {
   handleMoveOpportunity: (oppId: string, stageId: string) => Promise<void>;
   handleDeleteOpportunity: (oppId: string) => Promise<void>;
   handleUpdateOpportunity: (oppId: string, oppData: any) => Promise<void>;
+  handleBulkDeleteOpportunities: (oppIds: string[]) => Promise<void>;
   handleAddStage: (stageName: string) => Promise<void>;
   handleStageReorder: (stageId: string, direction: 'left' | 'right') => Promise<void>;
   handleStageDelete: (stageId: string) => Promise<void>;
@@ -247,7 +249,20 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
 
   // Local filter and UI states
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
-  const [activeFilters, setActiveFilters] = useState<any>(DEFAULT_ACTIVE_FILTERS);
+
+  const pathname = usePathname();
+  const currentTab = pathname === '/' ? 'dashboard' : pathname.replace('/', '');
+
+  const [leadsActiveFilters, setLeadsActiveFilters] = useState<any>(DEFAULT_ACTIVE_FILTERS);
+  const [pipelineActiveFilters, setPipelineActiveFilters] = useState<any>(DEFAULT_ACTIVE_FILTERS);
+  const [leadsSearchQuery, setLeadsSearchQuery] = useState('');
+  const [pipelineSearchQuery, setPipelineSearchQuery] = useState('');
+
+  const activeFilters = currentTab === 'opportunities' ? pipelineActiveFilters : leadsActiveFilters;
+  const setActiveFilters = currentTab === 'opportunities' ? setPipelineActiveFilters : setLeadsActiveFilters;
+  const searchQuery = currentTab === 'opportunities' ? pipelineSearchQuery : leadsSearchQuery;
+  const setSearchQuery = currentTab === 'opportunities' ? setPipelineSearchQuery : setLeadsSearchQuery;
+
   const [savedFilters, setSavedFilters] = useState<any[]>([]);
 
   const loadSavedFilters = async () => {
@@ -259,7 +274,6 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
     }
   };
   const [customFilterName, setCustomFilterName] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
 
   // Initial load — wait for authReady so the token is refreshed before fetching
   useEffect(() => {
@@ -380,18 +394,28 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
   };
 
   const handleUpdateLeadFromViewWithOppSync = async (leadId: string, leadData: any) => {
-    // 1. Optimistically update opportunities & customers if salesperson changes
-    if (leadData.assignedUserId !== undefined || leadData.assignedUser !== undefined) {
+    // 1. Optimistically update opportunities & customers if key fields change
+    const oppUpdate: any = {};
+    if (leadData.contactName !== undefined) oppUpdate.customerName = leadData.contactName;
+    if (leadData.company !== undefined) oppUpdate.company = leadData.company;
+    if (leadData.email !== undefined) oppUpdate.email = leadData.email;
+    if (leadData.phone !== undefined) oppUpdate.phone = leadData.phone;
+    if (leadData.dealValue !== undefined) {
+      oppUpdate.dealValue = leadData.dealValue;
+    }
+    if (leadData.status !== undefined) oppUpdate.stage = leadData.status;
+    if (leadData.assignedUser !== undefined) oppUpdate.assignedSalesperson = leadData.assignedUser;
+    if (leadData.assignedUserId !== undefined) oppUpdate.assignedSalespersonId = leadData.assignedUserId;
+
+    if (Object.keys(oppUpdate).length > 0) {
       const opps = oppCtx.opportunities.filter(o => o.leadId === leadId);
       const oppIds = opps.map(o => o.id);
 
       oppCtx.setOpportunities((prev: any[]) => prev.map(o =>
-        o.leadId === leadId
-          ? { ...o, assignedSalespersonId: leadData.assignedUserId, assignedSalesperson: leadData.assignedUser }
-          : o
+        o.leadId === leadId ? { ...o, ...oppUpdate } : o
       ));
 
-      if (oppIds.length > 0) {
+      if (oppIds.length > 0 && (leadData.assignedUser !== undefined || leadData.assignedUserId !== undefined)) {
         customerCtx.setCustomers((prev: any[]) => prev.map(c =>
           c.opportunityId && oppIds.includes(c.opportunityId)
             ? { ...c, assignedSalesperson: leadData.assignedUser, assignedSalespersonId: leadData.assignedUserId }
@@ -406,6 +430,17 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
     // 3. Reload opportunities & customers
     await oppCtx.loadOpportunities();
     await customerCtx.loadCustomers();
+  };
+
+  const handleDeleteLeadFromViewWithOppSync = async (leadId: string) => {
+    // 1. Optimistically delete opportunity
+    oppCtx.setOpportunities((prev: any[]) => prev.filter(o => o.leadId !== leadId));
+
+    // 2. Call core handler
+    await leadsCtx.handleDeleteLeadFromView(leadId);
+
+    // 3. Reload opportunities
+    await oppCtx.loadOpportunities();
   };
 
   const handleBulkAssignLeadsWithOppSync = async (leadIds: string[], assignedUserId: string, assignedUser: string) => {
@@ -467,6 +502,11 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
     await customerCtx.loadCustomers();
   };
 
+  const handleCreateLeadFromViewWithOppSync = async (leadForm: any) => {
+    await leadsCtx.handleCreateLeadFromView(leadForm);
+    await oppCtx.loadOpportunities();
+  };
+
   const handleSaveCustomFilter = async () => {
     if (!customFilterName) return;
     try {
@@ -497,11 +537,13 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
   const clearAllFilters = () => {
     setActiveFilters(DEFAULT_ACTIVE_FILTERS);
     setSearchQuery('');
-    toastCtx.addToast('info', 'Filters cleared');
+    // toastCtx.addToast('info', 'Filters cleared');
   };
 
   const applyFilters = (data: any[], type: 'leads' | 'opportunities' | 'emails') => {
-    return applyFiltersUtil(data, type, searchQuery, activeFilters, auth.user, leadsCtx.leads);
+    const filters = type === 'opportunities' ? pipelineActiveFilters : leadsActiveFilters;
+    const query = type === 'opportunities' ? pipelineSearchQuery : leadsSearchQuery;
+    return applyFiltersUtil(data, type, query, filters, auth.user, leadsCtx.leads);
   };
 
   return (
@@ -586,13 +628,14 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       handleAuthSubmit: (e) => auth.handleAuthSubmit(e, loadCRMData),
       handleLogout: auth.handleLogout,
       selectQuickAccount: auth.selectQuickAccount,
-      handleCreateLeadFromView: leadsCtx.handleCreateLeadFromView,
+      handleCreateLeadFromView: handleCreateLeadFromViewWithOppSync,
       handleUpdateLeadFromView: handleUpdateLeadFromViewWithOppSync,
-      handleDeleteLeadFromView: leadsCtx.handleDeleteLeadFromView,
+      handleDeleteLeadFromView: handleDeleteLeadFromViewWithOppSync,
       handleConvertLeadFromView,
       handleMoveOpportunity: oppCtx.handleMoveOpportunity,
       handleDeleteOpportunity: oppCtx.handleDeleteOpportunity,
       handleUpdateOpportunity: handleUpdateOpportunityWithCustomerSync,
+      handleBulkDeleteOpportunities: oppCtx.handleBulkDeleteOpportunities,
       handleAddStage: oppCtx.handleAddStage,
       handleStageReorder: oppCtx.handleStageReorder,
       handleStageDelete: oppCtx.handleStageDelete,

@@ -4,13 +4,11 @@ const prisma = new PrismaClient();
 const createLead = async (req, res) => {
   try {
     const now = new Date();
-    // Shift manual creation time to IST timezone (+5.5 hours)
-    const istNow = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
     const user = req.user;
 
-    const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
-    const assignedUserId = userRole === 'USER' ? user.id : req.body.assignedUserId;
-    const assignedUser = userRole === 'USER' ? user.name : req.body.assignedUser;
+    // Fallback to creator user if assignee is not explicitly specified in req.body
+    const assignedUserId = req.body.assignedUserId || user.id;
+    const assignedUser = req.body.assignedUser || user.name;
 
     const lead = await prisma.lead.create({
       data: {
@@ -23,7 +21,24 @@ const createLead = async (req, res) => {
         assignedUser: assignedUser || null,
         assignedUserId: assignedUserId || null,
         status: 'New',
-        createdAt: istNow
+        dealValue: req.body.dealValue ? Number(req.body.dealValue) : 0,
+        createdAt: now
+      }
+    });
+
+    // Automatically create a corresponding Opportunity in the "New" stage
+    await prisma.opportunity.create({
+      data: {
+        leadId: lead.id,
+        customerName: lead.contactName,
+        company: lead.company,
+        email: lead.email,
+        phone: lead.phone,
+        dealValue: lead.dealValue || 0,
+        stage: 'New',
+        assignedSalesperson: lead.assignedUser,
+        assignedSalespersonId: lead.assignedUserId,
+        createdAt: lead.createdAt
       }
     });
 
@@ -84,6 +99,11 @@ const deleteLead = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Delete associated opportunities first
+    await prisma.opportunity.deleteMany({
+      where: { leadId: id }
+    }).catch(err => console.log("Associated opportunities deletion failed:", err.message));
+
     await prisma.lead.delete({
       where: {
            id: id
@@ -92,7 +112,7 @@ const deleteLead = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Lead deleted successfully"
+      message: "Lead and associated opportunities deleted successfully"
     });
 
   } catch (error) {
@@ -149,14 +169,26 @@ const updateLead = async (req, res) => {
     }
 
     // Also update associated opportunity and customer if salesperson changes
-    if (req.body.assignedUser !== undefined || req.body.assignedUserId !== undefined) {
+    const oppUpdateData = {};
+    if (req.body.contactName !== undefined) oppUpdateData.customerName = req.body.contactName;
+    if (req.body.company !== undefined) oppUpdateData.company = req.body.company;
+    if (req.body.email !== undefined) oppUpdateData.email = req.body.email;
+    if (req.body.phone !== undefined) oppUpdateData.phone = req.body.phone;
+    if (req.body.dealValue !== undefined) {
+      oppUpdateData.dealValue = req.body.dealValue ? Number(req.body.dealValue) : 0;
+    }
+    if (req.body.status !== undefined) oppUpdateData.stage = req.body.status;
+    if (req.body.assignedUser !== undefined) oppUpdateData.assignedSalesperson = req.body.assignedUser;
+    if (req.body.assignedUserId !== undefined) oppUpdateData.assignedSalespersonId = req.body.assignedUserId;
+
+    if (Object.keys(oppUpdateData).length > 0) {
       await prisma.opportunity.updateMany({
         where: { leadId: id },
-        data: {
-          assignedSalesperson: req.body.assignedUser,
-          assignedSalespersonId: req.body.assignedUserId
-        }
+        data: oppUpdateData
       });
+    }
+
+    if (req.body.assignedUser !== undefined || req.body.assignedUserId !== undefined) {
       const opps = await prisma.opportunity.findMany({
         where: { leadId: id },
         select: { id: true }
@@ -262,7 +294,7 @@ function getVal(row, keyNames) {
 const importLeads = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
+      return res.status(200).json({ success: false, message: 'No file uploaded' });
     }
 
     // Read the file using xlsx (works for both CSV and Excel)
@@ -271,7 +303,7 @@ const importLeads = async (req, res) => {
       workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
     } catch (err) {
       console.error('Error reading file with xlsx:', err);
-      return res.status(400).json({ success: false, message: 'Failed to parse CSV/Excel file structure' });
+      return res.status(200).json({ success: false, message: 'Failed to parse CSV/Excel file structure' });
     }
 
     const sheetName = workbook.SheetNames[0];
@@ -283,16 +315,25 @@ const importLeads = async (req, res) => {
 
     // Header validation (case/space/underscore/dash insensitive)
     const normalizedHeaders = headers.map(normalizeKey);
-    const required = ['contactName', 'category', 'serviceType'];
-    const hasAllRequired = required.every(field => {
-      const normField = normalizeKey(field);
-      return normalizedHeaders.includes(normField);
+    const requiredAliases = {
+      contactName: ['contactName', 'name'],
+      category: ['category'],
+      serviceType: ['serviceType', 'servicetype'],
+      company: ['company'],
+      email: ['email'],
+      phone: ['phone'],
+      linkedinId: ['linkedinId', 'linkedinid', 'linkedin', 'linkedin id']
+    };
+
+    const missingFields = Object.keys(requiredAliases).filter(field => {
+      const aliases = requiredAliases[field];
+      return !aliases.some(alias => normalizedHeaders.includes(normalizeKey(alias)));
     });
 
-    if (!hasAllRequired) {
-      return res.status(400).json({ 
+    if (missingFields.length > 0) {
+      return res.status(200).json({ 
         success: false, 
-        message: 'uploading failed the csv file does not match the required fields' 
+        message: `uploading failed: missing required column headers: ${missingFields.join(', ')}` 
       });
     }
 
@@ -339,10 +380,9 @@ const importLeads = async (req, res) => {
       const company = getVal(row, ['company']);
       const email = getVal(row, ['email']);
       const phone = getVal(row, ['phone']);
-      const category = getVal(row, ['category']) || 'Healthcare';
-      const serviceType = getVal(row, ['serviceType', 'servicetype']) || 'Service Based';
-      const assignedUser = getVal(row, ['assignedUser', 'assigneduser']);
-      const createdAt = getVal(row, ['createdAt', 'createdat', 'createdDate', 'createddate']);
+      const category = getVal(row, ['category']) || '';
+      const serviceType = getVal(row, ['serviceType', 'servicetype']) || '';
+      const linkedinId = getVal(row, ['linkedinId', 'linkedinid', 'linkedin', 'linkedin id']);
 
       const trimmedName = contactName.toString().trim();
       const trimmedCompany = company ? company.toString().trim() : null;
@@ -353,23 +393,9 @@ const importLeads = async (req, res) => {
       const trimmedServiceType = serviceType.toString().trim();
       const trimmedAssignedUser = initialAssigneeName;
       const trimmedAssignedUserId = initialAssigneeId;
+      const trimmedLinkedinId = linkedinId ? linkedinId.toString().trim() : null;
 
-      // Handle createdAt date parsing (supporting strings and Excel serial date numbers)
-      let parsedCreatedAt = new Date();
-      if (createdAt) {
-        const serial = Number(createdAt);
-        if (!isNaN(serial) && serial > 20000 && serial < 60000) {
-          // Parse Excel serial date number
-          parsedCreatedAt = new Date(Math.round((serial - 25569) * 86400 * 1000));
-        } else {
-          const tempDate = new Date(createdAt);
-          if (!isNaN(tempDate.getTime())) {
-            parsedCreatedAt = tempDate;
-          }
-        }
-      }
-      // Shift import creation time to IST timezone (+5.5 hours)
-      const istParsedCreatedAt = new Date(parsedCreatedAt.getTime() + 5.5 * 60 * 60 * 1000);
+      const parsedCreatedAt = new Date();
 
       // 1. Save to Prisma Database (PostgreSQL)
       let lead;
@@ -385,14 +411,33 @@ const importLeads = async (req, res) => {
             assignedUser: trimmedAssignedUser,
             assignedUserId: trimmedAssignedUserId,
             status: 'New', // Automatically set status to "New"
-            createdAt: istParsedCreatedAt
+            dealValue: 0,
+            createdAt: parsedCreatedAt,
+            linkedinId: trimmedLinkedinId
+          }
+        });
+
+        // Automatically create a corresponding Opportunity in the "New" stage
+        await prisma.opportunity.create({
+          data: {
+            leadId: lead.id,
+            customerName: lead.contactName,
+            company: lead.company,
+            email: lead.email,
+            phone: lead.phone,
+            dealValue: 0,
+            stage: 'New',
+            assignedSalesperson: lead.assignedUser,
+            assignedSalespersonId: lead.assignedUserId,
+            createdAt: lead.createdAt,
+            linkedinId: trimmedLinkedinId
           }
         });
       } catch (dbErr) {
         console.warn('Prisma lead create failed, proceeding to save to db.json only:', dbErr.message);
         lead = {
           id: 'l_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-          createdAt: istParsedCreatedAt.toISOString()
+          createdAt: parsedCreatedAt.toISOString()
         };
       }
 
@@ -411,7 +456,8 @@ const importLeads = async (req, res) => {
         assignedUserId: trimmedAssignedUserId,
         status: 'New',              // Automatically set status to "New"
         createdAt: parsedCreatedAt.toISOString().split('T')[0],
-        createdDate: parsedCreatedAt.toISOString().split('T')[0]
+        createdDate: parsedCreatedAt.toISOString().split('T')[0],
+        linkedinId: trimmedLinkedinId
       };
 
       db.leads.push(dbLead);

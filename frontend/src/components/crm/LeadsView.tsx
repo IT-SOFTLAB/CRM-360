@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import { Trash2, X, Plus, Pencil, User, ChevronDown } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -89,10 +89,22 @@ export default function LeadsView({
     email: '',
     phone: '',
     source: 'Website',
-    serviceType: 'Service Based',
-    category: 'Healthcare',
-    assignedUser: user?.name || ''
+    serviceType: '',
+    category: '',
+    assignedUser: user?.name || '',
+    assignedUserId: user?.id || '',
+    dealValue: '0'
   });
+
+  useEffect(() => {
+    if (user) {
+      setLeadForm(prev => ({
+        ...prev,
+        assignedUser: prev.assignedUser || user.name || '',
+        assignedUserId: prev.assignedUserId || user.id || ''
+      }));
+    }
+  }, [user]);
   const [errors, setErrors] = useState({
     contactName: "",
     company: "",
@@ -115,28 +127,19 @@ export default function LeadsView({
     if (!leadForm.contactName.trim()) {
       newErrors.contactName = "Contact Name is required";
       valid = false;
-    } else if (!/^[A-Za-z ]+$/.test(leadForm.contactName)) {
-      newErrors.contactName = "Only letters and spaces are allowed";
-      valid = false;
     } else if (leadForm.contactName.length < 3) {
       newErrors.contactName = "Minimum 3 characters";
       valid = false;
     }
 
-    // Company
-    if (!leadForm.company.trim()) {
-      newErrors.company = "Company is required";
-      valid = false;
-    }
-
     // Email
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadForm.email)) {
+    if (leadForm.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadForm.email)) {
       newErrors.email = "Invalid email address";
       valid = false;
     }
 
     // Phone
-    if (!/^[6-9]\d{9}$/.test(leadForm.phone)) {
+    if (leadForm.phone.trim() && !/^[6-9]\d{9}$/.test(leadForm.phone)) {
       newErrors.phone = "Enter valid 10-digit mobile number";
       valid = false;
     }
@@ -158,9 +161,11 @@ export default function LeadsView({
       email: '',
       phone: '',
       source: 'Website',
-      serviceType: 'Service Based',
-      category: 'Healthcare',
-      assignedUser: user?.name || ''
+      serviceType: '',
+      category: '',
+      assignedUser: user?.name || '',
+      assignedUserId: user?.id || '',
+      dealValue: '0'
     });
   };
 
@@ -177,10 +182,8 @@ export default function LeadsView({
     }
   };
 
-  // Exclude leads that have already been converted to opportunities
-  const unconvertedLeads = leads.filter(l =>
-    !opportunities.some(o => o.leadId === l.id)
-  );
+  // Keep leads in leads section with updated stage statuses
+  const unconvertedLeads = leads;
 
   const filteredLeads = applyFilters(unconvertedLeads, 'leads');
 
@@ -273,15 +276,16 @@ export default function LeadsView({
                   {(() => {
                     const dateStr = ld.createdAt || ld.createdDate;
                     if (!dateStr) return '—';
-                    const cleanStr = typeof dateStr === 'string' ? dateStr.replace(/Z$/, '') : dateStr;
-                    return new Date(cleanStr).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+                    return new Date(dateStr).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
                   })()}
                 </td>
                 <td className="px-6 py-4">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${ld.status === 'New' ? 'bg-blue-50 border-blue-200 text-primary' :
-                    ld.status === 'Contacted' ? 'bg-amber-50 border-amber-200 text-warning' :
-                      'bg-emerald-50 border-emerald-200 text-success'
-                    }`}>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${
+                    ld.status === 'New' ? 'bg-blue-50 border-blue-200 text-primary' :
+                    ld.status === 'Won' || ld.status === 'Closed Won' ? 'bg-emerald-50 border-emerald-200 text-success' :
+                    ld.status === 'Lost' || ld.status === 'Closed Lost' ? 'bg-rose-50 border-rose-200 text-rose-600' :
+                    'bg-amber-50 border-amber-200 text-warning'
+                  }`}>
                     {ld.status}
                   </span>
                 </td>
@@ -370,10 +374,13 @@ export default function LeadsView({
                     }
                     className="w-full border rounded-lg px-3 py-2"
                   />
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    <span className="bg-blue-50 text-primary border border-blue-100 text-[10px] px-2 py-0.5 rounded font-semibold">{selectedLead.category}</span>
-
-                  </div>
+                  {selectedLead.category && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      <span className="bg-blue-50 text-primary border border-blue-100 text-[10px] px-2 py-0.5 rounded font-semibold">
+                        {selectedLead.category}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Contact stats */}
@@ -432,27 +439,65 @@ export default function LeadsView({
                     )}
                   </div>
                   <div>
-                    <p className="text-slate-400 font-semibold uppercase text-[10px]">Service Type</p>
-                    <p className="font-medium text-txt-primary mt-0.5">{selectedLead.serviceType}</p>
+                    <p className="text-slate-400 font-semibold uppercase text-[10px] mb-1">Category</p>
+                    <select
+                      className="w-full border rounded-lg px-2.5 py-2 text-xs text-txt-primary bg-card focus:outline-none font-medium"
+                      value={selectedLead.category || ''}
+                      onChange={(e) =>
+                        setSelectedLead({
+                          ...selectedLead,
+                          category: e.target.value
+                        })
+                      }
+                    >
+                      <option value="">Select Category</option>
+                      {categories.map((c: string) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 font-semibold uppercase text-[10px] mb-1">Service Type</p>
+                    <select
+                      className="w-full border rounded-lg px-2.5 py-2 text-xs text-txt-primary bg-card focus:outline-none font-medium"
+                      value={selectedLead.serviceType || ''}
+                      onChange={(e) =>
+                        setSelectedLead({
+                          ...selectedLead,
+                          serviceType: e.target.value
+                        })
+                      }
+                    >
+                      <option value="">Select Service Type</option>
+                      <option value="Service Based">Service Based</option>
+                      <option value="Product Based">Product Based</option>
+                    </select>
+                  </div>
+                  <div>
+                    <p className="text-slate-400 font-semibold uppercase text-[10px]">Deal Value (₹)</p>
+                    <input
+                      type="number"
+                      min="0"
+                      value={selectedLead.dealValue ?? 0}
+                      onChange={(e) =>
+                        setSelectedLead({
+                          ...selectedLead,
+                          dealValue: Number(e.target.value)
+                        })
+                      }
+                      className="w-full border rounded-lg px-3 py-2 text-txt-primary bg-white dark:bg-slate-800"
+                    />
                   </div>
                 </div>
 
               </div>
               <div className="border-t border-border-crm pt-4 flex gap-2 shrink-0">
-
-            
-                <button
-                  onClick={() => setConvertLeadId(selectedLead.id)}
-                  className="flex-1 bg-success hover:bg-emerald-600 text-white py-2.5 rounded-xl text-xs font-semibold transition shadow cursor-pointer"
-                >
-                  Convert to Opportunity
-                </button>
                 <button
                   onClick={() => {
                     onUpdateLead(selectedLead.id, selectedLead);
                     setShowLeadDrawer(false);
                   }}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl cursor-pointer font-semibold"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl cursor-pointer font-semibold"
                 >
                   Save Changes
                 </button>
@@ -462,43 +507,7 @@ export default function LeadsView({
         )
       }
 
-      {/* Convert Lead Modal */}
-      {
-        convertLeadId && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-card border border-border-crm rounded-2xl shadow-2xl p-6 max-w-sm w-full text-txt-primary">
-              <h4 className="font-bold text-sm tracking-tight mb-4">Convert to Sales Pipeline Opportunity</h4>
-              <form onSubmit={handleConvertSubmit} className="space-y-3 text-xs">
-                <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Expected Deal Value (₹)</label>
-                  <input
-                    type="number" required
-                    className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none"
-                    value={convertForm.dealValue}
-                    onChange={e => setConvertForm({ ...convertForm, dealValue: e.target.value })}
-                  />
-                </div>
-
-
-                <div className="flex gap-2 pt-4">
-                  <button
-                    type="button" onClick={() => setConvertLeadId(null)}
-                    className="flex-1 border border-border-crm hover:bg-slate-50 rounded-xl py-2 font-semibold text-txt-primary cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 bg-success hover:bg-emerald-600 text-white rounded-xl py-2 font-semibold shadow cursor-pointer"
-                  >
-                    Confirm Convert
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )
-      }
+      {/* Convert Lead Modal removed */}
 
       {/* Create Lead Modal */}
       {
@@ -529,7 +538,7 @@ export default function LeadsView({
                 <div>
                   <label className="block text-slate-400 font-semibold mb-1">Company</label>
                   <input
-                    type="text" required
+                    type="text"
                     className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary bg-white"
                     value={leadForm.company}
                     onChange={e => setLeadForm({ ...leadForm, company: e.target.value })}
@@ -545,7 +554,7 @@ export default function LeadsView({
                 <div>
                   <label className="block text-slate-400 font-semibold mb-1">Email</label>
                   <input
-                    type="email" required
+                    type="email"
                     className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary bg-white"
                     value={leadForm.email}
                     onChange={e => setLeadForm({ ...leadForm, email: e.target.value })}
@@ -559,7 +568,7 @@ export default function LeadsView({
                 <div>
                   <label className="block text-slate-400 font-semibold mb-1">Phone</label>
                   <input
-                    type="text" required
+                    type="text"
                     className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary bg-white"
                     value={leadForm.phone}
                     onChange={e => setLeadForm({ ...leadForm, phone: e.target.value })}
@@ -577,20 +586,32 @@ export default function LeadsView({
                     value={leadForm.category}
                     onChange={e => setLeadForm({ ...leadForm, category: e.target.value })}
                   >
+                    <option value="">Select Category</option>
                     {categories.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
-                <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Service Type</label>
-                  <select
-                    className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary bg-white"
-                    value={leadForm.serviceType}
-                    onChange={e => setLeadForm({ ...leadForm, serviceType: e.target.value })}
-                  >
-                    <option value="Service Based">Service Based</option>
-                    <option value="Product Based">Product Based</option>
-                  </select>
-                </div>
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Service Type</label>
+                    <select
+                      className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary bg-white"
+                      value={leadForm.serviceType}
+                      onChange={e => setLeadForm({ ...leadForm, serviceType: e.target.value })}
+                    >
+                      <option value="">Select Service Type</option>
+                      <option value="Service Based">Service Based</option>
+                      <option value="Product Based">Product Based</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">Deal Value (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary bg-white"
+                      value={leadForm.dealValue}
+                      onChange={e => setLeadForm({ ...leadForm, dealValue: e.target.value })}
+                    />
+                  </div>
                 <div className="col-span-2">
                   <label className="block text-slate-400 font-semibold mb-1">
                     Assigned Sales Executive

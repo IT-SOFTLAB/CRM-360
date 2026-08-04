@@ -172,14 +172,19 @@ exports.updateOpportunity = async (req, res) => {
 
     const { id } = req.params;
 
+    const oppUpdateData = { ...req.body };
+    delete oppUpdateData.category;
+    delete oppUpdateData.serviceType;
+
     const updatedOpportunity = await prisma.opportunity.update({
       where: { id },
-      data: req.body
+      data: oppUpdateData
     });
+
+    const leadId = updatedOpportunity.leadId;
 
     // Also update associated lead and customer if salesperson changes
     if (req.body.assignedSalesperson !== undefined || req.body.assignedSalespersonId !== undefined) {
-      const leadId = updatedOpportunity.leadId;
       if (leadId) {
         await prisma.lead.update({
           where: { id: leadId },
@@ -196,6 +201,37 @@ exports.updateOpportunity = async (req, res) => {
           assignedSalespersonId: req.body.assignedSalespersonId
         }
       });
+    }
+
+    // Also update associated lead's status if stage changes
+    if (req.body.stage !== undefined) {
+      if (leadId) {
+        await prisma.lead.update({
+          where: { id: leadId },
+          data: {
+            status: req.body.stage
+          }
+        });
+      }
+    }
+
+    // Also update associated lead details if key fields change
+    if (leadId) {
+      const leadUpdateData = {};
+      if (req.body.customerName !== undefined) leadUpdateData.contactName = req.body.customerName;
+      if (req.body.company !== undefined) leadUpdateData.company = req.body.company;
+      if (req.body.email !== undefined) leadUpdateData.email = req.body.email;
+      if (req.body.phone !== undefined) leadUpdateData.phone = req.body.phone;
+      if (req.body.dealValue !== undefined) leadUpdateData.dealValue = req.body.dealValue ? Number(req.body.dealValue) : 0;
+      if (req.body.category !== undefined) leadUpdateData.category = req.body.category;
+      if (req.body.serviceType !== undefined) leadUpdateData.serviceType = req.body.serviceType;
+      
+      if (Object.keys(leadUpdateData).length > 0) {
+        await prisma.lead.update({
+          where: { id: leadId },
+          data: leadUpdateData
+        }).catch(err => console.log("Associated lead update failed:", err.message));
+      }
     }
 
     // Create customer when moved to Won
@@ -237,39 +273,44 @@ exports.updateOpportunity = async (req, res) => {
   }
 };
 exports.deleteOpportunity = async (req, res) => {
+  try {
+    const { id } = req.params;
 
-    try {
+    const opp = await prisma.opportunity.findUnique({
+      where: { id }
+    });
 
-        const { id } = req.params;
-
-        await prisma.opportunity.delete({
-
-            where: { id }
-
-        });
-
-        res.json({
-
-            message: "Deleted Successfully"
-
-        });
-
+    if (opp && opp.leadId) {
+      await prisma.lead.delete({
+        where: { id: opp.leadId }
+      }).catch(err => console.warn("Associated lead deletion failed:", err.message));
     }
 
-    catch (err) {
+    await prisma.opportunity.delete({
+      where: { id }
+    });
 
-        console.log(err);
-
-        res.status(500).json({
-
-            message: "Server Error"
-
-        });
-
+    // Update db.json for mock/fallback compatibility
+    const db = readDB();
+    if (db.opportunities) {
+      db.opportunities = db.opportunities.filter(o => o.id !== id);
     }
+    if (opp && opp.leadId && db.leads) {
+      db.leads = db.leads.filter(l => l.id !== opp.leadId);
+    }
+    writeDB(db);
 
+    res.json({
+      success: true,
+      message: "Deleted Successfully"
+    });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      message: "Server Error"
+    });
+  }
 };
-
 
 exports.convertLeadToOpportunity = async (req, res) => {
   try {
@@ -357,6 +398,33 @@ exports.bulkDeleteOpportunities = async (req, res) => {
       });
     }
 
+    // 1. Find the opportunities first to get their leadIds
+    const opps = await prisma.opportunity.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+      select: {
+        id: true,
+        leadId: true,
+      },
+    });
+
+    const leadIds = opps.map(o => o.leadId).filter(Boolean);
+
+    // 2. Delete the associated leads in Prisma
+    if (leadIds.length > 0) {
+      await prisma.lead.deleteMany({
+        where: {
+          id: {
+            in: leadIds,
+          },
+        },
+      }).catch(err => console.warn("Prisma associated leads bulk delete failed:", err.message));
+    }
+
+    // 3. Delete the opportunities in Prisma
     await prisma.opportunity.deleteMany({
       where: {
         id: {
@@ -364,6 +432,16 @@ exports.bulkDeleteOpportunities = async (req, res) => {
         },
       },
     });
+
+    // 4. Update db.json for mock/fallback compatibility
+    const db = readDB();
+    if (db.opportunities) {
+      db.opportunities = db.opportunities.filter(o => !ids.includes(o.id));
+    }
+    if (db.leads && leadIds.length > 0) {
+      db.leads = db.leads.filter(l => !leadIds.includes(l.id));
+    }
+    writeDB(db);
 
     res.json({
       success: true,

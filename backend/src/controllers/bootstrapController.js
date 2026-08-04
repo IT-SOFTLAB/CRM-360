@@ -220,6 +220,35 @@ exports.getBootstrapData = async (req, res) => {
       })
     ]);
 
+    let finalOpportunities = opportunities;
+
+    // 2.5. Synchronize old leads to pipeline if they don't have opportunities
+    const missingOpps = leads.filter(l => !finalOpportunities.some(o => o.leadId === l.id));
+    if (missingOpps.length > 0) {
+      console.log(`Syncing bootstrap: creating ${missingOpps.length} missing opportunities for existing leads`);
+      await Promise.all(missingOpps.map(l => 
+        prisma.opportunity.create({
+          data: {
+            leadId: l.id,
+            customerName: l.contactName || l.name,
+            company: l.company || '',
+            email: l.email || '',
+            phone: l.phone || '',
+            dealValue: l.dealValue || 0,
+            stage: l.status || 'New',
+            assignedSalesperson: l.assignedUser || 'Unassigned',
+            assignedSalespersonId: l.assignedUserId || null,
+            createdAt: l.createdAt
+          }
+        }).catch(err => console.log("Failed to create sync opportunity:", err.message))
+      ));
+
+      finalOpportunities = await prisma.opportunity.findMany({
+        where: oppWhere,
+        orderBy: { createdAt: "desc" }
+      });
+    }
+
     // 3. Handle dashboard values
     const referralDashboard = {
       totalReferrals: totalReferralsCount,
@@ -291,7 +320,7 @@ exports.getBootstrapData = async (req, res) => {
     // Return the bundled bootstrap data!
     res.json({
       leads,
-      opportunities,
+      opportunities: finalOpportunities,
       customers,
       activities,
       quotations,

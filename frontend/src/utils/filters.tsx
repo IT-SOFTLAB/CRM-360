@@ -1,3 +1,67 @@
+export const getYYYYMMDD = (dateVal: any): string | null => {
+  if (!dateVal) return null;
+  const cleanVal = dateVal;
+  if (typeof cleanVal === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(cleanVal.trim())) {
+      return cleanVal.trim();
+    }
+    if (cleanVal.includes('T') || cleanVal.includes(' ')) {
+      try {
+        const d = new Date(cleanVal);
+        if (!isNaN(d.getTime())) {
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        }
+      } catch {
+        // Fallback below
+      }
+    }
+    if (/^\d{4}-\d{2}-\d{2}/.test(cleanVal)) {
+      return cleanVal.substring(0, 10);
+    }
+  }
+  try {
+    const d = new Date(cleanVal);
+    if (!isNaN(d.getTime())) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  } catch {
+    // Fallback
+  }
+  return null;
+};
+
+export const getHHMM = (dateVal: any): string | null => {
+  if (!dateVal) return null;
+  const cleanVal = dateVal;
+  if (typeof cleanVal === 'string') {
+    if (/^\d{2}:\d{2}$/.test(cleanVal.trim())) {
+      return cleanVal.trim();
+    }
+  }
+  try {
+    const d = new Date(cleanVal);
+    if (!isNaN(d.getTime())) {
+      const hours = String(d.getHours()).padStart(2, '0');
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+  } catch {
+    // Fallback
+  }
+  if (typeof cleanVal === 'string') {
+    if (/^\d{2}:\d{2}/.test(cleanVal)) {
+      return cleanVal.substring(0, 5);
+    }
+  }
+  return null;
+};
+
 export const applyFilters = (
   data: any[],
   type: 'leads' | 'opportunities' | 'emails',
@@ -115,31 +179,55 @@ export const applyFilters = (
       filtered = filtered.filter(o => o.source === activeFilters.source || o.tags?.includes(activeFilters.source));
     }
   }
-  // Date Limit Filters
-  if (activeFilters.createdDateStart) {
-    filtered = filtered.filter(x => x.createdDate && x.createdDate >= activeFilters.createdDateStart);
+  // Date and Time Filters
+  if (activeFilters.createdDate) {
+    filtered = filtered.filter(x => {
+      const d = getYYYYMMDD(x.createdDate || x.createdAt);
+      return d === activeFilters.createdDate;
+    });
   }
-  if (activeFilters.createdDateEnd) {
-    filtered = filtered.filter(x => x.createdDate && x.createdDate <= activeFilters.createdDateEnd);
+  if (activeFilters.createdTimeFrom) {
+    filtered = filtered.filter(x => {
+      const t = getHHMM(x.createdDate || x.createdAt);
+      return t ? t >= activeFilters.createdTimeFrom : false;
+    });
+  }
+  if (activeFilters.createdTimeTo) {
+    filtered = filtered.filter(x => {
+      const t = getHHMM(x.createdDate || x.createdAt);
+      return t ? t <= activeFilters.createdTimeTo : false;
+    });
   }
   if (activeFilters.expectedClosingStart) {
     if (type === 'opportunities') {
-      filtered = filtered.filter(o => o.expectedClosing && o.expectedClosing >= activeFilters.expectedClosingStart);
+      filtered = filtered.filter(o => {
+        const d = getYYYYMMDD(o.expectedClosing);
+        return d ? d >= activeFilters.expectedClosingStart : false;
+      });
     }
   }
   if (activeFilters.expectedClosingEnd) {
     if (type === 'opportunities') {
-      filtered = filtered.filter(o => o.expectedClosing && o.expectedClosing <= activeFilters.expectedClosingEnd);
+      filtered = filtered.filter(o => {
+        const d = getYYYYMMDD(o.expectedClosing);
+        return d ? d <= activeFilters.expectedClosingEnd : false;
+      });
     }
   }
   if (activeFilters.closedDateStart) {
     if (type === 'opportunities') {
-      filtered = filtered.filter(o => o.closedDate && o.closedDate >= activeFilters.closedDateStart);
+      filtered = filtered.filter(o => {
+        const d = getYYYYMMDD(o.closedDate);
+        return d ? d >= activeFilters.closedDateStart : false;
+      });
     }
   }
   if (activeFilters.closedDateEnd) {
     if (type === 'opportunities') {
-      filtered = filtered.filter(o => o.closedDate && o.closedDate <= activeFilters.closedDateEnd);
+      filtered = filtered.filter(o => {
+        const d = getYYYYMMDD(o.closedDate);
+        return d ? d <= activeFilters.closedDateEnd : false;
+      });
     }
   }
 

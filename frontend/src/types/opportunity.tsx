@@ -17,4 +17,5 @@ export interface Opportunity {
   team?: string;
   campaign?: string;
   source?: string;
+  linkedinId?: string;
 }
