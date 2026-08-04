@@ -470,13 +470,12 @@ const sendDraft = async (id: string) => {
 
   const handleSendEmail = async (replyText: string, emailObject: any): Promise<boolean> => {
     try {
-      const payload = {
-        to: emailObject.sender,
-        subject: emailObject.subject.startsWith('Re:') ? emailObject.subject : `Re: ${emailObject.subject}`,
-        body: replyText
-      };
+      const formData = new FormData();
+      formData.append("to", emailObject.sender || '');
+      formData.append("subject", emailObject.subject.startsWith('Re:') ? emailObject.subject : `Re: ${emailObject.subject}`);
+      formData.append("body", replyText);
 
-      const res = await emailService.sendEmail(payload);
+      const res = await emailService.sendEmail(formData);
       if (res && (res.error === true || res.success === false)) {
         console.warn("Error sending email:", res);
         toastCtx?.addToast('error', res.message || "Failed to send email");
