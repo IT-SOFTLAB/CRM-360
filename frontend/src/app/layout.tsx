@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ClientLayout from "@/components/crm/ClientLayout";
+import AIAssistant from "@/components/ai/AIAssistant"; // ✅ ADD THIS
 
 export const metadata: Metadata = {
   title: "CRM 360",
@@ -31,8 +32,14 @@ export default function RootLayout({
           }}
         />
       </head>
+
       <body className="font-sans h-full antialiased bg-bg-main text-txt-primary">
-        <ClientLayout>{children}</ClientLayout>
+        <ClientLayout>
+          {children}
+
+          
+          <AIAssistant />
+        </ClientLayout>
       </body>
     </html>
   );
