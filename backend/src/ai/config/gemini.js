@@ -1,20 +1,17 @@
-const { GoogleGenAI } = require("@google/genai");
-require("dotenv").config();
+// import { GoogleGenAI } from "@google/genai";
+// import dotenv from "dotenv";
 
-const apiKey = process.env.GEMINI_API_KEY;
+// dotenv.config();
 
-if (!apiKey) {
-  throw new Error("GEMINI_API_KEY is missing in .env");
-}
+// const apiKey = process.env.GEMINI_API_KEY;
 
-const gemini = new GoogleGenAI({
-  apiKey,
-});
+// if (!apiKey) {
+//   throw new Error("GEMINI_API_KEY is missing");
+// }
 
-const GEMINI_MODEL =
-  process.env.GEMINI_MODEL || "gemini-2.5-flash";
+// export const gemini = new GoogleGenAI({
+//   apiKey,
+// });
 
-module.exports = {
-  gemini,
-  GEMINI_MODEL,
-};
+// export const GEMINI_MODEL =
+//   process.env.GEMINI_MODEL || "gemini-2.5-flash";

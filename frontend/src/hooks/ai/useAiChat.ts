@@ -29,6 +29,10 @@ export function useAiChat() {
 console.log("RAW RESPONSE =>", response.data);
       const ai = response.data.result.ai;
 
+    const result = response.data.result;
+
+const ai = response.data.result.ai;
+
 const aiMessage: ChatMessage = {
   id: crypto.randomUUID(),
   role: "assistant",
@@ -39,7 +43,6 @@ const aiMessage: ChatMessage = {
   action: ai.action,
   payload: ai.payload,
 };
-
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       setMessages(prev => [

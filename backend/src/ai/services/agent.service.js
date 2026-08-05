@@ -1,12 +1,10 @@
-const { gemini, GEMINI_MODEL } = require("../config/gemini");
+const { groq, GROQ_MODEL } = require("../config/groq");
 const { SYSTEM_PROMPT } = require("../prompts/systemPrompt");
 const ToolExecutor = require("./toolExecutor.service");
 
 class AgentService {
-
-    async chat(message) {
-
-        const prompt = `
+  async chat(message) {
+    const prompt = `
 ${SYSTEM_PROMPT}
 
 User:
@@ -17,91 +15,71 @@ Reply ONLY in JSON.
 Example:
 
 {
-   "tool":"dashboard",
-   "action":"summary",
-   "parameters":{}
+  "tool":"dashboard",
+  "action":"summary",
+  "parameters":{}
 }
 
 OR
 
 {
-   "tool":"none",
-   "reply":"Normal response"
+  "tool":"none",
+  "reply":"Normal response"
 }
 `;
 
-        const response =
-            await gemini.models.generateContent({
+    const completion = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      temperature: 0.2,
+      response_format: {
+        type: "json_object",
+      },
+      messages: [
+        {
+          role: "system",
+          content: SYSTEM_PROMPT,
+        },
+        {
+          role: "user",
+          content: message,
+        },
+      ],
+    });
 
-                model: GEMINI_MODEL,
+    let text = completion.choices[0].message.content.trim();
 
-                contents: prompt
+    console.log("Groq Response:");
+    console.log(text);
 
-            });
+    try {
+      const aiResponse = JSON.parse(text);
 
-       let text = response.text.trim();
+      if (aiResponse.tool && aiResponse.tool !== "none") {
+        const result = await ToolExecutor.execute(
+          aiResponse.tool,
+          aiResponse.parameters || {}
+        );
 
-// Remove Markdown code blocks if Gemini returns them
-text = text
-  .replace(/```json/g, "")
-  .replace(/```/g, "")
-  .trim();
+        return {
+          ai: aiResponse,
+          toolResult: result,
+        };
+      }
 
-console.log("Gemini Clean Response:");
-console.log(text);
+      return {
+        ai: aiResponse,
+      };
+    } catch (err) {
+      console.error(err);
 
-        console.log("Gemini Output:");
-        console.log(text);
-
-        try {
-
-            const aiResponse = JSON.parse(text);
-
-            if (aiResponse.tool && aiResponse.tool !== "none") {
-
-                const result =
-                    await ToolExecutor.execute(
-
-                        aiResponse.tool,
-
-                        aiResponse.parameters || {}
-
-                    );
-
-                return {
-
-                    ai: aiResponse,
-
-                    toolResult: result
-
-                };
-
-            }
-
-            return {
-
-                ai: aiResponse
-
-            };
-
-        }
-
-        catch {
-
-            return {
-
-                ai: {
-
-                    reply: text
-
-                }
-
-            };
-
-        }
-
+      return {
+        ai: {
+          tool: "none",
+          reply: text,
+        },
+      };
     }
-
+  }
 }
 
 module.exports = new AgentService();
