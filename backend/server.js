@@ -30,6 +30,7 @@ const bootstrapRoutes = require("./src/routes/bootstrapRoutes.js");
 const notificationRoutes = require("./src/routes/notificationRoutes.js");
 const calendarRoutes = require("./src/routes/calenderRoutes.js");
 const savedFilterRoutes = require("./src/routes/savedFilterRoutes.js");
+const aiRoutes = require("./src/ai/routes/ai.routes");
 const isProduction = process.env.NODE_ENV === "production";
 
 if (isProduction) {
@@ -93,7 +94,7 @@ app.use(
   "/uploads",
   express.static(path.join(__dirname, "src", "uploads"))
 );
-
+app.use("/api/ai", aiRoutes);
 function readDB() {
   if (!fs.existsSync(DB_FILE)) {
     const initialData = seedDatabase();
