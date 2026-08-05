@@ -279,7 +279,7 @@ const handleResetPassword = async () => {
     "w-full bg-slate-100 dark:bg-slate-800 border border-transparent rounded-xl pl-11 pr-4 py-3.5 text-sm text-txt-primary placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-slate-50 dark:from-slate-950 dark:via-slate-950 dark:to-gray-900 flex items-center justify-center p-4 transition-colors duration-350 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-slate-50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 flex items-center justify-center p-4 transition-colors duration-350 relative overflow-hidden">
 
       {/* Ambient background accents */}
       <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-indigo-500/20 blur-3xl" />
@@ -329,11 +329,11 @@ const handleResetPassword = async () => {
           {!isSetup ? (
             authMode !== 'forgotPassword' && (
               <div className="mb-6">
-              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight">
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight dark:text-gray-300 ">
 Welcome Back
 </h1>
 
-<p className="text-sm text-slate-500 mt-2 leading-relaxed">
+<p className="text-sm text-slate-500 dark:text-gray-800  mt-2 leading-relaxed">
 Sign in to continue managing your leads,
 sales pipeline and customer relationships.
 </p>
@@ -341,7 +341,7 @@ sales pipeline and customer relationships.
             )
           ) : (
             <div className="mb-6">
-              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-amber-600 bg-amber-500/10 ring-1 ring-amber-500/20 rounded-full px-3 py-1.5">
+              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-amber-600 bg-amber-500/10 ring-1 ring-amber-500/20 rounded-full px-3 py-1.5 dark:text-gray-300 ">
                 ⚙️ DATABASE INITIAL SETUP
               </span>
               <p className="text-txt-secondary text-xs mt-2">Enterprise Organization &amp; Super Admin Setup</p>
@@ -743,8 +743,8 @@ sales pipeline and customer relationships.
 />
 </div>
 
-          <h3 className="text-base font-extrabold text-txt-primary mb-2 tracking-tight">Built for enterprise sales teams</h3>
-          <p className="text-xs text-txt-secondary max-w-xs leading-relaxed">
+          <h3 className="text-base font-extrabold text-gray-900 mb-2 tracking-tight">Built for enterprise sales teams</h3>
+          <p className="text-xs text-gray-900 max-w-xs leading-relaxed">
             One secure workspace for your pipeline, contacts, and reporting — sign in to pick up right where you left off.
           </p>
 
