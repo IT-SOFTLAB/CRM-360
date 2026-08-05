@@ -54,8 +54,8 @@ model Lead {
   assignedUser    String?
   assignedUserId  String?
   source          String?
-  dealValue       Float    @default(0)
   linkedinId      String?
+  dealValue       Float    @default(0)
   assignedUserRel User?    @relation(fields: [assignedUserId], references: [id])
 }
 
