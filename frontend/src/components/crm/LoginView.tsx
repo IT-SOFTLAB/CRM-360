@@ -279,10 +279,10 @@ const handleResetPassword = async () => {
     "w-full bg-slate-100 dark:bg-slate-800 border border-transparent rounded-xl pl-11 pr-4 py-3.5 text-sm text-txt-primary placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-slate-50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 flex items-center justify-center p-4 transition-colors duration-350 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-slate-50 dark:from-slate-950 dark:via-slate-950 dark:to-gray-900 flex items-center justify-center p-4 transition-colors duration-350 relative overflow-hidden">
 
       {/* Ambient background accents */}
-      <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-indigo-400/20 blur-3xl" />
+      <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-indigo-500/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -right-24 w-[28rem] h-[28rem] rounded-full bg-blue-400/20 blur-3xl" />
       <div className="pointer-events-none absolute top-1/3 right-1/4 w-64 h-64 rounded-full bg-violet-300/10 blur-3xl" />
 
@@ -309,11 +309,11 @@ const handleResetPassword = async () => {
 
     <div>
 
-        <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+        <h2 className="text-3xl font-black text-slate-900 dark:text-gray-300 tracking-tight">
             CRM 360
         </h2>
 
-        <p className="text-sm text-slate-500 font-medium">
+        <p className="text-sm text-slate-500 dark:text-gray-400 font-medium">
             Sales Intelligence Platform
         </p>
 
