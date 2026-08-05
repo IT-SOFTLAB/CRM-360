@@ -279,10 +279,10 @@ const handleResetPassword = async () => {
     "w-full bg-slate-100 dark:bg-slate-800 border border-transparent rounded-xl pl-11 pr-4 py-3.5 text-sm text-txt-primary placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-slate-50 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900 flex items-center justify-center p-4 transition-colors duration-350 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/40 to-slate-50 dark:from-slate-950 dark:via-slate-950 dark:to-gray-900 flex items-center justify-center p-4 transition-colors duration-350 relative overflow-hidden">
 
       {/* Ambient background accents */}
-      <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-indigo-400/20 blur-3xl" />
+      <div className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-indigo-500/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -right-24 w-[28rem] h-[28rem] rounded-full bg-blue-400/20 blur-3xl" />
       <div className="pointer-events-none absolute top-1/3 right-1/4 w-64 h-64 rounded-full bg-violet-300/10 blur-3xl" />
 
@@ -309,11 +309,11 @@ const handleResetPassword = async () => {
 
     <div>
 
-        <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+        <h2 className="text-3xl font-black text-slate-900 dark:text-gray-300 tracking-tight">
             CRM 360
         </h2>
 
-        <p className="text-sm text-slate-500 font-medium">
+        <p className="text-sm text-slate-500 dark:text-gray-400 font-medium">
             Sales Intelligence Platform
         </p>
 
@@ -329,11 +329,11 @@ const handleResetPassword = async () => {
           {!isSetup ? (
             authMode !== 'forgotPassword' && (
               <div className="mb-8">
-              <h1 className="text-5xl font-black text-slate-900 tracking-tight leading-[1.05]">
+              <h1 className="text-5xl font-black text-slate-900 tracking-tight leading-[1.05] dark:text-gray-300">
 Welcome Back
 </h1>
 
-<p className="text-lg text-slate-500 mt-3 leading-relaxed">
+<p className="text-lg text-slate-500 mt-3 leading-relaxed dark:text-gray-800">
 Sign in to continue managing your leads,
 sales pipeline and customer relationships.
 </p>
@@ -341,7 +341,7 @@ sales pipeline and customer relationships.
             )
           ) : (
             <div className="mb-8">
-              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-amber-600 bg-amber-500/10 ring-1 ring-amber-500/20 rounded-full px-3 py-1.5">
+              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-amber-600 bg-amber-500/10 ring-1 ring-amber-500/20 rounded-full px-3 py-1.5 dark:text-gray-300">
                 ⚙️ DATABASE INITIAL SETUP
               </span>
               <p className="text-txt-secondary text-sm mt-3">Enterprise Organization &amp; Super Admin Setup</p>
@@ -747,8 +747,8 @@ sales pipeline and customer relationships.
 />
 </div>
 
-          <h3 className="text-lg font-extrabold text-txt-primary mb-2 tracking-tight">Built for enterprise sales teams</h3>
-          <p className="text-sm text-txt-secondary max-w-xs leading-relaxed">
+          <h3 className="text-lg font-extrabold text-gray-900 mb-2 tracking-tight ">Built for enterprise sales teams</h3>
+          <p className="text-sm text-gray-900 max-w-xs leading-relaxed ">
             One secure workspace for your pipeline, contacts, and reporting — sign in to pick up right where you left off.
           </p>
 
