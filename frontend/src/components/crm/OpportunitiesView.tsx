@@ -560,15 +560,15 @@ const handleBulkDelete = async () => {
       return;
     }
     setEmailLoading(true);
-    const payload = {
-      sender: user?.email || 'superadmin@crm.com',
-      to: emailForm.to,
-      subject: emailForm.subject,
-      body: emailForm.body,
-      folder: 'Sent'
-    };
+    const formData = new FormData();
+    formData.append("sender", user?.email || 'superadmin@crm.com');
+    formData.append("to", emailForm.to);
+    formData.append("subject", emailForm.subject);
+    formData.append("body", emailForm.body);
+    formData.append("folder", 'Sent');
+
     try {
-      const res = await emailService.sendEmail(payload);
+      const res = await emailService.sendEmail(formData);
       if (res) {
         addToast('success', `Email sent successfully to ${emailForm.to}!`);
         setShowEmailModal(false);

@@ -25,34 +25,66 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   // This prevents the flash redirect to /login on page reload
   if (!crm.authReady) {
     return (
-    <div className="min-h-screen bg-bg-main flex items-center justify-center">
-  <div className="flex flex-col items-center gap-6">
-    {/* Dual-ring spinner */}
-    <div className="relative w-16 h-16">
-      <div className="absolute inset-0 rounded-full border-4 border-primary/10"></div>
-      <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-primary border-r-primary animate-spin"></div>
-      <div className="absolute inset-2 rounded-full border-2 border-transparent border-b-primary/40 animate-[spin_1.4s_linear_infinite_reverse]"></div>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
-      </div>
-    </div>
+      <div className="min-h-screen bg-bg-main flex items-center justify-center overflow-hidden relative">
+        {/* Soft glow behind hero */}
+        <div className="absolute w-96 h-96 bg-primary/15 rounded-full blur-3xl"></div>
 
-    {/* Text */}
-    <div className="text-center space-y-1.5">
-      <p className="text-sm font-semibold text-txt-primary tracking-wide">
-        CRM Cloud
-      </p>
-      <p className="text-xs text-txt-secondary font-medium tracking-wider uppercase">
-        Restoring your session
-        <span className="inline-flex ml-0.5">
-          <span className="animate-[bounce_1.4s_infinite_0ms]">.</span>
-          <span className="animate-[bounce_1.4s_infinite_200ms]">.</span>
-          <span className="animate-[bounce_1.4s_infinite_400ms]">.</span>
-        </span>
-      </p>
-    </div>
-  </div>
-</div>
+        {/* City skyline silhouette, bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 flex items-end justify-center gap-1 opacity-10 pointer-events-none">
+          <div className="w-8 h-16 bg-primary"></div>
+          <div className="w-6 h-24 bg-primary"></div>
+          <div className="w-10 h-14 bg-primary"></div>
+          <div className="w-7 h-20 bg-primary"></div>
+          <div className="w-9 h-12 bg-primary"></div>
+          <div className="w-6 h-24 bg-primary"></div>
+          <div className="w-8 h-16 bg-primary"></div>
+        </div>
+
+        <div className="relative flex flex-col items-center gap-6">
+          {/* Flying hero with bob + motion streaks */}
+          <div className="relative w-80 h-40 overflow-hidden">
+            {/* Flying Hero */}
+            <div className="absolute inset-0 flex items-center justify-center animate-heroFly">
+              {/* Motion Lines */}
+              <div className="absolute -left-12 flex flex-col gap-2 opacity-60">
+                <span className="w-12 h-1 bg-blue-300 rounded-full animate-pulse"></span>
+                <span className="w-8 h-1 bg-blue-400 rounded-full animate-pulse delay-75"></span>
+                <span className="w-5 h-1 bg-blue-500 rounded-full animate-pulse delay-150"></span>
+              </div>
+
+              {/* Glow */}
+              <div className="absolute w-24 h-24 bg-blue-500/20 rounded-full blur-2xl"></div>
+
+              {/* Hero */}
+              <img
+                src={heroMascot.src}
+                alt="Loading"
+                className="w-36 h-36 object-contain drop-shadow-2xl animate-heroTilt"
+              />
+
+              {/* Sparkles */}
+              <div className="absolute top-4 right-6 text-yellow-300 text-xl animate-ping">
+                ✦
+              </div>
+            </div>
+          </div>
+
+          {/* Brand text */}
+          <div className="text-center space-y-1.5">
+            <p className="text-base font-bold text-primary tracking-wide">CRM 360</p>
+            <p className="text-xs text-txt-secondary font-medium tracking-widest uppercase">
+              Restoring your session
+            </p>
+          </div>
+
+          {/* Progress dots */}
+          <div className="flex gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-[bounce_1s_infinite_0ms]"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-[bounce_1s_infinite_150ms]"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-[bounce_1s_infinite_300ms]"></span>
+          </div>
+        </div>
+      </div>
     );
   }
 
@@ -78,7 +110,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     {/* Flying hero with bob + motion streaks */}
   <div className="relative w-80 h-40 overflow-hidden">
   {/* Flying Hero */}
-  <div className="absolute inset-0 flex items-center animate-heroFly">
+  <div className="absolute inset-0 flex items-center justify-center animate-heroFly">
 
     {/* Motion Lines */}
     <div className="absolute -left-12 flex flex-col gap-2 opacity-60">
@@ -97,7 +129,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       className="w-36 h-36 object-contain drop-shadow-2xl animate-heroTilt"
     />
 
-    {/* Sparkles */}
     <div className="absolute top-4 right-6 text-yellow-300 text-xl animate-ping">
       ✦
     </div>
@@ -106,7 +137,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
     {/* Brand text */}
     <div className="text-center space-y-1.5">
-      <p className="text-base font-bold text-primary tracking-wide">CRM Cloud</p>
+      <p className="text-base font-bold text-primary tracking-wide">CRM 360</p>
       <p className="text-xs text-txt-secondary font-medium tracking-widest uppercase">
         Powering up your dashboard
       </p>
