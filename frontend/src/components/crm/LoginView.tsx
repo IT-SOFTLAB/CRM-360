@@ -286,17 +286,17 @@ const handleResetPassword = async () => {
       <div className="pointer-events-none absolute -bottom-32 -right-24 w-[28rem] h-[28rem] rounded-full bg-blue-400/20 blur-3xl" />
       <div className="pointer-events-none absolute top-1/3 right-1/4 w-64 h-64 rounded-full bg-violet-300/10 blur-3xl" />
 
-      <div className="max-w-7xl min-h-[760px] w-full bg-card/95 backdrop-blur-xl rounded-[2rem] shadow-2xl shadow-indigo-950/10 border border-border-crm overflow-hidden text-txt-primary transition-colors duration-350 grid grid-cols-1 md:grid-cols-2 relative">
+      <div className="max-w-md md:max-w-4xl min-h-fit md:min-h-[600px] w-full bg-card/95 backdrop-blur-xl rounded-2xl md:rounded-[2rem] shadow-2xl shadow-indigo-950/10 border border-border-crm overflow-hidden text-txt-primary transition-colors duration-350 grid grid-cols-1 md:grid-cols-2 relative">
 
         {/* LEFT: form panel */}
-        <div className="relative flex flex-col p-8 sm:p-12 overflow-hidden">
+        <div className="relative flex flex-col p-6 sm:p-8 md:p-10 overflow-hidden">
 
-          {/* ambient corner accents, kept subtle so the form stays the focus */}
+  
           <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-indigo-500/[0.06] blur-3xl" />
           <div className="pointer-events-none absolute top-1/2 -left-16 w-56 h-56 rounded-full bg-blue-500/[0.05] blur-3xl" />
           <div className="pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600" />
 
-          <div className="flex items-center justify-between gap-3 mb-10 relative">
+          <div className="flex items-center justify-between gap-3 mb-6 relative">
          <div className="flex items-center gap-4">
 
     <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 shadow-lg shadow-indigo-600/30 flex items-center justify-center ring-1 ring-white/20">
@@ -328,23 +328,23 @@ const handleResetPassword = async () => {
           {/* Header tabs - only show if first-run setup is NOT active */}
           {!isSetup ? (
             authMode !== 'forgotPassword' && (
-              <div className="mb-8">
-              <h1 className="text-5xl font-black text-slate-900 tracking-tight leading-[1.05]">
+              <div className="mb-6">
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight">
 Welcome Back
 </h1>
 
-<p className="text-lg text-slate-500 mt-3 leading-relaxed">
+<p className="text-sm text-slate-500 mt-2 leading-relaxed">
 Sign in to continue managing your leads,
 sales pipeline and customer relationships.
 </p>
               </div>
             )
           ) : (
-            <div className="mb-8">
+            <div className="mb-6">
               <span className="inline-flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-amber-600 bg-amber-500/10 ring-1 ring-amber-500/20 rounded-full px-3 py-1.5">
                 ⚙️ DATABASE INITIAL SETUP
               </span>
-              <p className="text-txt-secondary text-sm mt-3">Enterprise Organization &amp; Super Admin Setup</p>
+              <p className="text-txt-secondary text-xs mt-2">Enterprise Organization &amp; Super Admin Setup</p>
             </div>
           )}
 
@@ -703,39 +703,35 @@ sales pipeline and customer relationships.
           </div>
 
           {/* trust strip — grounds the panel instead of leaving dead space below the form */}
-          <div className="relative mt-10 pt-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center gap-6 text-slate-400">
+          <div className="relative mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-center gap-6 text-slate-400">
             <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide">
-              
-          
             </div>
             <span className="w-1 h-1 rounded-full bg-slate-300" />
             <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide">
-             
-             
             </div>
           </div>
         </div>
 
         {/* RIGHT: illustration / value-prop panel (hidden on small screens, like the reference) */}
-        <div className="hidden md:flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 dark:from-slate-900 dark:to-slate-800 p-10 text-center relative overflow-hidden">
+        <div className="hidden md:flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 dark:from-slate-900 dark:to-slate-800 p-6 lg:p-8 text-center relative overflow-hidden">
 
          {/* subtle decorative grid + glow behind the preview card */}
          <div className="pointer-events-none absolute inset-0 opacity-[0.4] [background-image:radial-gradient(circle,theme(colors.indigo.300)_1px,transparent_1px)] [background-size:24px_24px]" />
          <div className="pointer-events-none absolute top-10 right-10 w-40 h-40 rounded-full bg-indigo-400/20 blur-3xl" />
 
-         <div className="relative w-full max-w-md rounded-3xl overflow-hidden bg-white shadow-2xl shadow-indigo-900/10 border border-slate-200/70 mb-8 ring-1 ring-black/5">
+         <div className="relative w-full max-w-sm rounded-2xl overflow-hidden bg-white shadow-2xl shadow-indigo-950/10 border border-slate-200/70 mb-6 ring-1 ring-black/5">
 
     {/* Floating Icons */}
-    <div className="absolute top-5 left-5 z-10 w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/40 ring-4 ring-white/40">
-        <ShieldCheck className="w-5 h-5" />
+    <div className="absolute top-3 left-3 z-10 w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/40 ring-4 ring-white/40">
+        <ShieldCheck className="w-4 h-4" />
     </div>
 
-    <div className="absolute top-5 right-5 z-10 w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/40 ring-4 ring-white/40">
-        <ScanFace className="w-5 h-5" />
+    <div className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/40 ring-4 ring-white/40">
+        <ScanFace className="w-4 h-4" />
     </div>
 
-    <div className="absolute bottom-5 right-5 z-10 w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/40 ring-4 ring-white/40">
-        <Fingerprint className="w-5 h-5" />
+    <div className="absolute bottom-3 right-3 z-10 w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/40 ring-4 ring-white/40">
+        <Fingerprint className="w-4 h-4" />
     </div>
 
  <Image
@@ -743,16 +739,16 @@ sales pipeline and customer relationships.
     alt="CRM Preview"
     width={600}
     height={340}
-    className="w-full h-[440px] object-cover transition-opacity duration-500"
+    className="w-full h-[280px] lg:h-[320px] object-cover transition-opacity duration-500"
 />
 </div>
 
-          <h3 className="text-lg font-extrabold text-txt-primary mb-2 tracking-tight">Built for enterprise sales teams</h3>
-          <p className="text-sm text-txt-secondary max-w-xs leading-relaxed">
+          <h3 className="text-base font-extrabold text-txt-primary mb-2 tracking-tight">Built for enterprise sales teams</h3>
+          <p className="text-xs text-txt-secondary max-w-xs leading-relaxed">
             One secure workspace for your pipeline, contacts, and reporting — sign in to pick up right where you left off.
           </p>
 
-          <div className="flex items-center gap-1.5 mt-8">
+          <div className="flex items-center gap-1.5 mt-4">
             {demoImages.map((_, i) => (
               <span
                 key={i}
