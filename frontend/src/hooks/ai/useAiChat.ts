@@ -23,20 +23,22 @@ export function useAiChat() {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API_BASE}/api/ai/chat`, {
+      const response = await axios.post(`${API_BASE}/ai/chat`, {
         message: text,
       });
+console.log("RAW RESPONSE =>", response.data);
+      const ai = response.data.result.ai;
 
-      const aiMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        type: response.data.type || "text",
-        content: response.data.reply || response.data.message,
-        title: response.data.title,
-        rows: response.data.rows,
-        action: response.data.action,
-        payload: response.data.payload,
-      };
+const aiMessage: ChatMessage = {
+  id: crypto.randomUUID(),
+  role: "assistant",
+  type: ai.type || "text",
+  content: ai.reply || ai.message,
+  title: ai.title,
+  rows: ai.rows,
+  action: ai.action,
+  payload: ai.payload,
+};
 
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
