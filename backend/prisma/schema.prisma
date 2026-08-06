@@ -1,41 +1,341 @@
-export const SYSTEM_PROMPT = `
-You are CRM-360 AI Assistant.
-
-You are a professional AI employee working inside CRM-360.
-
-Your job is to help users with:
-
-- Dashboard
-- Leads
-- Activities
-- Pipeline
-
-Rules:
-
-1. Always respond with VALID JSON only.
-2. Never return Markdown or code blocks.
-3. Never include explanations outside the JSON object.
-4. Never make up CRM data.
-5. Always use available backend tools when required.
-6. Never access the database directly.
-7. Never delete or modify data without confirmation.
-8. Be concise.
-9. If the user asks something outside CRM, politely refuse.
-
-Output format:
-
-For tool execution:
-
-{
-  "tool": "dashboard",
-  "action": "summary",
-  "parameters": {}
+generator client {
+  provider = "prisma-client-js"
 }
-
-For normal conversation:
-
-{
-  "tool": "none",
-  "reply": "Your response here"
+ 
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
-`;
+ 
+model User {
+  id                  String         @id @default(cuid())
+  name                String
+  email               String         @unique
+  password            String
+  role                String         @default("User")
+  createdAt           DateTime       @default(now())
+  category            String?
+  department          String?
+  invitationExpires   DateTime?
+  invitationToken     String?        @unique
+  isLocked            Boolean        @default(false)
+  salesTeamId         String?
+  status              String         @default("Active")
+  adminId             String?
+  outlookAccessToken  String?
+  outlookEmail        String?
+  outlookRefreshToken String?
+  resetOtp            String?
+  resetOtpExpiry      DateTime?
+  customers           Customer[]
+  leads               Lead[]
+  notifications       Notification[]
+  opportunities       Opportunity[]
+  refreshTokens       RefreshToken[]
+  ledTeams            SalesTeam[]    @relation("TeamLeader")
+  savedFilters        SavedFilter[]
+  tasksCreated        Task[]         @relation("TasksCreated")
+  tasksAssigned       Task[]         @relation("TasksAssigned")
+  admin               User?          @relation("UserToUser", fields: [adminId], references: [id])
+  subordinates        User[]         @relation("UserToUser")
+  salesTeam           SalesTeam?     @relation("TeamMembers", fields: [salesTeamId], references: [id])
+}
+ 
+model Lead {
+  id              String   @id @default(cuid())
+  email           String?
+  phone           String?
+  status          String   @default("New")
+  createdAt       DateTime @default(now())
+  category        String
+  company         String?
+  contactName     String
+  serviceType     String
+  assignedUser    String?
+  assignedUserId  String?
+  source          String?
+  linkedinId      String?
+  dealValue       Float    @default(0)
+  assignedUserRel User?    @relation(fields: [assignedUserId], references: [id])
+}
+ 
+model Activity {
+  id              String    @id @default(cuid())
+  title           String
+  description     String?
+  type            String    @default("Task")
+  date            DateTime
+  time            String
+  duration        Int
+  startTime       DateTime?
+  endTime         DateTime?
+  salesperson     String?
+  leadId          String?
+  opportunityId   String?
+  location        String?
+  attendees       Json?
+  isOutlookSynced Boolean   @default(false)
+  outlookEventId  String?
+  meetingUrl      String?
+  done            Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+ 
+model ReferralPipeline {
+  id                String            @id @default(cuid())
+  name              String
+  sequence          Int
+  color             String?
+  isFinal           Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  referrals         Referral[]
+  referralHistories ReferralHistory[]
+}
+ 
+model Referral {
+  id                String            @id @default(cuid())
+  referralCode      String            @unique
+  referrerId        String
+  referrerName      String
+  referrerCompany   String
+  referredLeadName  String
+  referredCompany   String
+  referredEmail     String?
+  referredPhone     String?
+  rewardType        String
+  rewardValue       Float
+  rewardApproved    Boolean           @default(false)
+  currentStageId    String
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  createdBy         String?
+  createdById       String?
+  currentStage      ReferralPipeline  @relation(fields: [currentStageId], references: [id])
+  referralHistories ReferralHistory[]
+  referralRewards   ReferralReward[]
+}
+ 
+model ReferralHistory {
+  id         String           @id @default(cuid())
+  referralId String
+  stageId    String
+  changedBy  String
+  remarks    String?
+  createdAt  DateTime         @default(now())
+  referral   Referral         @relation(fields: [referralId], references: [id])
+  pipeline   ReferralPipeline @relation(fields: [stageId], references: [id])
+}
+ 
+model ReferralReward {
+  id         String    @id @default(cuid())
+  referralId String
+  amount     Float
+  rewardType String
+  approved   Boolean   @default(false)
+  approvedBy String?
+  paid       Boolean   @default(false)
+  paidDate   DateTime?
+  referral   Referral  @relation(fields: [referralId], references: [id])
+}
+ 
+model Opportunity {
+  id                     String    @id @default(cuid())
+  leadId                 String?
+  customerName           String
+  company                String?
+  email                  String?
+  phone                  String?
+  dealValue              Float
+  stage                  String    @default("New")
+  stageId                String?
+  assignedSalesperson    String?
+  expectedClosing        DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  assignedSalespersonId  String?
+  priority               Int       @default(0)
+  tags                   String[]
+  description            String?
+  linkedinId             String?
+  assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
+}
+ 
+model Customer {
+  id                     String   @id @default(cuid())
+  opportunityId          String?
+  customerName           String
+  company                String?
+  email                  String?
+  phone                  String?
+  dealValue              Float
+  assignedSalesperson    String?
+  status                 String   @default("Active")
+  joinedAt               DateTime @default(now())
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  assignedSalespersonId  String?
+  assignedSalespersonRel User?    @relation(fields: [assignedSalespersonId], references: [id])
+}
+ 
+model Quotation {
+  id                          String          @id @default(uuid())
+  quotationNumber             String          @unique
+  opportunityId               String
+  customerId                  String
+  customerNameSnapshot        String
+  customerCompanyNameSnapshot String
+  customerEmailSnapshot       String
+  customerPhoneSnapshot       String
+  salesperson                 String
+  quotationDate               DateTime
+  expirationDate              DateTime
+  paymentTerms                String
+  currency                    String
+  subtotal                    Float
+  tax                         Float
+  total                       Float
+  notes                       String?
+  status                      String          @default("Draft")
+  createdAt                   DateTime        @default(now())
+  updatedAt                   DateTime        @updatedAt
+  customerGstinSnapshot       String?
+  billingAddressSnapshot      String?
+  shippingAddressSnapshot     String?
+  discountPercent             Float           @default(0.0)
+  cgst                        Float           @default(0.0)
+  sgst                        Float           @default(0.0)
+  igst                        Float           @default(0.0)
+  shippingCharge              Float           @default(0.0)
+  otherCharges                Float           @default(0.0)
+  roundOff                    Float           @default(0.0)
+  termsConditions             String?
+  internalNotes               String?
+  items                       QuotationItem[]
+}
+ 
+model QuotationItem {
+  id          String    @id @default(uuid())
+  quotationId String
+  product     String
+  description String
+  quantity    Int
+  unitPrice   Float
+  tax         Float
+  discount    Float
+  subtotal    Float
+  quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+}
+ 
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+ 
+model SalesTeam {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  leaderId    String?
+  category    String?
+  status      String   @default("Active")
+  createdAt   DateTime @default(now())
+  leader      User?    @relation("TeamLeader", fields: [leaderId], references: [id])
+  members     User[]   @relation("TeamMembers")
+}
+ 
+model Task {
+  id           String        @id @default(cuid())
+  title        String
+  leadId       String?       @unique
+  assignedToId String?
+  assignedById String?
+  status       String        @default("Pending")
+  priority     String        @default("Normal")
+  deadline     DateTime?
+  remarks      String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  assignedBy   User?         @relation("TasksCreated", fields: [assignedById], references: [id])
+  assignedTo   User?         @relation("TasksAssigned", fields: [assignedToId], references: [id])
+  comments     TaskComment[]
+}
+ 
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  userName  String
+  content   String
+  createdAt DateTime @default(now())
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+}
+ 
+model CompanySettings {
+  id          String   @id @default("global_settings")
+  companyName String   @default("Global CRM Cloud")
+  logo        String?
+  gst         String?
+  address     String?
+  phone       String?
+  email       String?
+  currency    String   @default("INR")
+  timezone    String   @default("UTC")
+  language    String   @default("English")
+  smtpHost    String?
+  smtpPort    Int?
+  smtpUser    String?
+  smtpPass    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+ 
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+ 
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  userEmail String?
+  action    String
+  module    String
+  details   String
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
+ 
+model EmailLog {
+  id             String   @id
+  recipientEmail String
+  subject        String
+  leadId         String?
+  opportunityId  String?
+  sentByUserId   String
+  status         String   @default("Sent")
+  errorMessage   String?
+  attachments    String?
+  emailBody      String
+  sentAt         DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime
+}
+ 
+model SavedFilter {
+  id        String   @id @default(cuid())
+  name      String
+  filters   Json
+  userId    String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+}
