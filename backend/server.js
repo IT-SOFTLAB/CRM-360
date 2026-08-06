@@ -620,6 +620,7 @@ app.post('/api/leads/:id/convert', async (req, res) => {
     dealValue: Number(dealValue) || 10000,
     expectedClosing: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     assignedSalesperson: salesperson || finalLead.assignedUser || 'Kyle Reese',
+    assignedSalespersonId: finalLead.assignedUserId || null,
     priority: 0,
     tags: [],
     stageId: stageId, // Starts at the dynamic "New" pipeline stage

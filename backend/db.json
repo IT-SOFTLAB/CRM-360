@@ -388,44 +388,43 @@
   ],
   "opportunities": [
     {
-      "id": "o_1",
-      "customerName": "Bruce Wayne",
-      "company": "Wayne Enterprises",
-      "dealValue": 250000,
-      "expectedClosing": "2026-08-06",
+      "id": "o_5",
+      "customerName": "Lex Luthor",
+      "company": "LexCorp Biotech",
+      "dealValue": 500000,
+      "expectedClosing": "2026-06-17",
       "assignedSalesperson": "Sarah Connor",
       "priority": "High",
       "tags": [
-        "SaaS",
-        "Security"
+        "Custom Development"
       ],
-      "stageId": "p_3",
-      "createdDate": "2026-06-07",
-      "campaign": "None",
-      "team": "Enterprise Core",
-      "city": "Gotham",
-      "country": "United States",
-      "source": "Manual Entry"
-    },
-    {
-      "id": "o_2",
-      "customerName": "Tony Stark",
-      "company": "Stark Industries",
-      "dealValue": 850000,
-      "expectedClosing": "2026-07-22",
-      "assignedSalesperson": "John Doe (SA)",
-      "priority": "High",
-      "tags": [
-        "Enterprise",
-        "AI"
-      ],
-      "stageId": "p_5",
-      "createdDate": "2026-05-23",
-      "campaign": "Tech Expo 2026",
-      "team": "Enterprise Core",
+      "stageId": "p_7",
+      "createdDate": "2026-06-12",
+      "closedDate": "2026-07-06",
+      "campaign": "AI Promo",
+      "team": "Sales Team Beta",
       "city": "Metropolis",
       "country": "United States",
-      "source": "Website"
+      "source": "Email"
+    },
+    {
+      "id": "o_4",
+      "customerName": "Peter Parker",
+      "company": "Daily Bugle Photos",
+      "dealValue": 12000,
+      "expectedClosing": "2026-07-12",
+      "assignedSalesperson": "Kyle Reese",
+      "priority": "Medium",
+      "tags": [
+        "Upgrade"
+      ],
+      "stageId": "p_2",
+      "createdDate": "2026-06-27",
+      "campaign": "None",
+      "team": "Sales Team Alpha",
+      "city": "New York",
+      "country": "United States",
+      "source": "Referral"
     },
     {
       "id": "o_3",
@@ -449,43 +448,44 @@
       "source": "Website"
     },
     {
-      "id": "o_4",
-      "customerName": "Peter Parker",
-      "company": "Daily Bugle Photos",
-      "dealValue": 12000,
-      "expectedClosing": "2026-07-12",
-      "assignedSalesperson": "Kyle Reese",
-      "priority": "Medium",
+      "id": "o_2",
+      "customerName": "Tony Stark",
+      "company": "Stark Industries",
+      "dealValue": 850000,
+      "expectedClosing": "2026-07-22",
+      "assignedSalesperson": "John Doe (SA)",
+      "priority": "High",
       "tags": [
-        "Upgrade"
+        "Enterprise",
+        "AI"
       ],
-      "stageId": "p_2",
-      "createdDate": "2026-06-27",
-      "campaign": "None",
-      "team": "Sales Team Alpha",
-      "city": "New York",
+      "stageId": "p_5",
+      "createdDate": "2026-05-23",
+      "campaign": "Tech Expo 2026",
+      "team": "Enterprise Core",
+      "city": "Metropolis",
       "country": "United States",
-      "source": "Referral"
+      "source": "Website"
     },
     {
-      "id": "o_5",
-      "customerName": "Lex Luthor",
-      "company": "LexCorp Biotech",
-      "dealValue": 500000,
-      "expectedClosing": "2026-06-17",
+      "id": "o_1",
+      "customerName": "Bruce Wayne",
+      "company": "Wayne Enterprises",
+      "dealValue": 250000,
+      "expectedClosing": "2026-08-06",
       "assignedSalesperson": "Sarah Connor",
       "priority": "High",
       "tags": [
-        "Custom Development"
+        "SaaS",
+        "Security"
       ],
-      "stageId": "p_7",
-      "createdDate": "2026-06-12",
-      "closedDate": "2026-07-06",
-      "campaign": "AI Promo",
-      "team": "Sales Team Beta",
-      "city": "Metropolis",
+      "stageId": "p_3",
+      "createdDate": "2026-06-07",
+      "campaign": "None",
+      "team": "Enterprise Core",
+      "city": "Gotham",
       "country": "United States",
-      "source": "Email"
+      "source": "Manual Entry"
     }
   ],
   "activities": [

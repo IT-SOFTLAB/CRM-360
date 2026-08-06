@@ -223,7 +223,12 @@ exports.getBootstrapData = async (req, res) => {
     let finalOpportunities = opportunities;
 
     // 2.5. Synchronize old leads to pipeline if they don't have opportunities
-    const missingOpps = leads.filter(l => !finalOpportunities.some(o => o.leadId === l.id));
+    const allOppsWithLeadId = await prisma.opportunity.findMany({
+      where: { leadId: { not: null } },
+      select: { leadId: true }
+    });
+    const existingLeadIds = new Set(allOppsWithLeadId.map(o => o.leadId));
+    const missingOpps = leads.filter(l => !existingLeadIds.has(l.id));
     if (missingOpps.length > 0) {
       console.log(`Syncing bootstrap: creating ${missingOpps.length} missing opportunities for existing leads`);
       await Promise.all(missingOpps.map(l => 

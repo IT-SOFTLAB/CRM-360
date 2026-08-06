@@ -164,7 +164,7 @@ export default function SalesTeamView() {
   // Individual User Search & Filter States
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [userSearchQuery, setUserSearchQuery] = useState<string>('');
-  const [userPeriodFilter, setUserPeriodFilter] = useState<'month' | 'overall'>('month');
+  const [userPeriodFilter, setUserPeriodFilter] = useState<'month' | 'overall'>('overall');
 
   const currentYear = new Date().getFullYear();
 
@@ -876,29 +876,18 @@ export default function SalesTeamView() {
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold text-slate-500">Filter Period:</span>
               <span className="text-xs font-extrabold bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1 rounded-full uppercase">
-                {userPeriodFilter === 'month' ? 'Current Month' : 'Overall'}
+                Overall
               </span>
             </div>
           </div>
 
-          {/* 3 Top KPI Cards: Total Customers Won, Total Leads, Total Revenue */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* Top KPI Cards: Total Leads & Pipeline, Total Revenue */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="bg-card border border-border-crm rounded-2xl p-5 shadow-xs flex items-center justify-between">
               <div className="space-y-1">
-                <p className="text-[10px] font-bold text-txt-secondary uppercase tracking-wider">Total Customers Won</p>
-                <h3 className="text-2xl font-extrabold text-emerald-600">{userMetrics.totalCustomersWon}</h3>
-                <p className="text-[10px] text-slate-400 font-semibold">Won Opportunities</p>
-              </div>
-              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100">
-                <CheckCircle className="w-6 h-6" />
-              </div>
-            </div>
-
-            <div className="bg-card border border-border-crm rounded-2xl p-5 shadow-xs flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold text-txt-secondary uppercase tracking-wider">Total Leads</p>
-                <h3 className="text-2xl font-extrabold text-blue-600">{userMetrics.totalLeads}</h3>
-                <p className="text-[10px] text-slate-400 font-semibold">New Leads</p>
+                <p className="text-[10px] font-bold text-txt-secondary uppercase tracking-wider">Total Leads & Pipeline</p>
+                <h3 className="text-2xl font-extrabold text-blue-600">{userMetrics.totalDeals}</h3>
+                <p className="text-[10px] text-slate-400 font-semibold">{userMetrics.totalCustomersWon} Won Opportunities</p>
               </div>
               <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl border border-blue-100">
                 <Briefcase className="w-6 h-6" />

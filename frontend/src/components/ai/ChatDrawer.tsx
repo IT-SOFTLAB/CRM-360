@@ -6,6 +6,7 @@ import { useAiChat } from "@/hooks/ai/useAiChat";
 import MessageBubble from "./MessageBubble";
 import TypingIndicator from "./TypingIndicator";
 import ConfirmationCard from "./ConfirmationCard";
+import Image from "next/image";
 
 interface Props {
   open: boolean;
@@ -35,8 +36,14 @@ export default function ChatDrawer({ open, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between border-b px-5 py-4 border-gray-200 dark:border-white/10">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-600/20 dark:text-blue-400">
-              <Sparkles className="h-5 w-5" />
+            <div className="relative h-12 w-12 overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/10">
+              <Image
+                src="/ai-avatar.jpg"
+                alt="CRM AI"
+                fill
+                className="object-cover"
+                priority
+              />
             </div>
 
             <div>
@@ -68,7 +75,7 @@ export default function ChatDrawer({ open, onClose }: Props) {
                   Welcome to CRM AI
                 </h3>
 
-              
+
               </div>
             </div>
           )}
