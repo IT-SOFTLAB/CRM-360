@@ -1,12 +1,12 @@
 generator client {
   provider = "prisma-client-js"
 }
-
+ 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
+ 
 model User {
   id                  String         @id @default(cuid())
   name                String
@@ -40,7 +40,7 @@ model User {
   subordinates        User[]         @relation("UserToUser")
   salesTeam           SalesTeam?     @relation("TeamMembers", fields: [salesTeamId], references: [id])
 }
-
+ 
 model Lead {
   id              String   @id @default(cuid())
   email           String?
@@ -58,7 +58,7 @@ model Lead {
   dealValue       Float    @default(0)
   assignedUserRel User?    @relation(fields: [assignedUserId], references: [id])
 }
-
+ 
 model Activity {
   id              String    @id @default(cuid())
   title           String
@@ -81,7 +81,7 @@ model Activity {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 }
-
+ 
 model ReferralPipeline {
   id                String            @id @default(cuid())
   name              String
@@ -92,7 +92,7 @@ model ReferralPipeline {
   referrals         Referral[]
   referralHistories ReferralHistory[]
 }
-
+ 
 model Referral {
   id                String            @id @default(cuid())
   referralCode      String            @unique
@@ -115,7 +115,7 @@ model Referral {
   referralHistories ReferralHistory[]
   referralRewards   ReferralReward[]
 }
-
+ 
 model ReferralHistory {
   id         String           @id @default(cuid())
   referralId String
@@ -126,7 +126,7 @@ model ReferralHistory {
   referral   Referral         @relation(fields: [referralId], references: [id])
   pipeline   ReferralPipeline @relation(fields: [stageId], references: [id])
 }
-
+ 
 model ReferralReward {
   id         String    @id @default(cuid())
   referralId String
@@ -138,7 +138,7 @@ model ReferralReward {
   paidDate   DateTime?
   referral   Referral  @relation(fields: [referralId], references: [id])
 }
-
+ 
 model Opportunity {
   id                     String    @id @default(cuid())
   leadId                 String?
@@ -160,7 +160,7 @@ model Opportunity {
   linkedinId             String?
   assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
 }
-
+ 
 model Customer {
   id                     String   @id @default(cuid())
   opportunityId          String?
@@ -177,7 +177,7 @@ model Customer {
   assignedSalespersonId  String?
   assignedSalespersonRel User?    @relation(fields: [assignedSalespersonId], references: [id])
 }
-
+ 
 model Quotation {
   id                          String          @id @default(uuid())
   quotationNumber             String          @unique
@@ -213,7 +213,7 @@ model Quotation {
   internalNotes               String?
   items                       QuotationItem[]
 }
-
+ 
 model QuotationItem {
   id          String    @id @default(uuid())
   quotationId String
@@ -226,7 +226,7 @@ model QuotationItem {
   subtotal    Float
   quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 }
-
+ 
 model RefreshToken {
   id        String   @id @default(cuid())
   token     String   @unique
@@ -235,7 +235,7 @@ model RefreshToken {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
+ 
 model SalesTeam {
   id          String   @id @default(cuid())
   name        String
@@ -247,7 +247,7 @@ model SalesTeam {
   leader      User?    @relation("TeamLeader", fields: [leaderId], references: [id])
   members     User[]   @relation("TeamMembers")
 }
-
+ 
 model Task {
   id           String        @id @default(cuid())
   title        String
@@ -264,7 +264,7 @@ model Task {
   assignedTo   User?         @relation("TasksAssigned", fields: [assignedToId], references: [id])
   comments     TaskComment[]
 }
-
+ 
 model TaskComment {
   id        String   @id @default(cuid())
   taskId    String
@@ -274,7 +274,7 @@ model TaskComment {
   createdAt DateTime @default(now())
   task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
-
+ 
 model CompanySettings {
   id          String   @id @default("global_settings")
   companyName String   @default("Global CRM Cloud")
@@ -293,7 +293,7 @@ model CompanySettings {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
-
+ 
 model Notification {
   id        String   @id @default(cuid())
   userId    String
@@ -303,7 +303,7 @@ model Notification {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
+ 
 model AuditLog {
   id        String   @id @default(cuid())
   userId    String?
@@ -314,7 +314,7 @@ model AuditLog {
   ipAddress String?
   createdAt DateTime @default(now())
 }
-
+ 
 model EmailLog {
   id             String   @id
   recipientEmail String
@@ -330,7 +330,7 @@ model EmailLog {
   createdAt      DateTime @default(now())
   updatedAt      DateTime
 }
-
+ 
 model SavedFilter {
   id        String   @id @default(cuid())
   name      String

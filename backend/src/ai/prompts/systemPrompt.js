@@ -1,4 +1,4 @@
-export const SYSTEM_PROMPT = `
+const SYSTEM_PROMPT = `
 You are CRM-360 AI Assistant.
 
 You are a professional AI employee working inside CRM-360.
