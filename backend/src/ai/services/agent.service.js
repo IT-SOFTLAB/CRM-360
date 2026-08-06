@@ -1,85 +1,152 @@
-const { groq, GROQ_MODEL } = require("../config/groq");
-const { SYSTEM_PROMPT } = require("../prompts/systemPrompt");
+const PlannerService = require("./planner.service");
 const ToolExecutor = require("./toolExecutor.service");
-
+const ConfirmationService =
+require("./confirmation.service");
 class AgentService {
-  async chat(message) {
-    const prompt = `
-${SYSTEM_PROMPT}
 
-User:
-${message}
+    
+    async chat(message) {
 
-Reply ONLY in JSON.
+        //-----------------------------------
+// Confirmation Check
+//-----------------------------------
 
-Example:
+if (
 
-{
-  "tool":"dashboard",
-  "action":"summary",
-  "parameters":{}
+message.trim().toUpperCase()==="YES"
+
+){
+
+const pending=
+
+ConfirmationService.get(
+
+"demo-user"
+
+);
+
+if(!pending){
+
+return{
+
+success:false,
+
+message:"No pending action."
+
+};
+
 }
 
-OR
+const result=
 
-{
-  "tool":"none",
-  "reply":"Normal response"
+await ToolExecutor.execute(
+
+pending
+
+);
+
+ConfirmationService.clear(
+
+"demo-user"
+
+);
+
+return{
+
+success:true,
+
+confirmed:true,
+
+result
+
+};
+
 }
-`;
+        // Step 1: Convert user message into a plan
+        const plan = await PlannerService.createPlan(message);
 
-    const completion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
-      temperature: 0.2,
-      response_format: {
-        type: "json_object",
-      },
-      messages: [
-        {
-          role: "system",
-          content: SYSTEM_PROMPT,
-        },
-        {
-          role: "user",
-          content: message,
-        },
-      ],
-    });
+        console.log("\n========== AI PLAN ==========\n");
+        console.log(plan);
 
-    let text = completion.choices[0].message.content.trim();
+        if (plan.error) {
+            return {
+                success: false,
+                message: plan.error,
+            };
+        }
 
-    console.log("Groq Response:");
-    console.log(text);
+        // Step 2: Execute the plan
+        const result = await ToolExecutor.execute(plan);
 
-    try {
-      const aiResponse = JSON.parse(text);
+const WorkflowService =
+require("./workflow.service");
 
-      if (aiResponse.tool && aiResponse.tool !== "none") {
-        const result = await ToolExecutor.execute(
-          aiResponse.tool,
-          aiResponse.parameters || {}
-        );
+WorkflowService.clear();
+        //-----------------------------------
+// Dangerous Actions
+//-----------------------------------
 
-        return {
-          ai: aiResponse,
-          toolResult: result,
-        };
-      }
+const dangerousActions = [
 
+    "delete",
+
+    "bulkDelete",
+
+    "remove"
+
+   
+
+];
+
+if (
+
+    dangerousActions.includes(
+
+        plan.action
+
+    )
+
+){
+
+    ConfirmationService.create(
+
+        "demo-user",
+
+        plan
+
+    );
+
+    return {
+
+        success:true,
+
+        confirmation:true,
+
+        message:
+
+`⚠ This action requires confirmation.
+
+Type YES to continue.`
+
+    };
+
+}
+
+
+        // Step 3: Return both plan and execution result
       return {
-        ai: aiResponse,
-      };
-    } catch (err) {
-      console.error(err);
 
-      return {
-        ai: {
-          tool: "none",
-          reply: text,
-        },
-      };
+    success: true,
+
+    workflow: plan.steps.length,
+
+    steps: plan.steps,
+
+    results: result
+
+};
     }
-  }
+
 }
 
 module.exports = new AgentService();
