@@ -26,8 +26,6 @@ export function useAiChat() {
       const response = await axios.post(`${API_BASE}/ai/chat`, {
         message: text,
       });
-console.log("RAW RESPONSE =>", response.data);
-      const ai = response.data.result.ai;
 
     const result = response.data.result;
 

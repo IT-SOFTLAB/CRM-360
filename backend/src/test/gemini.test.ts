@@ -1,25 +1,25 @@
-const { GoogleGenAI } = require("@google/genai");
-require("dotenv").config();
+// const { GoogleGenAI } = require("@google/genai");
+// require("dotenv").config();
 
-async function main() {
+// async function main() {
 
-    const ai = new GoogleGenAI({
+//     const ai = new GoogleGenAI({
 
-        apiKey: process.env.GEMINI_API_KEY
+//         apiKey: process.env.GEMINI_API_KEY
 
-    });
+//     });
 
-    const response =
-        await ai.models.generateContent({
+//     const response =
+//         await ai.models.generateContent({
 
-            model: "gemini-2.5-flash",
+//             model: "gemini-2.5-flash",
 
-            contents: "Say Hello from CRM-360 AI"
+//             contents: "Say Hello from CRM-360 AI"
 
-        });
+//         });
 
-    console.log(response.text);
+//     console.log(response.text);
 
-}
+// }
 
-main();
+// main();
