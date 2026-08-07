@@ -1,16 +1,13 @@
 const PlannerService = require("./src/ai/services/planner.service");
 
-async function run() {
+(async () => {
 
-    const plan =
-        await PlannerService.createPlan(
+    const plan = await PlannerService.createPlan(
+        "Show my unread emails"
+    );
 
-            "Assign Healthcare Leads to Flashy"
-
-        );
+    console.log("\n========== RAW PLAN ==========\n");
 
     console.log(JSON.stringify(plan, null, 4));
 
-}
-
-run();
+})();
