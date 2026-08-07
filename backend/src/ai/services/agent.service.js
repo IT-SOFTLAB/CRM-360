@@ -5,7 +5,7 @@ require("./confirmation.service");
 class AgentService {
 
     
-    async chat(message) {
+ async chat(message, req = null) {
 
         //-----------------------------------
 // Confirmation Check
@@ -37,12 +37,10 @@ message:"No pending action."
 
 }
 
-const result=
-
+const result =
 await ToolExecutor.execute(
-
-pending
-
+    pending,
+    req
 );
 
 ConfirmationService.clear(
@@ -76,7 +74,10 @@ result
         }
 
         // Step 2: Execute the plan
-        const result = await ToolExecutor.execute(plan);
+       const result = await ToolExecutor.execute(
+    plan,
+    req
+);
 
 const WorkflowService =
 require("./workflow.service");

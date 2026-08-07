@@ -6,8 +6,11 @@ const chat = async (req, res) => {
 
         const { message } = req.body;
 
-        const result =
-            await AgentService.chat(message);
+       const result =
+    await AgentService.chat(
+        message,
+        req
+    );
 
         return res.json({
 

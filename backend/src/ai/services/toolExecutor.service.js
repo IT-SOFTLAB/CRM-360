@@ -4,6 +4,7 @@ const ActivityTool = require("../tools/activity.tool");
 const PipelineTool = require("../tools/pipeline.tool");
 const WorkflowService =
 require("./workflow.service");
+const EmailTool = require("../tools/email.tool");
 class ToolExecutor {
 
     constructor() {
@@ -16,7 +17,8 @@ class ToolExecutor {
 
             activity: ActivityTool,
 
-            pipeline: PipelineTool
+            pipeline: PipelineTool,
+             email: EmailTool
 
         };
 
@@ -26,7 +28,7 @@ class ToolExecutor {
     // Execute Workflow
     //-----------------------------------------
 
-    async execute(plan) {
+   async execute(plan, req = null) {
 
         const workflowResults = [];
 
@@ -52,9 +54,8 @@ class ToolExecutor {
 
             try {
 
-                const result =
-                    await tool.execute(step);
-
+               const result =
+    await tool.execute(step, req);
                     WorkflowService.save(
     step,
     result

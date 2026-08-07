@@ -1,18 +1,34 @@
+const ActivityActions = require("../actions/activity.actions");
+
 module.exports = {
 
     name: "activity",
 
     async execute(step) {
 
-        return {
+        switch (step.action) {
 
-            success: true,
+            //--------------------------------
+            // Schedule Activity
+            //--------------------------------
 
-            message: `Activity action '${step.action}' executed.`,
+            case "schedule":
 
-            data: step.parameters
+                return await ActivityActions.schedule(
+                    step.parameters
+                );
 
-        };
+            default:
+
+                return {
+
+                    success: false,
+
+                    message: `Unknown activity action '${step.action}'.`
+
+                };
+
+        }
 
     }
 

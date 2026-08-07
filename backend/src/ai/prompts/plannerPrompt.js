@@ -116,6 +116,8 @@ send
 
 reply
 
+unread
+
 --------------------------------
 
 retention
@@ -498,6 +500,177 @@ Output
                 "category":"Healthcare",
                 "assignee":"Mickey"
             }
+        }
+    ]
+}
+
+--------------------------------
+
+User
+
+Schedule a follow-up with Rahul tomorrow at 10 AM.
+
+Output
+
+{
+    "steps":[
+        {
+            "tool":"activity",
+            "action":"schedule",
+            "parameters":{
+                "title":"Follow-up with Rahul",
+                "type":"Task",
+                "date":"tomorrow",
+                "time":"10:00 AM",
+                "duration":30
+            }
+        }
+    ]
+}
+
+--------------------------------
+
+User
+
+Schedule a meeting with Infosys on Friday.
+
+Output
+
+{
+    "steps":[
+        {
+            "tool":"activity",
+            "action":"schedule",
+            "parameters":{
+                "title":"Meeting with Infosys",
+                "type":"Meeting",
+                "date":"Friday",
+                "duration":60
+            }
+        }
+    ]
+}
+
+--------------------------------
+
+User
+
+Schedule a follow-up with Rahul Sharma tomorrow at 10 AM.
+
+Output
+
+{
+    "steps":[
+        {
+            "tool":"activity",
+            "action":"schedule",
+            "parameters":{
+                "title":"Follow-up with Rahul Sharma",
+                "lead":"Rahul Sharma",
+                "type":"Task",
+                "date":"tomorrow",
+                "time":"10:00",
+                "duration":30
+            }
+        }
+    ]
+}
+
+   --------------------------------
+
+--------------------------------
+
+User
+
+Draft a welcome email to Rahul Sharma
+
+Output
+
+{
+    "steps":[
+        {
+            "tool":"email",
+            "action":"draft",
+            "parameters":{
+                "lead":"Rahul Sharma",
+                "template":"welcome"
+            }
+        }
+    ]
+} 
+--------------------------------
+
+--------------------------------
+
+User
+
+Send a follow-up email to Rahul Sharma
+
+Output
+
+{
+    "steps":[
+        {
+            "tool":"email",
+            "action":"send",
+            "parameters":{
+                "lead":"Rahul Sharma",
+                "template":"followup"
+            }
+        }
+    ]
+}
+
+--------------------------------
+
+User
+
+Show my unread emails
+
+Output
+
+{
+    "steps":[
+        {
+            "tool":"email",
+            "action":"unread",
+            "parameters":{}
+        }
+    ]
+}
+
+--------------------------------
+
+User
+
+Show my unread emails
+
+Output
+
+{
+    "steps":[
+        {
+            "tool":"email",
+            "action":"unread",
+            "parameters":{}
+        }
+    ]
+}
+
+    --------------------------------
+
+User
+
+Show unread Outlook emails
+
+Output
+
+{
+    "steps":[
+        {
+            "tool":"email",
+            "action":"unread",
+            "parameters":{}
         }
     ]
 }

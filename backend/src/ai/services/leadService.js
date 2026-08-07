@@ -1,5 +1,5 @@
 const { PrismaClient } = require("@prisma/client");
-
+const AuthorizationService = require("./authorization.service");
 const prisma = new PrismaClient();
 
 class LeadService {
@@ -32,26 +32,36 @@ class LeadService {
     // Find Leads by Category
     //----------------------------------------------------
 
-    async findLeadsByCategory(category) {
+async findLeadsByCategory(category, user) {
 
-        return await prisma.lead.findMany({
+    const where = {
 
-            where: {
+        category: {
 
-                category: {
+            equals: category,
 
-                    equals: category,
+            mode: "insensitive"
 
-                    mode: "insensitive"
+        }
 
-                }
+    };
 
-            }
+    //------------------------------------
+    // Authorization
+    //------------------------------------
 
-        });
+    Object.assign(
+        where,
+        AuthorizationService.leadFilter(user)
+    );
 
-    }
+    return await prisma.lead.findMany({
 
+        where
+
+    });
+
+}
     //----------------------------------------------------
     // Bulk Assign
     //----------------------------------------------------
@@ -89,7 +99,7 @@ class LeadService {
 // Search Leads
 //----------------------------------------------------
 
-async searchLeads(filters = {}) {
+async searchLeads(filters = {}, user) {
 
     const where = {};
 
@@ -128,6 +138,15 @@ async searchLeads(filters = {}) {
         };
 
     }
+
+//------------------------------------
+// Authorization Filter
+//------------------------------------
+
+Object.assign(
+    where,
+    AuthorizationService.leadFilter(user)
+);
 
     return await prisma.lead.findMany({
 
@@ -184,7 +203,7 @@ async createLead(data) {
 // UPDATE LEAD
 //------------------------------------------------------
 
-async updateLead(contactName, updateData) {
+async updateLead(contactName, updateData, user) {
 
     const lead = await prisma.lead.findFirst({
 
@@ -207,6 +226,22 @@ async updateLead(contactName, updateData) {
         return null;
 
     }
+
+//------------------------------------
+// Authorization
+//------------------------------------
+
+if (!AuthorizationService.isAdmin(user)) {
+
+    if (lead.assignedUserId !== user.id) {
+
+        throw new Error(
+            "Access denied. You do not own this lead."
+        );
+
+    }
+
+}
 
     return await prisma.lead.update({
 

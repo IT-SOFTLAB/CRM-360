@@ -4,7 +4,7 @@ const LeadService = require("../services/leadService");
 // Bulk Assign
 //-------------------------------------
 
-async function bulkAssign(parameters) {
+async function bulkAssign(parameters, req) {
 
     const {
 
@@ -13,6 +13,24 @@ async function bulkAssign(parameters) {
         assignee
 
     } = parameters;
+
+//-------------------------------------
+// Authorization
+//-------------------------------------
+
+const role = (req.user.role || "").toUpperCase();
+
+if (role === "USER") {
+
+    return {
+
+        success: false,
+
+        message: "Access denied. Only Admin or Super Admin can bulk assign leads."
+
+    };
+
+}
 
    const UserResolver =
 require("../services/userResolver.service");
@@ -34,10 +52,14 @@ await UserResolver.resolve(
 
     }
 
-    const leads =
-        await LeadService.findLeadsByCategory(
-            category
-        );
+  const leads =
+    await LeadService.findLeadsByCategory(
+
+        category,
+
+        req.user
+
+    );
 
     if (leads.length === 0) {
 
@@ -80,9 +102,7 @@ await UserResolver.resolve(
 //-------------------------------------
 // Placeholder Actions
 //-------------------------------------
-
-async function create(parameters) {
-
+async function create(parameters, req) {
     const {
 
         contactName,
@@ -100,6 +120,24 @@ async function create(parameters) {
         assignee
 
     } = parameters;
+
+const role = (req.user.role || "").toUpperCase();
+
+if (
+    role === "USER" &&
+    assignee &&
+    assignee.toLowerCase() !== req.user.name.toLowerCase()
+) {
+
+    return {
+
+        success: false,
+
+        message: "You can only assign leads to yourself."
+
+    };
+
+}
 
     const user =
         await LeadService.findUserByName(
@@ -157,7 +195,7 @@ async function create(parameters) {
 // UPDATE LEAD
 //------------------------------------------------------
 
-async function update(parameters) {
+async function update(parameters, req) {
 
     const {
 
@@ -179,14 +217,16 @@ async function update(parameters) {
 
     }
 
-    const updatedLead =
-        await LeadService.updateLead(
+   const updatedLead =
+    await LeadService.updateLead(
 
-            contactName,
+        contactName,
 
-            updateData
+        updateData,
 
-        );
+        req.user
+
+    );
 
     if (!updatedLead) {
 
@@ -224,9 +264,15 @@ async function remove() {
 
 }
 
-async function search(parameters) {
+async function search(parameters, req) {
 
-    const leads = await LeadService.searchLeads(parameters);
+    const leads = await LeadService.searchLeads(
+
+        parameters,
+
+        req.user
+
+    );
 
     return {
 
