@@ -4,7 +4,7 @@ module.exports = {
 
     name: "activity",
 
-    async execute(step) {
+    async execute(step, req) {
 
         switch (step.action) {
 
@@ -15,7 +15,8 @@ module.exports = {
             case "schedule":
 
                 return await ActivityActions.schedule(
-                    step.parameters
+                    step.parameters,
+                    req
                 );
 
             default:

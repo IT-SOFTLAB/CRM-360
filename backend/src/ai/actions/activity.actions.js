@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 
 module.exports = {
 
-    async schedule(params) {
+    async schedule(params, req) {
 
         const {
 
@@ -19,6 +19,12 @@ module.exports = {
             salesperson
 
         } = params;
+
+        // If salesperson is not specified in parameters, assign it to the logged in user
+        let assignedSalesperson = salesperson;
+        if (!assignedSalesperson && req && req.user) {
+            assignedSalesperson = req.user.name;
+        }
 
         //----------------------------------
         // Find Lead (optional)
@@ -65,7 +71,7 @@ module.exports = {
 
                 description,
 
-                salesperson,
+                salesperson: assignedSalesperson,
 
                 leadId: leadRecord?.id
 

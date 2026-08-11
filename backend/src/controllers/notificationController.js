@@ -1,9 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
-const fs = require('fs');
-const path = require('path');
 
-const DB_FILE = path.join(__dirname, '..', '..', 'db.json');
 
 const checkAndCreateActivityReminders = async (userId, userName) => {
   try {

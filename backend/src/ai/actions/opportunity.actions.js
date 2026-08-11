@@ -1,18 +1,10 @@
 const { PrismaClient } = require("@prisma/client");
-const fs = require("fs");
-const path = require("path");
-const dbPath = path.join(__dirname, "../../../db.json");
+
 const PipelineService = require("../services/pipelineService");
 
 const prisma = new PrismaClient();
 
-function readDB() {
-  return JSON.parse(fs.readFileSync(dbPath, "utf8"));
-}
 
-function writeDB(data) {
-  fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), "utf8");
-}
 
 module.exports = {
 
@@ -65,20 +57,26 @@ module.exports = {
             }
         }
 
-        // Read and find/create the stage in db.json pipelines
-        const db = readDB();
-        let matchedStage = db.pipelines.find(p => p.name.toLowerCase() === stage.toLowerCase().trim());
+        // Find or create the stage in PostgreSQL
+        let matchedStage = await prisma.pipelineStage.findFirst({
+            where: {
+                name: {
+                    equals: stage,
+                    mode: "insensitive"
+                }
+            }
+        });
         
         if (!matchedStage) {
-            const maxOrder = db.pipelines.reduce((max, p) => p.order > max ? p.order : max, 0);
+            const stages = await prisma.pipelineStage.findMany();
+            const maxOrder = stages.reduce((max, p) => p.order > max ? p.order : max, 0);
             const formattedName = stage.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-            matchedStage = {
-                id: 'p_' + Date.now(),
-                name: formattedName,
-                order: maxOrder + 1
-            };
-            db.pipelines.push(matchedStage);
-            writeDB(db);
+            matchedStage = await prisma.pipelineStage.create({
+                data: {
+                    name: formattedName,
+                    order: maxOrder + 1
+                }
+            });
         }
 
         const stageName = matchedStage.name;
@@ -121,20 +119,7 @@ module.exports = {
 
         }
 
-        // Keep db.json synced for opportunities and leads
-        const dbSync = readDB();
-        const oppIdx = dbSync.opportunities.findIndex(o => o.id === opportunity.id);
-        if (oppIdx !== -1) {
-            dbSync.opportunities[oppIdx].stage = stageName;
-            dbSync.opportunities[oppIdx].stageId = stageId;
-        }
-        if (updated.leadId) {
-            const leadIdx = dbSync.leads.findIndex(l => l.id === updated.leadId);
-            if (leadIdx !== -1) {
-                dbSync.leads[leadIdx].status = stageName;
-            }
-        }
-        writeDB(dbSync);
+
 
         return{
 

@@ -2,18 +2,7 @@ const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 
-const fs = require('fs');
-const path = require('path');
-const dbPath = path.join(__dirname, '../../db.json');
 
-const readDB = () => {
-  if (!fs.existsSync(dbPath)) return { leads: [], opportunities: [], customers: [] };
-  return JSON.parse(fs.readFileSync(dbPath, 'utf8'));
-};
-
-const writeDB = (data) => {
-  fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), 'utf8');
-};
 
 /*
 ==================================
@@ -191,36 +180,7 @@ exports.updateCustomer = async (req, res) => {
       }
     }
 
-    // Sync to db.json
-    try {
-      const db = readDB();
-      const idx = db.customers.findIndex(c => c.id === id);
-      if (idx !== -1) {
-        db.customers[idx] = { ...db.customers[idx], ...req.body };
 
-        // Sync opportunity and lead in db.json
-        const oppId = db.customers[idx].opportunityId;
-        if (oppId) {
-          const oppIdx = db.opportunities.findIndex(o => o.id === oppId);
-          if (oppIdx !== -1) {
-            db.opportunities[oppIdx].assignedSalesperson = req.body.assignedSalesperson;
-            db.opportunities[oppIdx].assignedSalespersonId = req.body.assignedSalespersonId;
-
-            const leadId = db.opportunities[oppIdx].leadId;
-            if (leadId) {
-              const leadIdx = db.leads.findIndex(l => l.id === leadId);
-              if (leadIdx !== -1) {
-                db.leads[leadIdx].assignedUser = req.body.assignedSalesperson;
-                db.leads[leadIdx].assignedUserId = req.body.assignedSalespersonId;
-              }
-            }
-          }
-        }
-        writeDB(db);
-      }
-    } catch (dbErr) {
-      console.error("Error syncing db.json in updateCustomer:", dbErr);
-    }
 
     res.json(customer);
 

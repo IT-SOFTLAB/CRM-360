@@ -1,21 +1,7 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
-const fs = require('fs');
-const path = require('path');
 const { getGraphClient } = require("../services/graphService");
-
-const DB_FILE = path.join(__dirname, '..', '..', 'db.json');
-
-const readDB = () => {
-  if (!fs.existsSync(DB_FILE)) return {};
-  try {
-    const data = fs.readFileSync(DB_FILE, 'utf8');
-    return JSON.parse(data);
-  } catch (err) {
-    console.error("Error reading database file in bootstrap:", err);
-    return {};
-  }
-};
+const { categories, companyBranding, mockEmails } = require("../config/staticData");
 
 const checkAndCreateActivityReminders = async (userId, userName) => {
   try {
@@ -68,9 +54,6 @@ exports.getBootstrapData = async (req, res) => {
   try {
     const user = req.user;
     const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
-    
-    // Prepare DB files for mock data
-    const db = readDB();
 
     // Trigger activity reminders generation
     await checkAndCreateActivityReminders(user.id, user.name);
@@ -131,7 +114,9 @@ exports.getBootstrapData = async (req, res) => {
       pendingRewardsAgg,
       referralPipelineStages,
       dbUsers,
-      notifications
+      notifications,
+      companySettingsDb,
+      pipelineStagesDb
     ] = await Promise.all([
       // leads
       prisma.lead.findMany({
@@ -217,6 +202,14 @@ exports.getBootstrapData = async (req, res) => {
       prisma.notification.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: "desc" }
+      }),
+      // company settings
+      prisma.companySettings.findUnique({
+        where: { id: 'global_settings' }
+      }),
+      // standard pipelines stages
+      prisma.pipelineStage.findMany({
+        orderBy: { order: 'asc' }
       })
     ]);
 
@@ -272,7 +265,7 @@ exports.getBootstrapData = async (req, res) => {
       });
     }
 
-    // 5. Fetch emails (Outlook or db.json fallback)
+    // 5. Fetch emails (Outlook or static mock emails fallback)
     let emails = [];
     if (global.accessToken) {
       try {
@@ -285,10 +278,10 @@ exports.getBootstrapData = async (req, res) => {
         emails = mails.value || [];
       } catch (err) {
         console.warn("Bootstrap: Outlook token error, falling back to mock emails", err);
-        emails = db.emails || [];
+        emails = mockEmails;
       }
     } else {
-      emails = db.emails || [];
+      emails = mockEmails;
     }
 
     // 6. Referral Pipeline default check (simulates pipelineController.getStages)
@@ -311,16 +304,42 @@ exports.getBootstrapData = async (req, res) => {
       });
     }
 
-    // 7. Get static/mock data from db.json
-    const categories = db.categories || [];
-    const companyBranding = db.companyBranding || {
-      name: 'Global CRM Cloud',
-      primaryColor: '#2563EB',
-      secondaryColor: '#0F172A',
-      logoText: 'CRM 360'
-    };
-    const pipelines = (db.pipelines || []).sort((a, b) => a.order - b.order);
-    const referralPipelines = (db.referralPipelines || []).sort((a, b) => a.order - b.order);
+    // 7. Get standard pipelines stages
+    let pipelines = pipelineStagesDb;
+    if (pipelines.length === 0) {
+      const defaultStages = [
+        { name: 'New', order: 1 },
+        { name: 'Possible Response Received', order: 2 },
+        { name: 'Discussion', order: 3 },
+        { name: 'Proposal Preparation', order: 4 },
+        { name: 'Negotiation', order: 5 },
+        { name: 'Won', order: 6 },
+        { name: 'Lost', order: 7 }
+      ];
+      await prisma.pipelineStage.createMany({
+        data: defaultStages
+      });
+      pipelines = await prisma.pipelineStage.findMany({
+        orderBy: { order: 'asc' }
+      });
+    }
+
+    // 8. Map referralPipelines using database stages
+    const referralPipelines = finalReferralStages.map(s => ({
+      id: s.id,
+      name: s.name,
+      order: s.sequence
+    }));
+
+    // 9. Company Branding Settings
+    const companyBrandingObj = companySettingsDb
+      ? {
+          name: companySettingsDb.companyName,
+          logoText: companySettingsDb.logoText || 'CRM 360',
+          primaryColor: companySettingsDb.primaryColor || '#2563EB',
+          secondaryColor: companySettingsDb.secondaryColor || '#0F172A'
+        }
+      : companyBranding;
 
     // Return the bundled bootstrap data!
     res.json({
@@ -336,7 +355,7 @@ exports.getBootstrapData = async (req, res) => {
       referralPipelines,
       emails,
       categories,
-      companyBranding,
+      companyBranding: companyBrandingObj,
       settingsUsers,
       notifications
     });
@@ -348,3 +367,5 @@ exports.getBootstrapData = async (req, res) => {
     });
   }
 };
+
+

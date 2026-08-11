@@ -116,6 +116,30 @@ async bulkAssign(
 
         });
 
+    // Synchronize corresponding opportunities and customers
+    await prisma.opportunity.updateMany({
+      where: { leadId: { in: ids } },
+      data: {
+        assignedSalesperson: assignedUser,
+        assignedSalespersonId: assignedUserId
+      }
+    });
+
+    const opps = await prisma.opportunity.findMany({
+      where: { leadId: { in: ids } },
+      select: { id: true }
+    });
+    const oppIds = opps.map(o => o.id);
+    if (oppIds.length > 0) {
+      await prisma.customer.updateMany({
+        where: { opportunityId: { in: oppIds } },
+        data: {
+          assignedSalesperson: assignedUser,
+          assignedSalespersonId: assignedUserId
+        }
+      });
+    }
+
     return updated;
 
 }
@@ -268,7 +292,7 @@ if (!AuthorizationService.isAdmin(user)) {
 
 }
 
-    return await prisma.lead.update({
+    const updatedLead = await prisma.lead.update({
 
         where: {
 
@@ -279,6 +303,45 @@ if (!AuthorizationService.isAdmin(user)) {
         data: updateData
 
     });
+
+    // Synchronize opportunity and customer tables
+    const oppUpdateData = {};
+    if (updateData.contactName !== undefined) oppUpdateData.customerName = updateData.contactName;
+    if (updateData.company !== undefined) oppUpdateData.company = updateData.company;
+    if (updateData.email !== undefined) oppUpdateData.email = updateData.email;
+    if (updateData.phone !== undefined) oppUpdateData.phone = updateData.phone;
+    if (updateData.dealValue !== undefined) {
+      oppUpdateData.dealValue = updateData.dealValue ? Number(updateData.dealValue) : 0;
+    }
+    if (updateData.status !== undefined) oppUpdateData.stage = updateData.status;
+    if (updateData.assignedUser !== undefined) oppUpdateData.assignedSalesperson = updateData.assignedUser;
+    if (updateData.assignedUserId !== undefined) oppUpdateData.assignedSalespersonId = updateData.assignedUserId;
+
+    if (Object.keys(oppUpdateData).length > 0) {
+      await prisma.opportunity.updateMany({
+        where: { leadId: lead.id },
+        data: oppUpdateData
+      });
+    }
+
+    if (updateData.assignedUser !== undefined || updateData.assignedUserId !== undefined) {
+      const opps = await prisma.opportunity.findMany({
+        where: { leadId: lead.id },
+        select: { id: true }
+      });
+      const oppIds = opps.map(o => o.id);
+      if (oppIds.length > 0) {
+        await prisma.customer.updateMany({
+          where: { opportunityId: { in: oppIds } },
+          data: {
+            assignedSalesperson: updateData.assignedUser,
+            assignedSalespersonId: updateData.assignedUserId
+          }
+        });
+      }
+    }
+
+    return updatedLead;
 
 } 
 
