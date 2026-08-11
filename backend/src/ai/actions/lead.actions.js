@@ -14,6 +14,10 @@ async function bulkAssign(parameters, req) {
 
     } = parameters;
 
+
+
+
+
 //-------------------------------------
 // Authorization
 //-------------------------------------
@@ -100,6 +104,161 @@ await UserResolver.resolve(
     };
 
 }
+
+//-------------------------------------
+// Assign Single Lead
+//-------------------------------------
+
+async function assign(parameters, req) {
+
+    const {
+        lead,
+        contactName,
+        assignee
+    } = parameters;
+
+    const leadName = lead || contactName;
+
+    if (!leadName) {
+
+        return {
+
+            success: false,
+
+            message: "Lead name is required."
+
+        };
+
+    }
+
+    if (!assignee) {
+
+        return {
+
+            success: false,
+
+            message: "Assignee is required."
+
+        };
+
+    }
+
+    //-------------------------------------
+    // Authorization
+    //-------------------------------------
+
+    const role = (req.user.role || "").toUpperCase();
+
+    if (role === "USER") {
+
+        return {
+
+            success: false,
+
+            message: "Access denied. Only Admin or Super Admin can assign leads."
+
+        };
+
+    }
+
+    //-------------------------------------
+    // Find Assignee
+    //-------------------------------------
+
+    const UserResolver =
+        require("../services/userResolver.service");
+
+    const user =
+        await UserResolver.resolve(assignee);
+
+    if (!user) {
+
+        return {
+
+            success: false,
+
+            message: `User '${assignee}' not found.`
+
+        };
+
+    }
+
+    //-------------------------------------
+    // Find Lead
+    //-------------------------------------
+
+    const prisma =
+        new (require("@prisma/client").PrismaClient)();
+
+    const existingLead =
+        await prisma.lead.findFirst({
+
+            where: {
+
+                contactName: {
+
+                    equals: leadName,
+
+                    mode: "insensitive"
+
+                }
+
+            }
+
+        });
+
+    if (!existingLead) {
+
+        return {
+
+            success: false,
+
+            message: `Lead '${leadName}' not found.`
+
+        };
+
+    }
+
+    //-------------------------------------
+    // Update Lead
+    //-------------------------------------
+
+    const updatedLead =
+        await prisma.lead.update({
+
+            where: {
+
+                id: existingLead.id
+
+            },
+
+            data: {
+
+                assignedUser: user.name,
+
+                assignedUserId: user.id
+
+            }
+
+        });
+
+    //-------------------------------------
+    // Result
+    //-------------------------------------
+
+    return {
+
+        success: true,
+
+        message:
+            `Lead '${updatedLead.contactName}' assigned to ${user.name}.`,
+
+        data: updatedLead
+
+    };
+
+}
+
 
 //-------------------------------------
 // Placeholder Actions
@@ -324,6 +483,8 @@ async function search(parameters, req) {
 module.exports = {
 
     bulkAssign,
+
+    assign,
 
     create,
 

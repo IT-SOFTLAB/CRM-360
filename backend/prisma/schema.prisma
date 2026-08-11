@@ -276,22 +276,25 @@ model TaskComment {
 }
 
 model CompanySettings {
-  id          String   @id @default("global_settings")
-  companyName String   @default("Global CRM Cloud")
-  logo        String?
-  gst         String?
-  address     String?
-  phone       String?
-  email       String?
-  currency    String   @default("INR")
-  timezone    String   @default("UTC")
-  language    String   @default("English")
-  smtpHost    String?
-  smtpPort    Int?
-  smtpUser    String?
-  smtpPass    String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default("global_settings")
+  companyName    String   @default("Global CRM Cloud")
+  logo           String?
+  gst            String?
+  address        String?
+  phone          String?
+  email          String?
+  currency       String   @default("INR")
+  timezone       String   @default("UTC")
+  language       String   @default("English")
+  smtpHost       String?
+  smtpPort       Int?
+  smtpUser       String?
+  smtpPass       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  logoText       String?  @default("CRM 360")
+  primaryColor   String?  @default("#2563EB")
+  secondaryColor String?  @default("#0F172A")
 }
 
 model Notification {
@@ -338,4 +341,11 @@ model SavedFilter {
   userId    String?
   createdAt DateTime @default(now())
   user      User?    @relation(fields: [userId], references: [id])
+}
+
+model PipelineStage {
+  id        String   @id
+  name      String   @unique
+  order     Int
+  createdAt DateTime @default(now())
 }
