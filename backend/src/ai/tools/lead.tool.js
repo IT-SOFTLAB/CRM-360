@@ -32,6 +32,12 @@ module.exports = {
                     req
                 );
 
+            case "delete":
+                return await LeadActions.deleteLead(
+                    step.parameters,
+                    req
+                );
+
             default:
                 return {
                     success: false,

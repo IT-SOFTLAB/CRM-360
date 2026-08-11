@@ -47,7 +47,7 @@ model Lead {
   phone           String?
   status          String   @default("New")
   createdAt       DateTime @default(now())
-  category        String
+  category        String 
   company         String?
   contactName     String
   serviceType     String

@@ -79,8 +79,11 @@ const authenticateJWT = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (authHeader && authHeader.startsWith("Bearer ")) {
-      token = authHeader.split(" ")[1];
-      console.log("Using Authorization header");
+      const extractedToken = authHeader.split(" ")[1];
+      if (extractedToken && extractedToken !== "undefined" && extractedToken !== "null") {
+        token = extractedToken;
+        console.log("Using Authorization header");
+      }
     }
 
     // 2. Cookie

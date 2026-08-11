@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import ClientLayout from "@/components/crm/ClientLayout";
-import AIAssistant from "@/components/ai/AIAssistant"; // ✅ ADD THIS
+import AIAssistant from "@/components/ai/AIAssistant"; 
 
 export const metadata: Metadata = {
   title: "CRM 360",

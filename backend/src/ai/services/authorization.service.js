@@ -1,97 +1,80 @@
 class AuthorizationService {
 
-    //------------------------------------
-    // Is Admin?
-    //------------------------------------
+  //------------------------------------
+  // Is Super Admin?
+  //------------------------------------
 
-    isAdmin(user) {
+  isSuperAdmin(user) {
+    if (!user) return false;
+    return (user.role || '').toUpperCase() === 'SUPER_ADMIN';
+  }
 
-        if (!user) return false;
+  //------------------------------------
+  // Is Admin?
+  //------------------------------------
 
-        return (user.role || "").toUpperCase() === "ADMIN";
+  isAdmin(user) {
+    if (!user) return false;
+    return (user.role || '').toUpperCase() === 'ADMIN';
+  }
 
+  //------------------------------------
+  // Admin-like roles
+  //------------------------------------
+
+  isAdminLike(user) {
+    return this.isSuperAdmin(user) || this.isAdmin(user);
+  }
+
+  //------------------------------------
+  // Can view all leads?
+  //------------------------------------
+
+  canViewAllLeads(user) {
+    return this.isAdminLike(user);
+  }
+
+  //------------------------------------
+  // Can bulk assign?
+  //------------------------------------
+
+  canBulkAssign(user) {
+    return this.isAdminLike(user);
+  }
+
+  //------------------------------------
+  // Build Prisma filter
+  //------------------------------------
+
+  leadFilter(user) {
+
+    // ADMIN and SUPER_ADMIN -> all records
+    if (this.isAdminLike(user)) {
+      return {};
     }
 
-    //------------------------------------
-    // Can view all leads?
-    //------------------------------------
-
-    canViewAllLeads(user) {
-
-        return this.isAdmin(user);
-
-    }
-
-    //------------------------------------
-    // Can assign all leads?
-    //------------------------------------
-
-    canBulkAssign(user) {
-
-        return this.isAdmin(user);
-
-    }
-
-    //------------------------------------
-    // Build Prisma filter
-    //------------------------------------
-
-    leadFilter(user) {
-
-        if (this.isAdmin(user)) {
-
-            return {};
-
-        }
-
-        return {
-
-            assignedUserId: user.id
-
-        };
-
-    }
-
-//------------------------------------
-// Opportunity Filter
-//------------------------------------
-
-opportunityFilter(user) {
-
-    if (this.isAdmin(user)) {
-
-        return {};
-
-    }
-
+    // USER -> own records only
     return {
-
-        assignedSalespersonId: user.id
-
+      assignedUserId: user.id
     };
+  }
 
-}
+  //------------------------------------
+  // Check single lead access
+  //------------------------------------
 
-//------------------------------------
-// Customer Filter
-//------------------------------------
+  canAccessLead(user, lead) {
 
-customerFilter(user) {
+    if (!user || !lead) return false;
 
-    if (this.isAdmin(user)) {
-
-        return {};
-
+    // ADMIN and SUPER_ADMIN -> access everything
+    if (this.isAdminLike(user)) {
+      return true;
     }
 
-    return {
-
-        assignedSalespersonId: user.id
-
-    };
-
-}
-
+    // USER -> own lead only
+    return lead.assignedUserId === user.id;
+  }
 }
 
 module.exports = new AuthorizationService();

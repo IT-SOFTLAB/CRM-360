@@ -20,6 +20,7 @@ import api from '../services/api';
 import { usePipeline } from "../hooks/usePipeline";
 import { useNotifications } from "../hooks/useNotifications";
 import { usePathname } from 'next/navigation';
+import dashboardService from '@/services/dashboard.service';
 
 export interface CRMContextType {
   mounted: boolean;

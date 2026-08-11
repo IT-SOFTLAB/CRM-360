@@ -1122,6 +1122,7 @@ const handleBulkDelete = async () => {
           serviceType: selectedOpp.tags?.[0] || 'Service Based',
           assignedUser: selectedOpp.assignedSalesperson || 'Unassigned',
           status: pipelines.find(p => p.id === selectedOpp.stageId)?.name || 'New',
+          linkedinId: selectedOpp.linkedinId || '',
           createdAt:
             selectedOpp.createdDate ||
             (selectedOpp.createdAt
@@ -1137,6 +1138,7 @@ const handleBulkDelete = async () => {
         const serviceType = associatedLead.serviceType || '';
         const assignedUser = associatedLead.assignedUser || 'Unassigned';
         const status = associatedLead.status || 'New';
+        const linkedinId = associatedLead.linkedinId || '';
         const createdAt = associatedLead.createdAt
           ? associatedLead.createdAt.split('T')[0]
           : '';
@@ -1262,6 +1264,27 @@ const handleBulkDelete = async () => {
                           if (onUpdateOpportunity && selectedOpp.phone != null) {
                             await onUpdateOpportunity(selectedOpp.id, {
                               phone: selectedOpp.phone
+                            });
+                          }
+                        }}
+                        className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                      />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">LinkedIn ID</p>
+                      <input
+                        type="text"
+                        value={selectedOpp.linkedinId ?? linkedinId}
+                        onChange={(e) =>
+                          setSelectedOpp({
+                            ...selectedOpp,
+                            linkedinId: e.target.value
+                          })
+                        }
+                        onBlur={async () => {
+                          if (onUpdateOpportunity && selectedOpp.linkedinId != null) {
+                            await onUpdateOpportunity(selectedOpp.id, {
+                              linkedinId: selectedOpp.linkedinId
                             });
                           }
                         }}

@@ -4,19 +4,16 @@ module.exports = {
 
     name: "pipeline",
 
-   async execute(step, req) {
+    async execute(step, req) {
 
         switch (step.action) {
 
            case "moveStage":
 
-    return await OpportunityActions.moveStage(
-
-        step.parameters,
-
-        req
-
-    );
+                return await OpportunityActions.moveStage(
+                    step.parameters,
+                    req
+                );
 
             default:
 
