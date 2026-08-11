@@ -4,6 +4,12 @@ const router = express.Router();
 
 const { chat } = require("../controllers/ai.controller");
 
-router.post("/chat", chat);
+const authenticateJWT = require("../../middlewares/authMiddleware");
+
+router.post(
+    "/chat",
+    authenticateJWT,
+    chat
+);
 
 module.exports = router;

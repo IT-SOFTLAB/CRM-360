@@ -80,13 +80,15 @@ await UserResolver.resolve(
 
     await LeadService.bulkAssign(
 
-        ids,
+    ids,
 
-        user.name,
+    user.name,
 
-        user.id
+    user.id,
 
-    );
+    req.user
+
+);
 
     return {
 

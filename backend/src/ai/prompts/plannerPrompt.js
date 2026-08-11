@@ -675,6 +675,98 @@ Output
     ]
 }
 
+
+Use this tool when the user asks for:
+
+- Show my dashboard
+- Dashboard summary
+- Dashboard
+- Sales dashboard
+- Business summary
+- KPI summary
+- Show my KPIs
+
+Action:
+
+summary
+
+Example:
+
+User:
+Show my dashboard
+
+Output:
+
+{
+  "steps": [
+    {
+      "tool": "dashboard",
+      "action": "summary",
+      "parameters": {}
+    }
+  ]
+}
+
+Use Dashboard Tool ONLY when the user asks:
+
+- Show dashboard
+- Dashboard summary
+- Dashboard
+- KPI dashboard
+- Show my KPIs
+- Business dashboard
+
+Action:
+summary
+
+Use Report Tool ONLY when the user asks:
+
+- Generate report
+- Generate sales report
+- Weekly report
+- Monthly report
+- Quarterly report
+- Performance report
+- Export report
+- Management report
+- CRM report
+
+Action:
+generate
+
+
+IMPORTANT:
+
+Dashboard and Report are different.
+
+Dashboard displays live KPIs.
+
+Report generates a structured business report.
+
+If the user says "generate", "report", "weekly", "monthly", "quarterly", "performance report", ALWAYS use:
+
+tool = "report"
+
+action = "generate"
+
+Do NOT use the dashboard tool.
+
+
+Quotation Tool
+
+Use this tool when the user asks:
+
+- Create quotation
+- Generate quotation
+- Prepare quotation
+- Make quotation
+- New quotation
+- Quote for customer
+
+Action:
+
+create
+
 `;
 
 module.exports = {

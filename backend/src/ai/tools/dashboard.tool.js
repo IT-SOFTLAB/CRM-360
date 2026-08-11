@@ -1,14 +1,35 @@
-module.exports = {
-  name: "dashboard",
+const DashboardActions = require("../actions/dashboard.actions");
 
-  async execute() {
-    return {
-      success: true,
-      message: "Dashboard Tool Executed",
-      data: {
-        totalLeads: 120,
-        totalSales: 45,
-      },
-    };
-  },
+module.exports = {
+
+    name: "dashboard",
+
+    async execute(step, req) {
+
+        switch (step.action) {
+
+            case "summary":
+
+                return await DashboardActions.summary(
+
+                    step.parameters,
+
+                    req
+
+                );
+
+            default:
+
+                return {
+
+                    success: false,
+
+                    message: `Unknown dashboard action '${step.action}'.`
+
+                };
+
+        }
+
+    }
+
 };

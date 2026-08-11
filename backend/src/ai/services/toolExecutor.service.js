@@ -5,23 +5,29 @@ const PipelineTool = require("../tools/pipeline.tool");
 const WorkflowService =
 require("./workflow.service");
 const EmailTool = require("../tools/email.tool");
+const ReportTool = require("../tools/report.tool");
+const QuotationTool = require("../tools/quotation.tool");
 class ToolExecutor {
 
     constructor() {
 
-        this.tools = {
+   this.tools = {
 
-            dashboard: DashboardTool,
+    dashboard: DashboardTool,
 
-            lead: LeadTool,
+    lead: LeadTool,
 
-            activity: ActivityTool,
+    activity: ActivityTool,
 
-            pipeline: PipelineTool,
-             email: EmailTool
+    pipeline: PipelineTool,
 
-        };
+    email: EmailTool,
 
+    report: ReportTool,
+
+    quotation: QuotationTool
+
+};
     }
 
     //-----------------------------------------

@@ -66,34 +66,59 @@ async findLeadsByCategory(category, user) {
     // Bulk Assign
     //----------------------------------------------------
 
-    async bulkAssign(ids, assignedUser, assignedUserId) {
+ //----------------------------------------------------
+// Bulk Assign
+//----------------------------------------------------
 
-        const updated =
-            await prisma.lead.updateMany({
+async bulkAssign(
+    ids,
+    assignedUser,
+    assignedUserId,
+    user
+) {
 
-                where: {
+    //------------------------------------
+    // Build Filter
+    //------------------------------------
 
-                    id: {
+    const where = {
 
-                        in: ids
+        id: {
 
-                    }
+            in: ids
 
-                },
+        }
 
-                data: {
+    };
 
-                    assignedUser,
+    //------------------------------------
+    // USER -> only own leads
+    //------------------------------------
 
-                    assignedUserId
+    if (!AuthorizationService.isAdmin(user)) {
 
-                }
-
-            });
-
-        return updated;
+        where.assignedUserId = user.id;
 
     }
+
+    const updated =
+        await prisma.lead.updateMany({
+
+            where,
+
+            data: {
+
+                assignedUser,
+
+                assignedUserId
+
+            }
+
+        });
+
+    return updated;
+
+}
 
     //----------------------------------------------------
 // Search Leads

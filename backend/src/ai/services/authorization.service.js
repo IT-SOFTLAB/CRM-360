@@ -52,6 +52,46 @@ class AuthorizationService {
 
     }
 
+//------------------------------------
+// Opportunity Filter
+//------------------------------------
+
+opportunityFilter(user) {
+
+    if (this.isAdmin(user)) {
+
+        return {};
+
+    }
+
+    return {
+
+        assignedSalespersonId: user.id
+
+    };
+
+}
+
+//------------------------------------
+// Customer Filter
+//------------------------------------
+
+customerFilter(user) {
+
+    if (this.isAdmin(user)) {
+
+        return {};
+
+    }
+
+    return {
+
+        assignedSalespersonId: user.id
+
+    };
+
+}
+
 }
 
 module.exports = new AuthorizationService();

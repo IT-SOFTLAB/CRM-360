@@ -1,86 +1,44 @@
 
 const { PrismaClient } = require("@prisma/client");
-
+const PipelineService = require("../services/pipelineService");
 const prisma = new PrismaClient();
 
 module.exports = {
 
-    async moveStage({ lead, stage }) {
+    async moveStage({ lead, stage }, req) {
 
-        const opportunity = await prisma.opportunity.findFirst({
+    const updated = await PipelineService.moveStage(
 
-            where:{
+        lead,
 
-                customerName:{
+        stage,
 
-                    equals:lead,
+        req.user
 
-                    mode:"insensitive"
+    );
 
-                }
+    if (!updated) {
 
-            }
+        return {
 
-        });
+            success: false,
 
-        if(!opportunity){
-
-            return{
-
-                success:false,
-
-                message:"Opportunity not found."
-
-            }
-
-        }
-
-        const updated = await prisma.opportunity.update({
-
-            where:{
-
-                id:opportunity.id
-
-            },
-
-            data:{
-
-                stage
-
-            }
-
-        });
-
-        if(updated.leadId){
-
-            await prisma.lead.update({
-
-                where:{
-
-                    id:updated.leadId
-
-                },
-
-                data:{
-
-                    status:stage
-
-                }
-
-            });
-
-        }
-
-        return{
-
-            success:true,
-
-            message:`${lead} moved to ${stage}.`,
-
-            data:updated
+            message: "Opportunity not found or access denied."
 
         };
 
     }
+
+    return {
+
+        success: true,
+
+        message: `${lead} moved to ${stage}.`,
+
+        data: updated
+
+    };
+
+}
 
 };
