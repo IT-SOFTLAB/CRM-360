@@ -389,6 +389,23 @@
       "createdAt": "2026-08-04",
       "createdDate": "2026-08-04",
       "linkedinId": "linkedin.com/in/johndoe"
+    },
+    {
+      "id": "cmsobl2t0000bo0dgmth0p85x",
+      "name": "flashylead",
+      "contactName": "flashylead",
+      "company": "Apex Ltd",
+      "source": "CSV/Excel Import",
+      "email": null,
+      "phone": "9876543210",
+      "category": "Healthcare",
+      "serviceType": "Service Based",
+      "assignedUser": "User1",
+      "assignedUserId": "cmsfoz1qq0011hm1vpfqrir15",
+      "status": "New",
+      "createdAt": "2026-08-11",
+      "createdDate": "2026-08-11",
+      "linkedinId": "linkedin.com/in/johndoe"
     }
   ],
   "opportunities": [

@@ -57,12 +57,57 @@ export default function ChatDrawer({ open, onClose }: Props) {
       if (result?.results?.steps) {
         reply = result.results.steps
           .map((step: any) => {
-            if (step.result?.message) return `• ${step.result.message}`;
+            if (step.result) {
+              let msg = `• ${step.result.message || "Action completed."}`;
+              
+              if (step.result.data) {
+                const data = step.result.data;
+                
+                if (step.tool === "dashboard" && step.action === "summary") {
+                  msg += `\n\n📊 Key Metrics:` +
+                         `\n- Total Leads: ${data.totalLeads ?? 0}` +
+                         `\n- Total Opportunities: ${data.totalOpportunities ?? 0}` +
+                         `\n- Won Deals: ${data.wonDeals ?? 0}` +
+                         `\n- Lost Deals: ${data.lostDeals ?? 0}` +
+                         `\n- Win Rate: ${data.winRate ?? 0}%` +
+                         `\n- Pipeline Value: ₹${(data.pipelineValue ?? 0).toLocaleString()}` +
+                         `\n- Average Deal Size: ₹${(data.averageDealSize ?? 0).toLocaleString()}` +
+                         `\n- Largest Deal: ₹${(data.largestDeal ?? 0).toLocaleString()}` +
+                         `\n- Smallest Deal: ₹${(data.smallestDeal ?? 0).toLocaleString()}` +
+                         `\n- Today's Activities: ${data.todayActivities ?? 0}` +
+                         `\n- Pending Activities: ${data.pendingActivities ?? 0}`;
+
+                  if (data.pipelineStages && Object.keys(data.pipelineStages).length > 0) {
+                    msg += `\n\n📈 Pipeline Stages:`;
+                    Object.entries(data.pipelineStages).forEach(([stage, count]) => {
+                      msg += `\n- ${stage}: ${count}`;
+                    });
+                  }
+
+                  if (data.leadCategories && Object.keys(data.leadCategories).length > 0) {
+                    msg += `\n\n🏷️ Lead Categories:`;
+                    Object.entries(data.leadCategories).forEach(([category, count]) => {
+                      msg += `\n- ${category}: ${count}`;
+                    });
+                  }
+                } else if (step.tool === "lead" && step.action === "search" && Array.isArray(data)) {
+                  if (data.length > 0) {
+                    msg += `\n\n🔍 Found Leads:`;
+                    data.forEach((lead: any) => {
+                      msg += `\n- ${lead.contactName} (${lead.company || "No Company"})` +
+                             `\n  Status: ${lead.status} | Category: ${lead.category || "None"}` +
+                             `\n  Value: ₹${(lead.dealValue ?? 0).toLocaleString()}`;
+                    });
+                  }
+                }
+              }
+              return msg;
+            }
             if (step.message) return `• ${step.message}`;
             return null;
           })
           .filter(Boolean)
-          .join("\n");
+          .join("\n\n");
       } else if (result?.confirmation) {
         reply = result.message;
       } else if (result?.message) {

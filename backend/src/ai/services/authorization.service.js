@@ -60,6 +60,24 @@ class AuthorizationService {
   }
 
   //------------------------------------
+  // Build Prisma filter for opportunities
+  //------------------------------------
+
+  opportunityFilter(user) {
+
+    // ADMIN and SUPER_ADMIN -> all records
+    if (this.isAdminLike(user)) {
+      return {};
+    }
+
+    // USER -> own records only
+    return {
+      assignedSalespersonId: user.id
+    };
+  }
+
+
+  //------------------------------------
   // Check single lead access
   //------------------------------------
 
