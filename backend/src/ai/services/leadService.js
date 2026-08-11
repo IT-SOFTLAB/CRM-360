@@ -188,6 +188,20 @@ async searchLeads(filters = {}, user) {
 
     }
 
+    if (filters.contactName) {
+
+    where.contactName = {
+
+        equals: filters.contactName,
+
+        mode: "insensitive"
+
+    };
+
+}
+
+
+
 //------------------------------------
 // Authorization Filter
 //------------------------------------

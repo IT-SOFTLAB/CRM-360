@@ -26,6 +26,12 @@ module.exports = {
                     req
                 );
 
+                case "assign":
+    return await LeadActions.assign(
+        step.parameters,
+        req
+    );
+
             case "update":
                 return await LeadActions.update(
                     step.parameters,
