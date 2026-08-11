@@ -1,4 +1,5 @@
 const LeadService = require("../services/leadService");
+const UserResolverService = require("../services/userResolver.service");
 
 //-------------------------------------
 // Bulk Assign
@@ -125,17 +126,19 @@ async function create(parameters, req) {
   let finalUser = null;
 
   if (role === 'USER') {
+    // USER role: always assign to self regardless of what planner says
     finalUser = req.user;
   } else {
     //-----------------------------------
     // ADMIN / SUPER_ADMIN
     //-----------------------------------
-
     if (assignee) {
-      finalUser = await LeadService.findUserByName(assignee);
+      // Handles: "me", "user", exact name lookup
+      const token = (assignee === 'user') ? 'me' : assignee;
+      finalUser = await UserResolverService.resolve(token, req.user);
     }
 
-    // fallback to logged-in admin
+    // Fallback: if no assignee given or not found, assign to logged-in user
     if (!finalUser) {
       finalUser = req.user;
     }

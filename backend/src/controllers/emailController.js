@@ -148,34 +148,25 @@ exports.getTrash = async (req, res) => {
     }
 };
 
-exports.getFolders = async(req,res)=>{
-
-    try{
-
-        const client=getGraphClient(req.session.outlook.accessToken)
-
-        const folders=await client
-
-        .api("/me/mailFolders")
-
-        .get();
-
-        res.json(folders.value);
-
+exports.getFolders = async (req, res) => {
+  try {
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
     }
+    const client = getGraphClient(outlookTokens.accessToken);
 
-    catch(err){
+    const folders = await client
+      .api("/me/mailFolders")
+      .get();
 
-        res.status(500).json({
-
-            success:false,
-
-            message:err.message
-
-        });
-
-    }
-
+    res.json(folders.value);
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
 };
 
 
@@ -665,66 +656,47 @@ exports.searchEmails = async (req, res) => {
   }
 };
 
-exports.getAttachments = async (req,res)=>{
-
-    try{
-
-        const client=getGraphClient(req.session.outlook.accessToken)
-
-        const attachments=await client
-
-        .api(`/me/messages/${req.params.id}/attachments`)
-
-        .get();
-
-        res.json(attachments.value);
-
+exports.getAttachments = async (req, res) => {
+  try {
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
     }
+    const client = getGraphClient(outlookTokens.accessToken);
 
-    catch(err){
+    const attachments = await client
+      .api(`/me/messages/${req.params.id}/attachments`)
+      .get();
 
-        console.error(err);
-
-        res.status(500).json({
-
-            success:false,
-
-            message:err.message
-
-        });
-
-    }
-
+    res.json(attachments.value);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
 };
 
-exports.downloadAttachment = async (req,res)=>{
-
-    try{
-
-        const client=getGraphClient(req.session.outlook.accessToken)
-
-        const attachment=await client
-
-        .api(`/me/messages/${req.params.messageId}/attachments/${req.params.attachmentId}`)
-
-        .get();
-
-        res.json(attachment);
-
+exports.downloadAttachment = async (req, res) => {
+  try {
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
     }
+    const client = getGraphClient(outlookTokens.accessToken);
 
-    catch(err){
+    const attachment = await client
+      .api(`/me/messages/${req.params.messageId}/attachments/${req.params.attachmentId}`)
+      .get();
 
-        res.status(500).json({
-
-            success:false,
-
-            message:err.message
-
-        });
-
-    }
-
+    res.json(attachment);
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
 };
 
 exports.getConversation = async (req, res) => {
@@ -787,30 +759,22 @@ mail.isRead
   }
 };
 
-exports.getProfile = async(req,res)=>{
-
-    try{
-
-        const client=getGraphClient(req.session.outlook.accessToken)
-
-        const profile=await client.api("/me").get();
-
-        res.json(profile);
-
+exports.getProfile = async (req, res) => {
+  try {
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
     }
+    const client = getGraphClient(outlookTokens.accessToken);
 
-    catch(err){
-
-        res.status(500).json({
-
-            success:false,
-
-            message:err.message
-
-        });
-
-    }
-
+    const profile = await client.api("/me").get();
+    res.json(profile);
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
 };
 
 exports.getConnectionStatus = async (req, res) => {
@@ -828,102 +792,104 @@ exports.getConnectionStatus = async (req, res) => {
 };
 
 exports.createDraft = async (req, res) => {
-
-    try {
-
-        const client = getGraphClient(
-            req.session.outlook.accessToken
-        );
-
-        const draft = await client
-            .api("/me/messages")
-            .post({
-
-                subject: req.body.subject,
-
-                body: {
-                    contentType: "HTML",
-                    content: req.body.body
-                },
-
-                toRecipients: req.body.to
-                    ? [{
-                        emailAddress: {
-                            address: req.body.to
-                        }
-                    }]
-                    : [],
-
-                ccRecipients: req.body.cc
-                    ? [{
-                        emailAddress: {
-                            address: req.body.cc
-                        }
-                    }]
-                    : [],
-
-                bccRecipients: req.body.bcc
-                    ? [{
-                        emailAddress: {
-                            address: req.body.bcc
-                        }
-                    }]
-                    : []
-
-            });
-
-        res.json(draft);
-
-    } catch (err) {
-
-        console.error(err);
-
-        res.status(500).json({
-            success: false,
-            message: err.message
-        });
-
+  try {
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
     }
+    const client = getGraphClient(outlookTokens.accessToken);
 
+    const draft = await client
+      .api("/me/messages")
+      .post({
+        subject: req.body.subject,
+        body: {
+          contentType: "HTML",
+          content: req.body.body
+        },
+        toRecipients: req.body.to
+          ? [{
+              emailAddress: {
+                address: req.body.to
+              }
+            }]
+          : [],
+        ccRecipients: req.body.cc
+          ? [{
+              emailAddress: {
+                address: req.body.cc
+              }
+            }]
+          : [],
+        bccRecipients: req.body.bcc
+          ? [{
+              emailAddress: {
+                address: req.body.bcc
+              }
+            }]
+          : []
+      });
+
+    res.json(draft);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
 };
 
 exports.updateDraft = async (req, res) => {
-
-    const client = getGraphClient(
-        req.session.outlook.accessToken
-    );
+  try {
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
+    }
+    const client = getGraphClient(outlookTokens.accessToken);
 
     const draft = await client
-        .api(`/me/messages/${req.params.id}`)
-        .patch({
-
-            subject: req.body.subject,
-
-            body: {
-                contentType: "HTML",
-                content: req.body.body
-            }
-
-        });
+      .api(`/me/messages/${req.params.id}`)
+      .patch({
+        subject: req.body.subject,
+        body: {
+          contentType: "HTML",
+          content: req.body.body
+        }
+      });
 
     res.json(draft);
-
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
 };
 
 exports.sendDraft = async (req, res) => {
-
-    const client = getGraphClient(
-        req.session.outlook.accessToken
-    );
+  try {
+    const outlookTokens = await getOutlookTokens(req);
+    if (!outlookTokens?.accessToken) {
+      throw new Error("Outlook account is not connected.");
+    }
+    const client = getGraphClient(outlookTokens.accessToken);
 
     await client
-        .api(`/me/messages/${req.params.id}/send`)
-        .post({});
+      .api(`/me/messages/${req.params.id}/send`)
+      .post({});
 
     res.json({
-        success: true
+      success: true
     });
-
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
 };
 
 exports.getEmailLogs = async (req, res) => {

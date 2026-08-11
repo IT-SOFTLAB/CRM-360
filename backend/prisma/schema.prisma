@@ -290,11 +290,11 @@ model CompanySettings {
   smtpPort       Int?
   smtpUser       String?
   smtpPass       String?
-  primaryColor   String?  @default("#2563EB")
-  secondaryColor String?  @default("#0F172A")
-  logoText       String?  @default("CRM 360")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  logoText       String?  @default("CRM 360")
+  primaryColor   String?  @default("#2563EB")
+  secondaryColor String?  @default("#0F172A")
 }
 
 model Notification {
@@ -349,4 +349,3 @@ model PipelineStage {
   order     Int
   createdAt DateTime @default(now())
 }
-

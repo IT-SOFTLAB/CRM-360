@@ -25,6 +25,58 @@ class EmailService {
     }
 
     //---------------------------------------
+    // Create Outlook Draft
+    //---------------------------------------
+
+    async createDraft(accessToken, email) {
+
+        const client = getGraphClient(accessToken);
+
+        const draft = await client
+
+            .api("/me/messages")
+
+            .post({
+
+                subject: email.subject,
+
+                body: {
+
+                    contentType: "HTML",
+
+                    content: email.body
+
+                },
+
+                toRecipients: email.to ? [
+
+                    {
+
+                        emailAddress: {
+
+                            address: email.to
+
+                        }
+
+                    }
+
+                ] : []
+
+            });
+
+        return {
+
+            success: true,
+
+            message: "Draft created successfully in Outlook.",
+
+            data: draft
+
+        };
+
+    }
+
+    //---------------------------------------
     // Send Email
     //---------------------------------------
 

@@ -32,9 +32,22 @@ module.exports = {
 
         );
 
+    let message = "";
+    if (emails && emails.length > 0) {
+        message = `You have ${emails.length} unread email(s):\n\n` + emails.map(e => {
+            const sender = e.from?.emailAddress?.name || e.from?.emailAddress?.address || "Unknown Sender";
+            const date = new Date(e.receivedDateTime).toLocaleString();
+            return `From: ${sender}\nSubject: ${e.subject || "(No Subject)"}\nPreview: ${e.bodyPreview || "(No body preview)"}\nReceived: ${date}`;
+        }).join('\n\n---\n\n');
+    } else {
+        message = "You have no unread emails.";
+    }
+
     return {
 
         success: true,
+
+        message,
 
         emails
 
@@ -57,14 +70,15 @@ module.exports = {
     } = params;
 
     let recipient = to;
+    let targetLead = null;
 
     //----------------------------------------
     // Find Lead Email
     //----------------------------------------
 
-    if (!recipient && lead) {
+    if (lead) {
 
-        const leadData = await prisma.lead.findFirst({
+        targetLead = await prisma.lead.findFirst({
 
             where: {
 
@@ -80,19 +94,109 @@ module.exports = {
 
         });
 
-        if (!leadData) {
+        if (!targetLead) {
 
             return {
 
                 success: false,
 
-                message: "Lead not found."
+                message: `Lead '${lead}' not found.`
 
             };
 
         }
 
-        recipient = leadData.email;
+        recipient = targetLead.email;
+
+    } else if (recipient) {
+
+        targetLead = await prisma.lead.findFirst({
+
+            where: {
+
+                email: {
+
+                    equals: recipient,
+
+                    mode: "insensitive"
+
+                }
+
+            }
+
+        });
+
+    }
+
+    //----------------------------------------
+    // Authorization check
+    //----------------------------------------
+
+    if (req && req.user) {
+
+        const userRole = (req.user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+
+        if (userRole === 'USER') {
+
+            if (targetLead) {
+
+                const isAssigned = targetLead.assignedUserId === req.user.id || 
+
+                                   (targetLead.assignedUser && targetLead.assignedUser.toLowerCase() === req.user.name.toLowerCase());
+
+                if (!isAssigned) {
+
+                    return {
+
+                        success: false,
+
+                        message: "Authorization failed: You are not authorized to email this lead (it is assigned to another salesperson)."
+
+                    };
+
+                }
+
+            } else if (recipient) {
+
+                const registeredLead = await prisma.lead.findFirst({
+
+                    where: {
+
+                        email: {
+
+                            equals: recipient,
+
+                            mode: "insensitive"
+
+                        }
+
+                    }
+
+                });
+
+                if (registeredLead) {
+
+                    const isAssigned = registeredLead.assignedUserId === req.user.id || 
+
+                                       (registeredLead.assignedUser && registeredLead.assignedUser.toLowerCase() === req.user.name.toLowerCase());
+
+                    if (!isAssigned) {
+
+                        return {
+
+                            success: false,
+
+                            message: "Authorization failed: You are not authorized to email this lead (it is assigned to another salesperson)."
+
+                        };
+
+                    }
+
+                }
+
+            }
+
+        }
 
     }
 
@@ -164,14 +268,15 @@ module.exports = {
         } = params;
 
         let recipient = to;
+        let targetLead = null;
 
         //----------------------------------------
         // Find Lead Email
         //----------------------------------------
 
-        if (!recipient && lead) {
+        if (lead) {
 
-            const leadData = await prisma.lead.findFirst({
+            targetLead = await prisma.lead.findFirst({
 
                 where: {
 
@@ -187,19 +292,109 @@ module.exports = {
 
             });
 
-            if (!leadData) {
+            if (!targetLead) {
 
                 return {
 
                     success: false,
 
-                    message: "Lead not found."
+                    message: `Lead '${lead}' not found.`
 
                 };
 
             }
 
-            recipient = leadData.email;
+            recipient = targetLead.email;
+
+        } else if (recipient) {
+
+            targetLead = await prisma.lead.findFirst({
+
+                where: {
+
+                    email: {
+
+                        equals: recipient,
+
+                        mode: "insensitive"
+
+                    }
+
+                }
+
+            });
+
+        }
+
+        //----------------------------------------
+        // Authorization check
+        //----------------------------------------
+
+        if (req && req.user) {
+
+            const userRole = (req.user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+
+            if (userRole === 'USER') {
+
+                if (targetLead) {
+
+                    const isAssigned = targetLead.assignedUserId === req.user.id || 
+
+                                       (targetLead.assignedUser && targetLead.assignedUser.toLowerCase() === req.user.name.toLowerCase());
+
+                    if (!isAssigned) {
+
+                        return {
+
+                            success: false,
+
+                            message: "Authorization failed: You are not authorized to email this lead (it is assigned to another salesperson)."
+
+                        };
+
+                    }
+
+                } else if (recipient) {
+
+                    const registeredLead = await prisma.lead.findFirst({
+
+                        where: {
+
+                            email: {
+
+                                equals: recipient,
+
+                                mode: "insensitive"
+
+                            }
+
+                        }
+
+                    });
+
+                    if (registeredLead) {
+
+                        const isAssigned = registeredLead.assignedUserId === req.user.id || 
+
+                                           (registeredLead.assignedUser && registeredLead.assignedUser.toLowerCase() === req.user.name.toLowerCase());
+
+                        if (!isAssigned) {
+
+                            return {
+
+                                success: false,
+
+                                message: "Authorization failed: You are not authorized to email this lead (it is assigned to another salesperson)."
+
+                            };
+
+                        }
+
+                    }
+
+                }
+
+            }
 
         }
 

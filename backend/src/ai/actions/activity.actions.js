@@ -26,6 +26,15 @@ module.exports = {
             assignedSalesperson = req.user.name;
         }
 
+        // Default the title if not provided by LLM
+        let activityTitle = title;
+        if (!activityTitle) {
+            const leadName = lead;
+            activityTitle = leadName 
+                ? `Follow-up with ${leadName}` 
+                : `${type || 'Follow-up'} Activity`;
+        }
+
         //----------------------------------
         // Find Lead (optional)
         //----------------------------------
@@ -59,7 +68,7 @@ module.exports = {
 
             data: {
 
-                title,
+                title: activityTitle,
 
                 type: type || "Task",
 

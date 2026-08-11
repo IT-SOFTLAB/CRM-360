@@ -104,7 +104,7 @@ update
 
 delete
 
-convert
+
 
 --------------------------------
 
@@ -158,6 +158,15 @@ return it inside the steps array.
 If information is missing,
 
 leave it inside parameters as null.
+
+IMPORTANT ASSIGNEE RULE:
+
+When creating a lead and the user does NOT mention who to assign it to,
+always set "assignee": "me" in the parameters.
+"me" means the currently logged-in user.
+
+Only use a different name if the user explicitly says "assign to [name]".
+
 
 Example
 
