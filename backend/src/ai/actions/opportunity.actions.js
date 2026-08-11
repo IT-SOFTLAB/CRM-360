@@ -2,6 +2,7 @@ const { PrismaClient } = require("@prisma/client");
 const fs = require("fs");
 const path = require("path");
 const dbPath = path.join(__dirname, "../../../db.json");
+const PipelineService = require("../services/pipelineService");
 
 const prisma = new PrismaClient();
 
@@ -17,7 +18,7 @@ module.exports = {
 
     async moveStage({ lead, stage }, req) {
 
-    const updated = await PipelineService.moveStage(
+    let opportunity = await PipelineService.moveStage(
 
         lead,
 
@@ -27,7 +28,7 @@ module.exports = {
 
     );
 
-    if (!updated) {
+    if (!opportunity) {
 
         return {
 
@@ -38,6 +39,8 @@ module.exports = {
             }
 
         }
+
+    let updated = opportunity;
 
         // Authorization check
         if (req && req.user) {
@@ -81,7 +84,7 @@ module.exports = {
         const stageName = matchedStage.name;
         const stageId = matchedStage.id;
 
-        const updated = await prisma.opportunity.update({
+        updated = await prisma.opportunity.update({
 
             where:{
 
