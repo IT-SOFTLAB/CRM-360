@@ -81,7 +81,7 @@ module.exports = {
         const stageName = matchedStage.name;
         const stageId = matchedStage.id;
 
-        const updated = await prisma.opportunity.update({
+         updated = await prisma.opportunity.update({
 
             where:{
 
