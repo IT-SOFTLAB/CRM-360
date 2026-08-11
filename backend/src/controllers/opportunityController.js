@@ -1,28 +1,9 @@
 const { PrismaClient } = require("@prisma/client");
-const fs = require('fs');
-const path = require('path');
-const DB_FILE = path.join(__dirname, '../../db.json');
+
 
 const prisma = new PrismaClient();
 
-function readDB() {
-  if (fs.existsSync(DB_FILE)) {
-    try {
-      return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-    } catch (e) {
-      console.error("Error reading db.json in opportunityController", e);
-    }
-  }
-  return { opportunities: [] };
-}
 
-function writeDB(data) {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-  } catch (e) {
-    console.error("Error writing db.json in opportunityController", e);
-  }
-}
 
 /*
 GET ALL
@@ -263,52 +244,7 @@ exports.updateOpportunity = async (req, res) => {
       }
     }
 
-    // Also update db.json to keep them synced
-    const db = readDB();
-    const oppIdx = db.opportunities.findIndex(o => o.id === id);
-    if (oppIdx !== -1) {
-      db.opportunities[oppIdx] = {
-        ...db.opportunities[oppIdx],
-        customerName: req.body.customerName !== undefined ? req.body.customerName : db.opportunities[oppIdx].customerName,
-        company: req.body.company !== undefined ? req.body.company : db.opportunities[oppIdx].company,
-        email: req.body.email !== undefined ? req.body.email : db.opportunities[oppIdx].email,
-        phone: req.body.phone !== undefined ? req.body.phone : db.opportunities[oppIdx].phone,
-        linkedinId: req.body.linkedinId !== undefined ? req.body.linkedinId : db.opportunities[oppIdx].linkedinId,
-        dealValue: req.body.dealValue !== undefined ? Number(req.body.dealValue) : db.opportunities[oppIdx].dealValue,
-        stage: req.body.stage !== undefined ? req.body.stage : db.opportunities[oppIdx].stage,
-        stageId: req.body.stageId !== undefined ? req.body.stageId : db.opportunities[oppIdx].stageId,
-        assignedSalesperson: req.body.assignedSalesperson !== undefined ? req.body.assignedSalesperson : db.opportunities[oppIdx].assignedSalesperson,
-        assignedSalespersonId: req.body.assignedSalespersonId !== undefined ? req.body.assignedSalespersonId : db.opportunities[oppIdx].assignedSalespersonId,
-      };
 
-      if (leadId) {
-        const lIdx = db.leads.findIndex(l => l.id === leadId);
-        if (lIdx !== -1) {
-          if (req.body.assignedSalesperson !== undefined) db.leads[lIdx].assignedUser = req.body.assignedSalesperson;
-          if (req.body.assignedSalespersonId !== undefined) db.leads[lIdx].assignedUserId = req.body.assignedSalespersonId;
-          if (req.body.stage !== undefined) db.leads[lIdx].status = req.body.stage;
-          if (req.body.customerName !== undefined) db.leads[lIdx].contactName = req.body.customerName;
-          if (req.body.company !== undefined) db.leads[lIdx].company = req.body.company;
-          if (req.body.email !== undefined) db.leads[lIdx].email = req.body.email;
-          if (req.body.phone !== undefined) db.leads[lIdx].phone = req.body.phone;
-          if (req.body.linkedinId !== undefined) db.leads[lIdx].linkedinId = req.body.linkedinId;
-          if (req.body.dealValue !== undefined) db.leads[lIdx].dealValue = Number(req.body.dealValue);
-        }
-      }
-
-      const custIdx = db.customers.findIndex(c => c.opportunityId === id);
-      if (custIdx !== -1) {
-        if (req.body.assignedSalesperson !== undefined) db.customers[custIdx].assignedSalesperson = req.body.assignedSalesperson;
-        if (req.body.assignedSalespersonId !== undefined) db.customers[custIdx].assignedSalespersonId = req.body.assignedSalespersonId;
-        if (req.body.customerName !== undefined) db.customers[custIdx].customerName = req.body.customerName;
-        if (req.body.company !== undefined) db.customers[custIdx].company = req.body.company;
-        if (req.body.email !== undefined) db.customers[custIdx].email = req.body.email;
-        if (req.body.phone !== undefined) db.customers[custIdx].phone = req.body.phone;
-        if (req.body.dealValue !== undefined) db.customers[custIdx].dealValue = Number(req.body.dealValue);
-      }
-
-      writeDB(db);
-    }
 
     res.json(updatedOpportunity);
 
@@ -340,15 +276,7 @@ exports.deleteOpportunity = async (req, res) => {
       where: { id }
     });
 
-    // Update db.json for mock/fallback compatibility
-    const db = readDB();
-    if (db.opportunities) {
-      db.opportunities = db.opportunities.filter(o => o.id !== id);
-    }
-    if (opp && opp.leadId && db.leads) {
-      db.leads = db.leads.filter(l => l.id !== opp.leadId);
-    }
-    writeDB(db);
+
 
     res.json({
       success: true,
@@ -426,31 +354,7 @@ exports.convertLeadToOpportunity = async (req, res) => {
       },
     });
 
-    // Also update db.json to keep them synced
-    const db = readDB();
-    const leadIdx = db.leads.findIndex(l => l.id === lead.id);
-    if (leadIdx !== -1) {
-      db.leads[leadIdx].status = "Converted";
-    }
-    const newOpportunity = {
-      id: opportunity.id,
-      leadId: opportunity.leadId,
-      customerName: opportunity.customerName,
-      company: opportunity.company,
-      email: opportunity.email,
-      phone: opportunity.phone,
-      dealValue: opportunity.dealValue,
-      assignedSalesperson: opportunity.assignedSalesperson,
-      assignedSalespersonId: opportunity.assignedSalespersonId,
-      stage: opportunity.stage,
-      stageId: opportunity.stageId || 'p_1',
-      expectedClosing: opportunity.expectedClosing ? opportunity.expectedClosing.toISOString().split('T')[0] : null,
-      priority: opportunity.priority,
-      tags: opportunity.tags,
-      createdDate: opportunity.createdAt ? opportunity.createdAt.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
-    };
-    db.opportunities.push(newOpportunity);
-    writeDB(db);
+
 
     res.status(201).json({
       message: "Lead converted successfully",
@@ -510,16 +414,6 @@ exports.bulkDeleteOpportunities = async (req, res) => {
         },
       },
     });
-
-    // 4. Update db.json for mock/fallback compatibility
-    const db = readDB();
-    if (db.opportunities) {
-      db.opportunities = db.opportunities.filter(o => !ids.includes(o.id));
-    }
-    if (db.leads && leadIds.length > 0) {
-      db.leads = db.leads.filter(l => !leadIds.includes(l.id));
-    }
-    writeDB(db);
 
     res.json({
       success: true,
@@ -587,33 +481,7 @@ exports.bulkAssignOpportunities = async (req, res) => {
       }
     });
 
-    // 4. Update db.json
-    const db = readDB();
-    ids.forEach(id => {
-      const idx = db.opportunities.findIndex(o => o.id === id);
-      if (idx !== -1) {
-        db.opportunities[idx].assignedSalesperson = assignedSalesperson;
-        db.opportunities[idx].assignedSalespersonId = assignedSalespersonId;
 
-        // Find associated lead in db.json
-        const lId = db.opportunities[idx].leadId;
-        if (lId) {
-          const lIdx = db.leads.findIndex(l => l.id === lId);
-          if (lIdx !== -1) {
-            db.leads[lIdx].assignedUser = assignedSalesperson;
-            db.leads[lIdx].assignedUserId = assignedSalespersonId;
-          }
-        }
-
-        // Update associated customer in db.json
-        const custIdx = db.customers.findIndex(c => c.opportunityId === id);
-        if (custIdx !== -1) {
-          db.customers[custIdx].assignedSalesperson = assignedSalesperson;
-          db.customers[custIdx].assignedSalespersonId = assignedSalespersonId;
-        }
-      }
-    });
-    writeDB(db);
 
     res.status(200).json({
       success: true,

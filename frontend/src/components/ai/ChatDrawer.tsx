@@ -99,6 +99,26 @@ export default function ChatDrawer({ open, onClose }: Props) {
                              `\n  Value: ₹${(lead.dealValue ?? 0).toLocaleString()}`;
                     });
                   }
+                } else if (step.tool === "report" && step.action === "generate" && data) {
+                  const summary = data.summary;
+                  msg += `\n\n📋 ${data.title || "CRM Performance Report"}` +
+                         `\nGenerated at: ${new Date(data.generatedAt).toLocaleString()}` +
+                         `\n\n📊 Performance Summary:` +
+                         `\n- Total Leads: ${summary.totalLeads ?? 0}` +
+                         `\n- Total Opportunities: ${summary.totalOpportunities ?? 0}` +
+                         `\n- Won / Lost Deals: ${summary.wonDeals ?? 0} / ${summary.lostDeals ?? 0}` +
+                         `\n- Win Rate: ${summary.winRate ?? 0}%` +
+                         `\n- Pipeline Value: ₹${(summary.pipelineValue ?? 0).toLocaleString()}` +
+                         `\n- Average Deal Size: ₹${(summary.averageDealSize ?? 0).toLocaleString()}` +
+                         `\n- Today's Activities: ${summary.todayActivities ?? 0}` +
+                         `\n- Pending Activities: ${summary.pendingActivities ?? 0}`;
+
+                  if (summary.pipelineStages && Object.keys(summary.pipelineStages).length > 0) {
+                    msg += `\n\n📈 Pipeline Stages:`;
+                    Object.entries(summary.pipelineStages).forEach(([stage, count]) => {
+                      msg += `\n- ${stage}: ${count}`;
+                    });
+                  }
                 }
               }
               return msg;

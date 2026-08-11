@@ -276,20 +276,7 @@ async function deleteLead(parameters, req) {
         where: { id: lead.id }
     });
 
-    // Also update db.json to keep them synced
-    const fs = require('fs');
-    const path = require('path');
-    const dbPath = path.join(__dirname, '../../../db.json');
-    try {
-        if (fs.existsSync(dbPath)) {
-            const db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
-            db.leads = db.leads.filter(l => l.id !== lead.id);
-            db.opportunities = db.opportunities.filter(o => o.leadId !== lead.id);
-            fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
-        }
-    } catch (err) {
-        console.error("Error syncing db.json on lead delete:", err);
-    }
+
 
     return {
         success: true,

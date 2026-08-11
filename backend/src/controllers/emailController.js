@@ -4,29 +4,7 @@ const {
 }=require("../services/graphService");
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const fs = require('fs');
-const path = require('path');
-const DB_FILE = path.join(__dirname, '../../db.json');
 
-function readJSONDB() {
-  try {
-    if (fs.existsSync(DB_FILE)) {
-      const data = fs.readFileSync(DB_FILE, 'utf8');
-      return JSON.parse(data);
-    }
-  } catch (e) {
-    console.error("Error reading JSON DB:", e);
-  }
-  return {};
-}
-
-function writeJSONDB(db) {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
-  } catch (e) {
-    console.error("Error writing JSON DB:", e);
-  }
-}
 
 const logOutgoingEmail = async (logData) => {
   try {
@@ -51,31 +29,7 @@ const logOutgoingEmail = async (logData) => {
     console.error("Failed to save email log to Prisma:", err);
   }
 
-  // 2. Save to db.json
-  try {
-    const db = readJSONDB();
-    if (!db.emailLogs) {
-      db.emailLogs = [];
-    }
-    db.emailLogs.push({
-      id: 'elog_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-      recipientEmail: logData.recipientEmail,
-      subject: logData.subject,
-      leadId: logData.leadId || null,
-      opportunityId: logData.opportunityId || null,
-      sentByUserId: logData.sentByUserId,
-      status: logData.status,
-      errorMessage: logData.errorMessage || null,
-      attachments: logData.attachments || null,
-      emailBody: logData.emailBody,
-      sentAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    });
-    writeJSONDB(db);
-  } catch (err) {
-    console.error("Failed to save email log to db.json:", err);
-  }
+
 };
 
 async function getFolderMessages(req, folderName) {
@@ -979,15 +933,8 @@ exports.getEmailLogs = async (req, res) => {
     });
     return res.json(logs);
   } catch (err) {
-    console.error("Prisma logs fetch failed, falling back to db.json:", err);
-    try {
-      const db = readJSONDB();
-      const logs = db.emailLogs || [];
-      logs.sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
-      return res.json(logs);
-    } catch (e) {
-      return res.status(500).json({ message: "Failed to load email logs" });
-    }
+    console.error("Prisma logs fetch failed:", err);
+    return res.status(500).json({ message: "Failed to load email logs" });
   }
 };
 

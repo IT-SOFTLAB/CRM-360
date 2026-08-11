@@ -209,44 +209,7 @@ const updateLead = async (req, res) => {
       }
     }
 
-    // Also update db.json to keep them synced
-    const db = readDB();
-    const idx = db.leads.findIndex(l => l.id === id);
-    if (idx !== -1) {
-      db.leads[idx] = {
-        ...db.leads[idx],
-        contactName: req.body.contactName,
-        name: req.body.contactName || db.leads[idx].name,
-        company: req.body.company,
-        source: req.body.source,
-        email: req.body.email,
-        phone: req.body.phone,
-        linkedinId: req.body.linkedinId,
-        category: req.body.category,
-        serviceType: req.body.serviceType,
-        assignedUser: req.body.assignedUser,
-        assignedUserId: req.body.assignedUserId,
-        status: req.body.status
-      };
 
-      // Update associated opportunity and customer in db.json
-      const oppIdx = db.opportunities.findIndex(o => o.leadId === id);
-      if (oppIdx !== -1) {
-        db.opportunities[oppIdx].assignedSalesperson = req.body.assignedUser;
-        db.opportunities[oppIdx].assignedSalespersonId = req.body.assignedUserId;
-        if (req.body.linkedinId !== undefined) {
-          db.opportunities[oppIdx].linkedinId = req.body.linkedinId;
-        }
-
-        const oppId = db.opportunities[oppIdx].id;
-        const custIdx = db.customers.findIndex(c => c.opportunityId === oppId);
-        if (custIdx !== -1) {
-          db.customers[custIdx].assignedSalesperson = req.body.assignedUser;
-          db.customers[custIdx].assignedSalespersonId = req.body.assignedUserId;
-        }
-      }
-      writeDB(db);
-    }
 
     res.status(200).json(lead);
 
@@ -260,28 +223,7 @@ const updateLead = async (req, res) => {
 };
 
 const xlsx = require('xlsx');
-const fs = require('fs');
-const path = require('path');
-const DB_FILE = path.join(__dirname, '../../db.json');
 
-function readDB() {
-  if (fs.existsSync(DB_FILE)) {
-    try {
-      return JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-    } catch (e) {
-      console.error("Error reading db.json in leadController", e);
-    }
-  }
-  return { leads: [] };
-}
-
-function writeDB(data) {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-  } catch (e) {
-    console.error("Error writing db.json in leadController", e);
-  }
-}
 
 const normalizeKey = (k) => (k ? k.toString().replace(/[\s_-]+/g, '').toLowerCase() : '');
 
@@ -373,8 +315,7 @@ const importLeads = async (req, res) => {
       }
     }
     
-    const db = readDB();
-    if (!db.leads) db.leads = [];
+
 
     for (const row of results) {
       // Find fields case-insensitively and trim keys/values
@@ -442,38 +383,12 @@ const importLeads = async (req, res) => {
           }
         });
       } catch (dbErr) {
-        console.warn('Prisma lead create failed, proceeding to save to db.json only:', dbErr.message);
-        lead = {
-          id: 'l_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-          createdAt: parsedCreatedAt.toISOString()
-        };
+        console.error('Prisma lead create failed:', dbErr.message);
+        continue;
       }
 
-      // 2. Save to db.json for fallback / mock compatibility
-      const dbLead = {
-        id: lead.id || 'l_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-        name: trimmedName,          // compat with db.json structure
-        contactName: trimmedName,   // compat with frontend expected field
-        company: trimmedCompany,
-        source: trimmedSource,
-        email: trimmedEmail,
-        phone: trimmedPhone,
-        category: trimmedCategory,
-        serviceType: trimmedServiceType,
-        assignedUser: trimmedAssignedUser,
-        assignedUserId: trimmedAssignedUserId,
-        status: 'New',              // Automatically set status to "New"
-        createdAt: parsedCreatedAt.toISOString().split('T')[0],
-        createdDate: parsedCreatedAt.toISOString().split('T')[0],
-        linkedinId: trimmedLinkedinId
-      };
-
-      db.leads.push(dbLead);
-      createdLeads.push(dbLead);
+      createdLeads.push(lead);
     }
-
-    // Write back to db.json
-    writeDB(db);
 
     res.status(200).json({
       success: true,
@@ -544,30 +459,7 @@ const bulkAssignLeads = async (req, res) => {
       });
     }
 
-    // 3. Update db.json
-    const db = readDB();
-    ids.forEach(id => {
-      const idx = db.leads.findIndex(l => l.id === id);
-      if (idx !== -1) {
-        db.leads[idx].assignedUser = assignedUser;
-        db.leads[idx].assignedUserId = assignedUserId;
-      }
 
-      // Update associated opportunity in db.json
-      const oppIdx = db.opportunities.findIndex(o => o.leadId === id);
-      if (oppIdx !== -1) {
-        db.opportunities[oppIdx].assignedSalesperson = assignedUser;
-        db.opportunities[oppIdx].assignedSalespersonId = assignedUserId;
-
-        const oppId = db.opportunities[oppIdx].id;
-        const custIdx = db.customers.findIndex(c => c.opportunityId === oppId);
-        if (custIdx !== -1) {
-          db.customers[custIdx].assignedSalesperson = req.body.assignedUser;
-          db.customers[custIdx].assignedSalespersonId = req.body.assignedUserId;
-        }
-      }
-    });
-    writeDB(db);
 
     // Send email notification
     if (assignedUserId) {
