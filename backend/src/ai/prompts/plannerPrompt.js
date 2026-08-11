@@ -675,6 +675,26 @@ Output
     ]
 }
 
+--------------------------------
+
+User
+
+Delete lead Rahul Sharma
+
+Output
+
+{
+    "steps":[
+        {
+            "tool":"lead",
+            "action":"delete",
+            "parameters":{
+                "contactName":"Rahul Sharma"
+            }
+        }
+    ]
+}
+
 `;
 
 module.exports = {

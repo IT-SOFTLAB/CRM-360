@@ -17,13 +17,8 @@ message.trim().toUpperCase()==="YES"
 
 ){
 
-const pending=
-
-ConfirmationService.get(
-
-"demo-user"
-
-);
+const userKey = req?.user?.id || 'anonymous';
+const pending = ConfirmationService.get(userKey);
 
 if(!pending){
 
@@ -43,11 +38,7 @@ await ToolExecutor.execute(
     req
 );
 
-ConfirmationService.clear(
-
-"demo-user"
-
-);
+ConfirmationService.clear(userKey);
 
 return{
 
@@ -109,13 +100,9 @@ if (
 
 ){
 
-    ConfirmationService.create(
+    const userKey = req?.user?.id || 'anonymous';
 
-        "demo-user",
-
-        plan
-
-    );
+ConfirmationService.create(userKey, plan);
 
     return {
 

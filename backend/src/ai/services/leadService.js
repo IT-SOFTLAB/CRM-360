@@ -180,7 +180,7 @@ async createLead(data) {
 
         phone: data.phone,
 
-        category: data.category,
+        category: data.category || "",
 
         serviceType: data.serviceType || "Service Based",
 

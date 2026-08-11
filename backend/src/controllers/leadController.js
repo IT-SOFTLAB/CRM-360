@@ -16,7 +16,8 @@ const createLead = async (req, res) => {
         company: req.body.company,
         email: req.body.email,
         phone: req.body.phone,
-        category: req.body.category,
+        linkedinId: req.body.linkedinId,
+        category: req.body.category || '',
         serviceType: req.body.serviceType,
         assignedUser: assignedUser || null,
         assignedUserId: assignedUserId || null,
@@ -34,6 +35,7 @@ const createLead = async (req, res) => {
         company: lead.company,
         email: lead.email,
         phone: lead.phone,
+        linkedinId: lead.linkedinId,
         dealValue: lead.dealValue || 0,
         stage: 'New',
         assignedSalesperson: lead.assignedUser,
@@ -143,6 +145,7 @@ const updateLead = async (req, res) => {
     source: req.body.source,
     email: req.body.email,
     phone: req.body.phone,
+    linkedinId: req.body.linkedinId,
     category: req.body.category,
     serviceType: req.body.serviceType,
     assignedUser: req.body.assignedUser,
@@ -174,6 +177,7 @@ const updateLead = async (req, res) => {
     if (req.body.company !== undefined) oppUpdateData.company = req.body.company;
     if (req.body.email !== undefined) oppUpdateData.email = req.body.email;
     if (req.body.phone !== undefined) oppUpdateData.phone = req.body.phone;
+    if (req.body.linkedinId !== undefined) oppUpdateData.linkedinId = req.body.linkedinId;
     if (req.body.dealValue !== undefined) {
       oppUpdateData.dealValue = req.body.dealValue ? Number(req.body.dealValue) : 0;
     }
@@ -217,6 +221,7 @@ const updateLead = async (req, res) => {
         source: req.body.source,
         email: req.body.email,
         phone: req.body.phone,
+        linkedinId: req.body.linkedinId,
         category: req.body.category,
         serviceType: req.body.serviceType,
         assignedUser: req.body.assignedUser,
@@ -229,6 +234,9 @@ const updateLead = async (req, res) => {
       if (oppIdx !== -1) {
         db.opportunities[oppIdx].assignedSalesperson = req.body.assignedUser;
         db.opportunities[oppIdx].assignedSalespersonId = req.body.assignedUserId;
+        if (req.body.linkedinId !== undefined) {
+          db.opportunities[oppIdx].linkedinId = req.body.linkedinId;
+        }
 
         const oppId = db.opportunities[oppIdx].id;
         const custIdx = db.customers.findIndex(c => c.opportunityId === oppId);

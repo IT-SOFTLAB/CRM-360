@@ -111,7 +111,6 @@ exports.createOpportunity = async (req, res) => {
     try {
 
         const {
-
             leadId,
             customerName,
             company,
@@ -119,7 +118,8 @@ exports.createOpportunity = async (req, res) => {
             phone,
             dealValue,
             assignedSalesperson,
-            expectedClosing
+            expectedClosing,
+            linkedinId
 
         } = req.body;
 
@@ -137,6 +137,8 @@ exports.createOpportunity = async (req, res) => {
                 email,
 
                 phone,
+
+                linkedinId,
 
                 dealValue: Number(dealValue),
 
@@ -222,6 +224,7 @@ exports.updateOpportunity = async (req, res) => {
       if (req.body.company !== undefined) leadUpdateData.company = req.body.company;
       if (req.body.email !== undefined) leadUpdateData.email = req.body.email;
       if (req.body.phone !== undefined) leadUpdateData.phone = req.body.phone;
+      if (req.body.linkedinId !== undefined) leadUpdateData.linkedinId = req.body.linkedinId;
       if (req.body.dealValue !== undefined) leadUpdateData.dealValue = req.body.dealValue ? Number(req.body.dealValue) : 0;
       if (req.body.category !== undefined) leadUpdateData.category = req.body.category;
       if (req.body.serviceType !== undefined) leadUpdateData.serviceType = req.body.serviceType;
@@ -270,6 +273,7 @@ exports.updateOpportunity = async (req, res) => {
         company: req.body.company !== undefined ? req.body.company : db.opportunities[oppIdx].company,
         email: req.body.email !== undefined ? req.body.email : db.opportunities[oppIdx].email,
         phone: req.body.phone !== undefined ? req.body.phone : db.opportunities[oppIdx].phone,
+        linkedinId: req.body.linkedinId !== undefined ? req.body.linkedinId : db.opportunities[oppIdx].linkedinId,
         dealValue: req.body.dealValue !== undefined ? Number(req.body.dealValue) : db.opportunities[oppIdx].dealValue,
         stage: req.body.stage !== undefined ? req.body.stage : db.opportunities[oppIdx].stage,
         stageId: req.body.stageId !== undefined ? req.body.stageId : db.opportunities[oppIdx].stageId,
@@ -287,6 +291,7 @@ exports.updateOpportunity = async (req, res) => {
           if (req.body.company !== undefined) db.leads[lIdx].company = req.body.company;
           if (req.body.email !== undefined) db.leads[lIdx].email = req.body.email;
           if (req.body.phone !== undefined) db.leads[lIdx].phone = req.body.phone;
+          if (req.body.linkedinId !== undefined) db.leads[lIdx].linkedinId = req.body.linkedinId;
           if (req.body.dealValue !== undefined) db.leads[lIdx].dealValue = Number(req.body.dealValue);
         }
       }
@@ -395,6 +400,7 @@ exports.convertLeadToOpportunity = async (req, res) => {
         company: lead.company,
         email: lead.email,
         phone: lead.phone,
+        linkedinId: lead.linkedinId,
         dealValue: Number(dealValue),
         assignedSalesperson:
           salesperson ||

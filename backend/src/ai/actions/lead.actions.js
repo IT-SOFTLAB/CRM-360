@@ -102,94 +102,68 @@ await UserResolver.resolve(
 //-------------------------------------
 // Placeholder Actions
 //-------------------------------------
+
 async function create(parameters, req) {
-    const {
+  const {
+    contactName,
+    company,
+    email,
+    phone,
+    category,
+    serviceType,
+    assignee
+  } = parameters;
 
-        contactName,
+  const role = (req.user.role || '').toUpperCase();
 
-        company,
+  //-------------------------------------
+  // USER role -> always assign to self
+  //-------------------------------------
 
-        email,
+  let finalUser = null;
 
-        phone,
+  if (role === 'USER') {
+    finalUser = req.user;
+  } else {
+    //-----------------------------------
+    // ADMIN / SUPER_ADMIN
+    //-----------------------------------
 
-        category,
-
-        serviceType,
-
-        assignee
-
-    } = parameters;
-
-const role = (req.user.role || "").toUpperCase();
-
-if (
-    role === "USER" &&
-    assignee &&
-    assignee.toLowerCase() !== req.user.name.toLowerCase()
-) {
-
-    return {
-
-        success: false,
-
-        message: "You can only assign leads to yourself."
-
-    };
-
-}
-
-    const user =
-        await LeadService.findUserByName(
-
-            assignee
-
-        );
-
-    if (!user) {
-
-        return {
-
-            success: false,
-
-            message: "Assigned user not found."
-
-        };
-
+    if (assignee) {
+      finalUser = await LeadService.findUserByName(assignee);
     }
 
-    const lead =
-        await LeadService.createLead({
+    // fallback to logged-in admin
+    if (!finalUser) {
+      finalUser = req.user;
+    }
+  }
 
-            contactName,
-
-            company,
-
-            email,
-
-            phone,
-
-            category,
-
-            serviceType,
-
-            assignedUser: user.name,
-
-            assignedUserId: user.id
-
-        });
-
+  if (!finalUser) {
     return {
-
-        success: true,
-
-        message: "Lead created successfully.",
-
-        data: lead
-
+      success: false,
+      message: 'Assigned user not found.'
     };
+  }
 
+  const lead = await LeadService.createLead({
+    contactName,
+    company,
+    email,
+    phone,
+    category,
+    serviceType,
+    assignedUser: finalUser.name,
+    assignedUserId: finalUser.id
+  });
+
+  return {
+    success: true,
+    message: 'Lead created successfully.',
+    data: lead
+  };
 }
+
 
 //------------------------------------------------------
 // UPDATE LEAD
@@ -252,16 +226,73 @@ async function update(parameters, req) {
 
 }
 
-async function remove() {
+async function deleteLead(parameters, req) {
+    const contactName = parameters.contactName || parameters.lead || parameters.leadName || parameters.name;
+    if (!contactName) {
+        return {
+            success: false,
+            message: "contactName is required to delete a lead."
+        };
+    }
+
+    const { PrismaClient } = require("@prisma/client");
+    const prisma = new PrismaClient();
+
+    const lead = await prisma.lead.findFirst({
+        where: {
+            contactName: {
+                equals: contactName,
+                mode: "insensitive"
+            }
+        }
+    });
+
+    if (!lead) {
+        return {
+            success: false,
+            message: `Lead '${contactName}' not found.`
+        };
+    }
+
+    // Authorization
+    const AuthorizationService = require("../services/authorization.service");
+    if (!AuthorizationService.isAdminLike(req.user)) {
+        if (lead.assignedUserId !== req.user.id) {
+            return {
+                success: false,
+                message: "Access denied. You do not own this lead."
+            };
+        }
+    }
+
+    // Delete associated opportunities first
+    await prisma.opportunity.deleteMany({
+        where: { leadId: lead.id }
+    }).catch(err => console.log("Associated opportunities deletion failed:", err.message));
+
+    await prisma.lead.delete({
+        where: { id: lead.id }
+    });
+
+    // Also update db.json to keep them synced
+    const fs = require('fs');
+    const path = require('path');
+    const dbPath = path.join(__dirname, '../../../db.json');
+    try {
+        if (fs.existsSync(dbPath)) {
+            const db = JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+            db.leads = db.leads.filter(l => l.id !== lead.id);
+            db.opportunities = db.opportunities.filter(o => o.leadId !== lead.id);
+            fs.writeFileSync(dbPath, JSON.stringify(db, null, 2));
+        }
+    } catch (err) {
+        console.error("Error syncing db.json on lead delete:", err);
+    }
 
     return {
-
-        success: false,
-
-        message: "Delete Lead not implemented."
-
+        success: true,
+        message: `Lead '${contactName}' deleted successfully.`
     };
-
 }
 
 async function search(parameters, req) {
@@ -296,7 +327,7 @@ module.exports = {
 
     update,
 
-    remove,
+    deleteLead,
 
     search
 

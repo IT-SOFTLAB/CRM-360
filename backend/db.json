@@ -83,6 +83,11 @@
       "id": "p_1784274200936",
       "name": "D2s",
       "order": 5
+    },
+    {
+      "id": "p_1786358620535",
+      "name": "Proposal",
+      "order": 9
     }
   ],
   "referralPipelines": [
@@ -649,6 +654,42 @@
     "logoText": "CRM"
   },
   "auditLogs": [
+    {
+      "id": "log_1786358585232_qwh2b",
+      "timestamp": "2026-08-10T10:43:05.232Z",
+      "user": "System",
+      "role": "System",
+      "action": "DELETE_PIPELINE",
+      "module": "Settings",
+      "details": "Deleted pipeline stage: proposal"
+    },
+    {
+      "id": "log_1786358568130_sa8xe",
+      "timestamp": "2026-08-10T10:42:48.130Z",
+      "user": "System",
+      "role": "System",
+      "action": "CREATE_PIPELINE",
+      "module": "Settings",
+      "details": "Created sales pipeline stage: proposal"
+    },
+    {
+      "id": "log_1786358497019_cctvd",
+      "timestamp": "2026-08-10T10:41:37.019Z",
+      "user": "System",
+      "role": "System",
+      "action": "DELETE_PIPELINE",
+      "module": "Settings",
+      "details": "Deleted pipeline stage: proposal"
+    },
+    {
+      "id": "log_1786354521078_7rfa3",
+      "timestamp": "2026-08-10T09:35:21.078Z",
+      "user": "System",
+      "role": "System",
+      "action": "CREATE_PIPELINE",
+      "module": "Settings",
+      "details": "Created sales pipeline stage: proposal"
+    },
     {
       "id": "log_1784274218017_dcgzf",
       "timestamp": "2026-07-17T07:43:38.017Z",

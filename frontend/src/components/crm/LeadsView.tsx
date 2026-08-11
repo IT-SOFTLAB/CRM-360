@@ -88,6 +88,7 @@ export default function LeadsView({
     company: '',
     email: '',
     phone: '',
+    linkedinId: '',
     source: 'Website',
     serviceType: '',
     category: '',
@@ -160,6 +161,7 @@ export default function LeadsView({
       company: '',
       email: '',
       phone: '',
+      linkedinId: '',
       source: 'Website',
       serviceType: '',
       category: '',
@@ -365,7 +367,7 @@ export default function LeadsView({
                   />
                   <input
                     type="text"
-                    value={selectedLead.company}
+                    value={selectedLead.company || ''}
                     onChange={(e) =>
                       setSelectedLead({
                         ...selectedLead,
@@ -389,7 +391,7 @@ export default function LeadsView({
                     <p className="text-slate-400 font-semibold uppercase text-[10px]">Email</p>
                     <input
                       type="email"
-                      value={selectedLead.email}
+                      value={selectedLead.email || ''}
                       onChange={(e) =>
                         setSelectedLead({
                           ...selectedLead,
@@ -403,11 +405,25 @@ export default function LeadsView({
                     <p className="text-slate-400 font-semibold uppercase text-[10px]">Phone</p>
                     <input
                       type="text"
-                      value={selectedLead.phone}
+                      value={selectedLead.phone || ''}
                       onChange={(e) =>
                         setSelectedLead({
                           ...selectedLead,
                           phone: e.target.value
+                        })
+                      }
+                      className="w-full border rounded-lg px-3 py-2"
+                    />
+                  </div>
+                  <div>
+                    <p className="text-slate-400 font-semibold uppercase text-[10px]">LinkedIn ID</p>
+                    <input
+                      type="text"
+                      value={selectedLead.linkedinId || ''}
+                      onChange={(e) =>
+                        setSelectedLead({
+                          ...selectedLead,
+                          linkedinId: e.target.value
                         })
                       }
                       className="w-full border rounded-lg px-3 py-2"
@@ -610,6 +626,15 @@ export default function LeadsView({
                       className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary bg-white"
                       value={leadForm.dealValue}
                       onChange={e => setLeadForm({ ...leadForm, dealValue: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1">LinkedIn ID</label>
+                    <input
+                      type="text"
+                      className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary bg-white"
+                      value={leadForm.linkedinId || ''}
+                      onChange={e => setLeadForm({ ...leadForm, linkedinId: e.target.value })}
                     />
                   </div>
                 <div className="col-span-2">
