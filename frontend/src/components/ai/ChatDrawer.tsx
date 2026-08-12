@@ -17,7 +17,7 @@ export default function ChatDrawer({ open, onClose }: Props) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      text: "👋 Hello! I am your CRM-360 AI Assistant.",
+      text: "👋 Hello! I am your CRM-360 AI Agent.",
     },
   ]);
 
@@ -182,7 +182,7 @@ export default function ChatDrawer({ open, onClose }: Props) {
           fontWeight: 600,
         }}
       >
-        CRM-360 AI Assistant
+        CRM-360 AI Agent
 
         <button
           onClick={onClose}
