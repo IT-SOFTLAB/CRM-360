@@ -105,14 +105,94 @@ class PipelineService {
         });
 
         // Keep Lead status in sync
-        if (updated.leadId) {
-            await prisma.lead.update({
-                where: { id: updated.leadId },
-                data: { status: updated.stage }
-            });
+        //------------------------------------
+
+      if (updated.leadId) {
+
+    await prisma.lead.update({
+
+        where: {
+
+            id: updated.leadId
+
+        },
+
+        data: {
+
+            status: stage
+
         }
 
-        return updated;
+    });
+
+}
+
+//------------------------------------
+// Create Customer when Won
+//------------------------------------
+
+if (stage.toLowerCase() === "won") {
+
+    console.log(
+        "Opportunity moved to Won. Checking customer..."
+    );
+
+    const existingCustomer =
+        await prisma.customer.findFirst({
+
+            where: {
+
+                opportunityId: updated.id
+
+            }
+
+        });
+
+    console.log(
+        "Existing customer:",
+        existingCustomer
+    );
+
+    if (!existingCustomer) {
+
+    await prisma.customer.create({
+
+        data: {
+
+            opportunityId: updated.id,
+
+            customerName: updated.customerName,
+
+            company: updated.company,
+
+            email: updated.email,
+
+            phone: updated.phone,
+
+            assignedSalesperson:
+                updated.assignedSalesperson,
+
+            assignedSalespersonId:
+                updated.assignedSalespersonId,
+
+            dealValue:
+                updated.dealValue || 0
+
+        }
+
+    });
+
+    console.log(
+        "Customer created successfully:",
+        updated.customerName
+    );
+
+}
+
+}
+    
+return updated;
+
     }
 }
 
