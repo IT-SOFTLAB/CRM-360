@@ -57,6 +57,13 @@ setStages(data ?? []);
   };
 
   const handleDeleteStage = async (id: string) => {
+    const stage = stages.find(s => s.id === id);
+    const mandatory = ['new', 'won', 'lost'];
+    if (stage && mandatory.includes((stage.name || '').trim().toLowerCase())) {
+      toastCtx?.addToast("error", `Stage "${stage.name}" is mandatory and cannot be deleted.`);
+      return;
+    }
+
     try {
       await pipelineService.deleteStage(id);
       await loadStages();

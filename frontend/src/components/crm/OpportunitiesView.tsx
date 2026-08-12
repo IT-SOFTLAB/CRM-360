@@ -817,13 +817,15 @@ const handleBulkDelete = async () => {
                     >
                       <ChevronRight className="w-3 h-3" />
                     </button>
-                    <button
-                      onClick={() => onDeleteStage(stage.id)}
-                      className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-rose-500 cursor-pointer"
-                      title="Delete Stage"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </button>
+                    {!['new', 'won', 'lost'].includes((stage.name || '').trim().toLowerCase()) && (
+                      <button
+                        onClick={() => onDeleteStage(stage.id)}
+                        className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded text-rose-500 cursor-pointer"
+                        title="Delete Stage"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
                   </div>
                 </div>
 

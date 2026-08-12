@@ -62,7 +62,7 @@ export default function ReferralStageColumn({
 
         </div>
 
-        {stage.sequence !== 1 && (
+        {stage.sequence !== 1 && !['new', 'won', 'lost'].includes((stage.name || '').trim().toLowerCase()) && (
           <button
             onClick={() => onDeleteStage(stage.id)}
             className="text-red-500 hover:text-red-700"

@@ -1464,7 +1464,7 @@ export default function DashboardView({
                     const yr = startYr + i;
                     const isCurrent = yr === now.getFullYear();
                     const val = opportunities
-                      .filter(o => o.stageId === 'p_6')
+                      .filter(o => o.stageId === 'p_6' || (o.stage || '').toLowerCase().includes('won'))
                       .filter(o => {
                         const d = new Date(o.closedDate || o.createdDate || o.createdAt || now);
                         return d.getFullYear() === yr;
@@ -1481,7 +1481,7 @@ export default function DashboardView({
                     const mo = startMo + i;
                     const isCurrent = yr === now.getFullYear() && mo === now.getMonth();
                     const val = opportunities
-                      .filter(o => o.stageId === 'p_6')
+                      .filter(o => o.stageId === 'p_6' || (o.stage || '').toLowerCase().includes('won'))
                       .filter(o => {
                         const cd = new Date(o.closedDate || o.createdDate || o.createdAt || now);
                         return cd.getFullYear() === yr && cd.getMonth() === mo;
@@ -1505,7 +1505,7 @@ export default function DashboardView({
                                       day.getDate() === now.getDate();
 
                     const val = opportunities
-                      .filter(o => o.stageId === 'p_6')
+                      .filter(o => o.stageId === 'p_6' || (o.stage || '').toLowerCase().includes('won'))
                       .filter(o => {
                         const cd = new Date(o.closedDate || o.createdDate || o.createdAt || now);
                         return cd >= day && cd <= dayEnd;

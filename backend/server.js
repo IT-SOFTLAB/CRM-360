@@ -226,6 +226,11 @@ app.delete('/api/pipelines/:id', async (req, res) => {
     });
     if (!stage) return res.status(404).json({ message: 'Pipeline stage not found' });
 
+    const mandatory = ['new', 'won', 'lost'];
+    if (mandatory.includes((stage.name || '').trim().toLowerCase())) {
+      return res.status(400).json({ message: `System stage "${stage.name}" is mandatory and cannot be deleted.` });
+    }
+
     await prisma.pipelineStage.delete({
       where: { id }
     });

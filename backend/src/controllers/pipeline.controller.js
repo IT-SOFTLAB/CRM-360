@@ -135,6 +135,13 @@ exports.deleteStage = async (req, res) => {
       });
     }
 
+    const mandatory = ['new', 'won', 'lost'];
+    if (mandatory.includes((stage.name || '').trim().toLowerCase())) {
+      return res.status(400).json({
+        message: `System stage "${stage.name}" is mandatory and cannot be deleted.`,
+      });
+    }
+
   const count = await prisma.referralPipeline.count();
 
 if (count === 1) {

@@ -8,6 +8,7 @@ import { ToastContext } from './ToastContext';
 import { AuthContext } from './AuthContext';
 import { ReferralContext } from './ReferralContext';
 import { LeadContext } from './LeadContext';
+import { CustomerContext } from './CustomerContext';
 
 export interface OpportunityContextType {
   opportunities: Opportunity[];
@@ -41,6 +42,7 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const authCtx = useContext(AuthContext);
   const referralCtx = useContext(ReferralContext);
   const leadCtx = useContext(LeadContext);
+  const customerCtx = useContext(CustomerContext);
 
   const loadOpportunities = async () => {
     const apiOpps = await opportunityService.getOpportunities();
@@ -91,6 +93,9 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // if (toastCtx) toastCtx.addToast('success', `Opportunity moved to stage`);
       await loadOpportunities();
       if (leadCtx) await leadCtx.loadLeads();
+      // If moved to Won, refresh customers so Clients page updates immediately
+      const isWon = (stage?.name || '').toLowerCase().includes('won');
+      if (isWon && customerCtx) await customerCtx.loadCustomers();
     } else {
       if (stage) {
         const stageName = stage.name;
@@ -164,6 +169,12 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
   };
 
   const handleStageDelete = async (stageId: string) => {
+    const stage = pipelines.find(p => p.id === stageId);
+    const mandatory = ['new', 'won', 'lost'];
+    if (stage && mandatory.includes((stage.name || '').trim().toLowerCase())) {
+      if (toastCtx) toastCtx.addToast('error', `Stage "${stage.name}" is mandatory and cannot be deleted.`);
+      return;
+    }
 
     const res = await opportunityService.deleteStage(stageId);
     if (res) {
