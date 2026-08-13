@@ -367,7 +367,7 @@ async function submit(parameters, req) {
                         changedBy:
                             req?.user?.name || "System",
                         remarks:
-                            "Referral Created by AI"
+                            "Referral Created"
                     }
                 }
 
