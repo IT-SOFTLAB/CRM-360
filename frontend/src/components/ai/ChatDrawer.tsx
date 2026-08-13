@@ -94,9 +94,25 @@ export default function ChatDrawer({ open, onClose }: Props) {
                   if (data.length > 0) {
                     msg += `\n\n🔍 Found Leads:`;
                     data.forEach((lead: any) => {
-                      msg += `\n- ${lead.contactName} (${lead.company || "No Company"})` +
-                             `\n  Status: ${lead.status} | Category: ${lead.category || "None"}` +
+                      msg += `\n- ${lead.contactName || lead.name || "Unnamed"} (${lead.company || "No Company"})` +
+                             `\n  Status: ${lead.status || "N/A"} | Category: ${lead.category || "None"}` +
                              `\n  Value: ₹${(lead.dealValue ?? 0).toLocaleString()}`;
+                    });
+                  }
+                } else if ((step.tool === "client" || step.tool === "customer") && Array.isArray(data)) {
+                  if (data.length > 0) {
+                    msg += `\n\n💼 Client Details:`;
+                    data.forEach((client: any) => {
+                      const name = client.customerName || client.name || "Unnamed Client";
+                      const company = client.company ? ` (${client.company})` : "";
+                      const val = client.dealValue !== undefined && client.dealValue !== null ? `₹${Number(client.dealValue).toLocaleString()}` : "N/A";
+                      const status = client.status ? ` | Status: ${client.status}` : "";
+                      const salesperson = client.assignedSalesperson ? ` | Salesperson: ${client.assignedSalesperson}` : "";
+                      const contactInfo = [client.email, client.phone].filter(Boolean).join(" | ");
+
+                      msg += `\n- ${name}${company}` +
+                             `\n  Deal Value: ${val}${status}${salesperson}` +
+                             (contactInfo ? `\n  Contact: ${contactInfo}` : "");
                     });
                   }
                 } else if (step.tool === "report" && step.action === "generate" && data) {
@@ -119,6 +135,16 @@ export default function ChatDrawer({ open, onClose }: Props) {
                       msg += `\n- ${stage}: ${count}`;
                     });
                   }
+                } else if (Array.isArray(data) && data.length > 0) {
+                  msg += `\n\n📋 Details:`;
+                  data.forEach((item: any) => {
+                    const name = item.customerName || item.contactName || item.name || item.title || "Item";
+                    const company = item.company && item.company !== name ? ` (${item.company})` : "";
+                    const val = item.dealValue !== undefined && item.dealValue !== null ? ` | Deal Value: ₹${Number(item.dealValue).toLocaleString()}` : "";
+                    const status = item.status ? ` | Status: ${item.status}` : "";
+
+                    msg += `\n- ${name}${company}${val}${status}`;
+                  });
                 }
               }
               return msg;

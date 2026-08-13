@@ -102,6 +102,18 @@ export default function ReferralsView({
 
 const [showStageModal, setShowStageModal] = useState(false);
 
+  const wonOpportunities = (opportunities ?? []).filter((o: any) => {
+    const stageIdStr = String(o.stageId || '').toLowerCase();
+    const stageStr = String(o.stage || '').toLowerCase();
+    const statusStr = String(o.status || '').toLowerCase();
+    return (
+      stageIdStr === 'p_6' ||
+      stageIdStr.includes('won') ||
+      stageStr.includes('won') ||
+      statusStr.includes('won')
+    );
+  });
+
   return (
     <div className="space-y-6 text-xs text-slate-800 dark:text-slate-200">
       
@@ -122,7 +134,14 @@ const [showStageModal, setShowStageModal] = useState(false);
           </h3>
         </div>
 
-      
+        <div className="bg-card rounded-2xl p-5 border border-border-crm shadow-xs">
+          <p className="text-xs font-bold text-txt-secondary uppercase tracking-wide">Qualified Leads</p>
+          <h3 className="text-2xl font-extrabold text-warning mt-1">
+         {
+dashboard?.qualifiedLeads ?? 0
+}
+          </h3>
+        </div>
 
         {/* <div className="bg-card rounded-2xl p-5 border border-border-crm shadow-xs">
           <p className="text-xs font-bold text-txt-secondary uppercase tracking-wide">Conversions</p>
@@ -193,22 +212,28 @@ const [showStageModal, setShowStageModal] = useState(false);
                   className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none bg-white dark:bg-slate-800"
                   value={referralForm.referrerName}
                   onChange={e => {
-                    const oppObj = opportunities.find(o => o.customerName === e.target.value);
+                    const selectedVal = e.target.value;
+                    const oppObj = wonOpportunities.find(o => (o.customerName || o.name || o.contactName) === selectedVal);
+                    const cName = oppObj ? (oppObj.customerName || oppObj.name || oppObj.contactName) : selectedVal;
+                    const cComp = oppObj ? (oppObj.company || oppObj.companyName || "") : "";
                     setReferralForm({
-  ...referralForm,
-
-  referrerId: oppObj?.id || "",
-
-  referrerName: oppObj?.customerName || "",
-
-  referrerCompany: oppObj?.company || ""
-});
+                      ...referralForm,
+                      referrerId: oppObj?.id || "",
+                      referrerName: cName || "",
+                      referrerCompany: cComp
+                    });
                   }}
                 >
                   <option value="">Select referrer</option>
-                  {opportunities.filter(o => o.stageId === 'p_6').map(opp => (
-                    <option key={opp.id} value={opp.customerName}>{opp.customerName} ({opp.company})</option>
-                  ))}
+                  {wonOpportunities.map((opp: any) => {
+                    const cName = opp.customerName || opp.name || opp.contactName || "Unnamed Client";
+                    const comp = opp.company || opp.companyName;
+                    return (
+                      <option key={opp.id} value={cName}>
+                        {cName}{comp ? ` (${comp})` : ""}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
               <div>

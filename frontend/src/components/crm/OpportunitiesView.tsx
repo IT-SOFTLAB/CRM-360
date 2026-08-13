@@ -187,27 +187,32 @@ export default function OpportunitiesView({
       'Phone',
       'Deal Value',
       'Stage',
-      'Expected Closing',
+      'LinkedIn ID',
       'Priority (Stars)',
       'Tags',
       'Salesperson',
       'Created Date'
     ];
 
-    const rows = opportunities.map(opp => [
-      opp.id,
-      opp.customerName || '',
-      opp.company || '',
-      opp.email || '',
-      opp.phone || '',
-      opp.dealValue || 0,
-      opp.stage || '',
-      opp.expectedClosing ? new Date(opp.expectedClosing).toLocaleDateString() : '',
-      getPriorityStars(opp.priority),
-      (opp.tags || []).join('; '),
-      opp.assignedSalesperson || '',
-      opp.createdAt ? new Date(opp.createdAt).toLocaleDateString() : ''
-    ]);
+    const rows = opportunities.map(opp => {
+      const associatedLead = (leads || []).find((l: any) => l.id === opp.leadId);
+      const linkedinIdVal = opp.linkedinId || (opp as any).linkedInId || associatedLead?.linkedinId || '';
+
+      return [
+        opp.id,
+        opp.customerName || '',
+        opp.company || '',
+        (opp as any).email || associatedLead?.email || '',
+        (opp as any).phone || associatedLead?.phone || '',
+        opp.dealValue || 0,
+        opp.stage || '',
+        linkedinIdVal,
+        getPriorityStars(opp.priority),
+        (opp.tags || []).join('; '),
+        opp.assignedSalesperson || '',
+        opp.createdAt ? new Date(opp.createdAt).toLocaleDateString() : ''
+      ];
+    });
 
     const csvContent = '\uFEFF' + [
       headers.join(','),
