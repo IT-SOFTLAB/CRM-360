@@ -19,6 +19,11 @@ interface Props {
     id: string
   ) => void;
 
+  onReorderStage?: (
+    stageId: string,
+    direction: 'left' | 'right'
+  ) => void;
+
   onAddStage: () => void;
 
   onOpenReferral: (
@@ -31,6 +36,7 @@ export default function ReferralPipelineBoard({
   stages,
   onMoveReferral,
   onDeleteStage,
+  onReorderStage,
   onAddStage,
   onOpenReferral,
 }: Props) {
@@ -101,6 +107,7 @@ export default function ReferralPipelineBoard({
       referrals={stageReferrals}
       onMoveReferral={onMoveReferral}
       onDeleteStage={onDeleteStage}
+      onReorderStage={onReorderStage}
       onOpenReferral={onOpenReferral}
     />
   );

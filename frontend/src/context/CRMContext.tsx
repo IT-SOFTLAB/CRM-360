@@ -51,7 +51,7 @@ export interface CRMContextType {
 
   handleDeleteReferralStage: (id: string) => Promise<void>;
 
-  handleReferralStageReorder: (stages: any[]) => Promise<void>;
+  handleReferralStageReorder: (stageIdOrStages: any, direction?: 'left' | 'right') => Promise<void>;
   activities: any[];
   setActivities: React.Dispatch<React.SetStateAction<any[]>>;
   emails: any[];
@@ -574,8 +574,12 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
 
       handleDeleteReferralStage: pipelineCtx.handleDeleteStage,
 
-      handleReferralStageReorder:
-        pipelineCtx.handleReorderStages,
+      handleReferralStageReorder: (stageIdOrStages: any, direction?: 'left' | 'right') => {
+        if (typeof stageIdOrStages === 'string' && direction) {
+          return pipelineCtx.handleReorderStage(stageIdOrStages, direction);
+        }
+        return pipelineCtx.handleReorderStages(stageIdOrStages);
+      },
       setReferralPipelines: pipelineCtx.setStages,
       activities: activityCtx.activities,
       setActivities: activityCtx.setActivities,

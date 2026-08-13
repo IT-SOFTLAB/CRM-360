@@ -48,6 +48,11 @@ interface ReferralsViewProps {
 
   )=>void;
 
+  onReorderStage?: (
+      stageId: string,
+      direction: 'left' | 'right'
+  ) => void;
+
   dashboard: any;
 
 }
@@ -83,6 +88,8 @@ export default function ReferralsView({
 
     onDeleteReferralStage,
 
+    onReorderStage,
+
     dashboard
 
 }: ReferralsViewProps) {
@@ -115,14 +122,7 @@ const [showStageModal, setShowStageModal] = useState(false);
           </h3>
         </div>
 
-        <div className="bg-card rounded-2xl p-5 border border-border-crm shadow-xs">
-          <p className="text-xs font-bold text-txt-secondary uppercase tracking-wide">Qualified Leads</p>
-          <h3 className="text-2xl font-extrabold text-warning mt-1">
-         {
-dashboard?.qualifiedLeads ?? 0
-}
-          </h3>
-        </div>
+      
 
         {/* <div className="bg-card rounded-2xl p-5 border border-border-crm shadow-xs">
           <p className="text-xs font-bold text-txt-secondary uppercase tracking-wide">Conversions</p>
@@ -147,6 +147,8 @@ dashboard?.qualifiedLeads ?? 0
     onMoveReferral={onMoveReferral}
 
     onDeleteStage={onDeleteReferralStage}
+
+    onReorderStage={onReorderStage}
 
     onAddStage={() => setShowStageModal(true)}
 

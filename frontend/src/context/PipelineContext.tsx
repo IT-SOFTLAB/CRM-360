@@ -20,6 +20,8 @@ export interface PipelineContextType {
   handleDeleteStage: (id: string) => Promise<void>;
 
   handleReorderStages: (stages: ReferralPipeline[]) => Promise<void>;
+
+  handleReorderStage: (stageId: string, direction: 'left' | 'right') => Promise<void>;
 }
 
 export const PipelineContext =
@@ -38,7 +40,7 @@ export const PipelineProvider = ({
     try {
       const data = await pipelineService.getStages();
 
-setStages(data ?? []);
+      setStages(data ?? []);
     } catch (err) {
       console.warn(err);
       toastCtx?.addToast("error", "Unable to load stages");
@@ -75,20 +77,52 @@ setStages(data ?? []);
   };
 
   const handleReorderStages = async (
-    stages: ReferralPipeline[]
+    stagesList: ReferralPipeline[]
   ) => {
     try {
-      await pipelineService.reorderStages(stages);
-      await loadStages();
+      const res = await pipelineService.reorderStages(stagesList);
+      if (res && Array.isArray(res)) {
+        setStages(res);
+      } else {
+        await loadStages();
+      }
     } catch (err) {
       console.warn(err);
       toastCtx?.addToast("error", "Unable to reorder stages");
     }
   };
 
+  const handleReorderStage = async (stageId: string, direction: 'left' | 'right') => {
+    const sorted = [...stages].sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0));
+    const stageIdx = sorted.findIndex(s => s.id === stageId);
+    if (stageIdx === -1) return;
+    const targetIdx = direction === 'left' ? stageIdx - 1 : stageIdx + 1;
+    if (targetIdx < 0 || targetIdx >= sorted.length) return;
 
+    const temp = sorted[stageIdx];
+    sorted[stageIdx] = sorted[targetIdx];
+    sorted[targetIdx] = temp;
 
+    const updated = sorted.map((st, index) => ({
+      ...st,
+      sequence: index + 1,
+    }));
 
+    setStages(updated);
+
+    try {
+      const res = await pipelineService.reorderStages(updated);
+      if (res && Array.isArray(res)) {
+        setStages(res);
+      } else {
+        await loadStages();
+      }
+    
+    } catch (err) {
+      console.warn(err);
+      toastCtx?.addToast("error", "Unable to reorder stages");
+    }
+  };
 
   return (
     <PipelineContext.Provider
@@ -99,6 +133,7 @@ setStages(data ?? []);
         handleCreateStage,
         handleDeleteStage,
         handleReorderStages,
+        handleReorderStage,
       }}
     >
       {children}

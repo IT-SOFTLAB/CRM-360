@@ -23,8 +23,9 @@ export default function ReferralsPage() {
 
 onAddReferralStage={crm.handleAddReferralStage}
 
-onDeleteReferralStage={crm.handleDeleteReferralStage}
-dashboard={crm.dashboard}
+    onDeleteReferralStage={crm.handleDeleteReferralStage}
+    onReorderStage={crm.handleReferralStageReorder}
+    dashboard={crm.dashboard}
     />
   );
 }

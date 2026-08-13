@@ -182,39 +182,36 @@ if (count === 1) {
  */
 exports.reorderStages = async (req, res) => {
   try {
-    const stages = await prisma.referralPipeline.findMany({
-    orderBy: {
-        sequence: "asc",
-    },
-});
-
-await prisma.$transaction(
-
-    stages.map((stage, index) =>
-
-        prisma.referralPipeline.update({
-
+    const stagesList = Array.isArray(req.body) ? req.body : (req.body && req.body.stages);
+    if (stagesList && Array.isArray(stagesList)) {
+      await prisma.$transaction(
+        stagesList.map((stage, index) =>
+          prisma.referralPipeline.update({
             where: {
-
-                id: stage.id,
-
+              id: stage.id,
             },
-
             data: {
-
-                sequence: index + 1,
-
+              sequence: stage.sequence !== undefined ? Number(stage.sequence) : (stage.order !== undefined ? Number(stage.order) : index + 1),
             },
+          })
+        )
+      );
+    }
 
-        })
-
-    )
-
-);
-
-    res.json({
-      message: "Pipeline reordered successfully",
+    const updatedStages = await prisma.referralPipeline.findMany({
+      orderBy: {
+        sequence: "asc",
+      },
+      include: {
+        _count: {
+          select: {
+            referrals: true,
+          },
+        },
+      },
     });
+
+    res.json(updatedStages);
   } catch (err) {
     res.status(500).json({
       message: err.message,
