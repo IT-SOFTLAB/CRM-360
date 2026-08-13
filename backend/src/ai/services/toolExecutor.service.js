@@ -7,6 +7,7 @@ require("./workflow.service");
 const EmailTool = require("../tools/email.tool");
 const ReportTool = require("../tools/report.tool");
 const QuotationTool = require("../tools/quotation.tool");
+const ClientTool = require("../tools/client.tool");
 class ToolExecutor {
 
     constructor() {
@@ -25,7 +26,8 @@ class ToolExecutor {
 
     report: ReportTool,
 
-    quotation: QuotationTool
+    quotation: QuotationTool,
+    client: ClientTool
 
 };
     }

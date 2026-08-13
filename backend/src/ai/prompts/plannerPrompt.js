@@ -89,10 +89,10 @@ cancel
 client
 
 create
-
 update
-
 delete
+search
+convert
 
 
 
@@ -160,11 +160,12 @@ Choose the tool based on the user's MAIN INTENT.
    -> quotation.send
    -> quotation.cancel
 
-7. Client management
-   -> client.create
-   -> client.update
-   -> client.delete
-   -> client.convert
+7.  Client management
+    -> client.create
+    -> client.update
+    -> client.delete
+    -> client.search
+    -> client.convert
 
 8. Email management
    -> email.draft
@@ -1018,6 +1019,154 @@ Use this tool when the user asks:
 Action:
  
 create
+
+--------------------------------------------------
+CLIENT SEARCH
+--------------------------------------------------
+
+Use client.search when the user asks to:
+
+- Show clients
+- Find clients
+- Search clients
+- List clients
+- Show clients by deal size
+- Show clients above a deal value
+- Show clients below a deal value
+- Show clients between two deal values
+- Sort clients by deal value
+- Show highest-value clients
+- Show lowest-value clients
+
+Parameters:
+
+"minDealValue": minimum deal value or null
+
+"maxDealValue": maximum deal value or null
+
+"sortBy": sorting field or null
+
+"sortOrder": "asc", "desc", or null
+
+"limit": number of clients to return or null
+
+
+Examples:
+
+User:
+
+Show clients above 100000
+
+Output:
+
+{
+    "steps":[
+        {
+            "tool":"client",
+            "action":"search",
+            "parameters":{
+                "minDealValue":100000,
+                "maxDealValue":null,
+                "sortBy":null,
+                "sortOrder":null,
+                "limit":null
+            }
+        }
+    ]
+}
+
+
+User:
+
+Show clients below 50000
+
+Output:
+
+{
+    "steps":[
+        {
+            "tool":"client",
+            "action":"search",
+            "parameters":{
+                "minDealValue":null,
+                "maxDealValue":50000,
+                "sortBy":null,
+                "sortOrder":null,
+                "limit":null
+            }
+        }
+    ]
+}
+
+
+User:
+
+Show clients between 50000 and 200000
+
+Output:
+
+{
+    "steps":[
+        {
+            "tool":"client",
+            "action":"search",
+            "parameters":{
+                "minDealValue":50000,
+                "maxDealValue":200000,
+                "sortBy":null,
+                "sortOrder":null,
+                "limit":null
+            }
+        }
+    ]
+}
+
+
+User:
+
+Show clients with highest deal value
+
+Output:
+
+{
+    "steps":[
+        {
+            "tool":"client",
+            "action":"search",
+            "parameters":{
+                "minDealValue":null,
+                "maxDealValue":null,
+                "sortBy":"dealValue",
+                "sortOrder":"desc",
+                "limit":null
+            }
+        }
+    ]
+}
+
+
+User:
+
+Show top 5 clients by deal value
+
+Output:
+
+{
+    "steps":[
+        {
+            "tool":"client",
+            "action":"search",
+            "parameters":{
+                "minDealValue":null,
+                "maxDealValue":null,
+                "sortBy":"dealValue",
+                "sortOrder":"desc",
+                "limit":5
+            }
+        }
+    ]
+}
+
 `;
 
 module.exports = {
