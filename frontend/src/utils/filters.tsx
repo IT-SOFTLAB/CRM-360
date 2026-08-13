@@ -110,19 +110,33 @@ export const applyFilters = (
       filtered = filtered.filter(o => !o.assignedSalesperson || o.assignedSalesperson === 'Unassigned');
     }
   }
+  const isWonOpp = (o: any) => {
+    const stageIdStr = String(o?.stageId || '').toLowerCase().trim();
+    const stageStr = String(o?.stage || '').toLowerCase().trim();
+    const statusStr = String(o?.status || '').toLowerCase().trim();
+    return stageIdStr === 'p_6' || stageIdStr === 'won' || stageIdStr.includes('won') || stageStr.includes('won') || statusStr.includes('won');
+  };
+
+  const isLostOpp = (o: any) => {
+    const stageIdStr = String(o?.stageId || '').toLowerCase().trim();
+    const stageStr = String(o?.stage || '').toLowerCase().trim();
+    const statusStr = String(o?.status || '').toLowerCase().trim();
+    return stageIdStr === 'p_7' || stageIdStr === 'lost' || stageIdStr.includes('lost') || stageStr.includes('lost') || statusStr.includes('lost');
+  };
+
   if (activeFilters.open) {
     if (type === 'opportunities') {
-      filtered = filtered.filter(o => o.stageId !== 'p_6' && o.stageId !== 'p_7');
+      filtered = filtered.filter(o => !isWonOpp(o) && !isLostOpp(o));
     }
   }
   if (activeFilters.won) {
     if (type === 'opportunities') {
-      filtered = filtered.filter(o => o.stageId === 'p_6');
+      filtered = filtered.filter(isWonOpp);
     }
   }
   if (activeFilters.lost) {
     if (type === 'opportunities') {
-      filtered = filtered.filter(o => o.stageId === 'p_7');
+      filtered = filtered.filter(isLostOpp);
     }
   }
   if (activeFilters.category) {

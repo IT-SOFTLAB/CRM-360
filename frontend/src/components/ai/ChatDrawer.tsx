@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import aiService from "@/services/ai.service";
+import { useCRM } from "@/context/CRMContext";
 
 interface Props {
   open: boolean;
@@ -14,6 +15,7 @@ type Message = {
 };
 
 export default function ChatDrawer({ open, onClose }: Props) {
+  const crm = useCRM();
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
@@ -49,6 +51,11 @@ export default function ChatDrawer({ open, onClose }: Props) {
 
     try {
       const data = await aiService.sendMessage(userMessage);
+
+      // Automatically refresh frontend state so any AI action (create/update/delete/assign/schedule) reflects immediately on screen
+      if (crm?.loadCRMData) {
+        crm.loadCRMData().catch((err: any) => console.warn("Failed to reload CRM data after AI action:", err));
+      }
 
       const result = data.result;
 

@@ -39,6 +39,42 @@ const formatCRMRevenue = (val: number) => {
   return `₹${crVal % 1 === 0 ? crVal.toFixed(0) : crVal.toFixed(1)} Crore`;
 };
 
+const isWonOpp = (o: any): boolean => {
+  if (!o) return false;
+  const stageIdStr = String(o.stageId || '').toLowerCase().trim();
+  const stageStr = String(o.stage || '').toLowerCase().trim();
+  const statusStr = String(o.status || '').toLowerCase().trim();
+  return (
+    stageIdStr === 'p_6' ||
+    stageIdStr === 'won' ||
+    stageIdStr === 'stage_won' ||
+    stageIdStr.includes('won') ||
+    stageStr.includes('won') ||
+    statusStr === 'won' ||
+    statusStr === 'closed won'
+  );
+};
+
+const isLostOpp = (o: any): boolean => {
+  if (!o) return false;
+  const stageIdStr = String(o.stageId || '').toLowerCase().trim();
+  const stageStr = String(o.stage || '').toLowerCase().trim();
+  const statusStr = String(o.status || '').toLowerCase().trim();
+  return (
+    stageIdStr === 'p_7' ||
+    stageIdStr === 'lost' ||
+    stageIdStr === 'stage_lost' ||
+    stageIdStr.includes('lost') ||
+    stageStr.includes('lost') ||
+    statusStr === 'lost' ||
+    statusStr === 'closed lost'
+  );
+};
+
+const isOpenOpp = (o: any): boolean => {
+  return !isWonOpp(o) && !isLostOpp(o);
+};
+
 const PIE_COLORS = ['#2563EB', '#10B981', '#F43F5E'];
 const PIE_LABELS = ['Open Deals', 'Won Deals', 'Lost Deals'];
 
@@ -271,7 +307,7 @@ export default function DashboardView({
   // Total Revenue calculation
   const totalRevenueVal = useMemo(() => {
     const oppWonSum = filteredOpps
-      .filter(o => o.stageId === 'p_6')
+      .filter(isWonOpp)
       .reduce((sum, o) => sum + (o.dealValue || 0), 0);
     const quoteWonSum = quotations
       .filter(q => q.status === 'Confirmed')
@@ -286,7 +322,7 @@ export default function DashboardView({
   // Conversion rate calculation
   const conversionRate = useMemo(() => {
     if (!filteredOpps.length) return 0;
-    const wonCount = filteredOpps.filter(o => o.stageId === 'p_6').length;
+    const wonCount = filteredOpps.filter(isWonOpp).length;
     return Math.round((wonCount / filteredOpps.length) * 100);
   }, [filteredOpps]);
 
@@ -307,8 +343,8 @@ export default function DashboardView({
     ).length;
 
     const proposalCount = filteredOpps.filter(o => o.stageId === 'p_4' || (o.stage || '').toLowerCase() === 'proposal').length;
-    const wonCount = filteredOpps.filter(o => o.stageId === 'p_6' || (o.stage || '').toLowerCase() === 'won').length;
-    const lostCount = filteredOpps.filter(o => o.stageId === 'p_7' || (o.stage || '').toLowerCase() === 'lost').length;
+    const wonCount = filteredOpps.filter(isWonOpp).length;
+    const lostCount = filteredOpps.filter(isLostOpp).length;
 
     return { 
       new: newCount, 
@@ -321,9 +357,9 @@ export default function DashboardView({
 
   // Opportunity Pipeline count
   const pipelineChartData = useMemo(() => {
-    const openCount = filteredOpps.filter(o => o.stageId !== 'p_6' && o.stageId !== 'p_7').length;
-    const wonCount = filteredOpps.filter(o => o.stageId === 'p_6').length;
-    const lostCount = filteredOpps.filter(o => o.stageId === 'p_7').length;
+    const openCount = filteredOpps.filter(isOpenOpp).length;
+    const wonCount = filteredOpps.filter(isWonOpp).length;
+    const lostCount = filteredOpps.filter(isLostOpp).length;
 
     return { open: openCount, won: wonCount, lost: lostCount };
   }, [filteredOpps]);
@@ -556,7 +592,7 @@ export default function DashboardView({
     }).length;
     
     const revSum = filteredOpps
-      .filter(o => o.stageId === 'p_6')
+      .filter(isWonOpp)
       .reduce((sum, o) => sum + (o.dealValue || 0), 0);
       
     return {
