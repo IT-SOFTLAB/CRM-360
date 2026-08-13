@@ -8,6 +8,7 @@ const EmailTool = require("../tools/email.tool");
 const ReportTool = require("../tools/report.tool");
 const QuotationTool = require("../tools/quotation.tool");
 const ClientTool = require("../tools/client.tool");
+const RetentionTool = require("../tools/retention.tool");
 class ToolExecutor {
 
     constructor() {
@@ -27,7 +28,8 @@ class ToolExecutor {
     report: ReportTool,
 
     quotation: QuotationTool,
-    client: ClientTool
+    client: ClientTool,
+    retention: RetentionTool
 
 };
     }
