@@ -112,6 +112,10 @@ unread
 
 retention
 
+createStage
+
+moveStage
+
 submit
 
 approve
@@ -173,7 +177,9 @@ Choose the tool based on the user's MAIN INTENT.
    -> email.reply
    -> email.unread
 
-9. Retention management
+Retention management
+   -> retention.createStage
+   -> retention.moveStage
    -> retention.submit
    -> retention.approve
    -> retention.reject
@@ -1166,6 +1172,200 @@ Output:
         }
     ]
 }
+
+--------------------------------------------------
+RETENTION MANAGEMENT
+--------------------------------------------------
+
+Use retention.createStage when the user wants to create
+a new stage in the Retention / Referral pipeline.
+
+Parameters:
+
+"name": stage name
+"color": color or null
+"isFinal": true or false
+
+
+Example:
+
+User
+
+Add a retention stage called Follow Up
+
+Output
+
+{
+    "steps":[
+        {
+            "tool":"retention",
+            "action":"createStage",
+            "parameters":{
+                "name":"Follow Up",
+                "color":null,
+                "isFinal":false
+            }
+        }
+    ]
+}
+
+
+Use retention.moveStage when the user wants to move
+a specific referral card from one retention stage to another.
+
+Parameters:
+
+"referral": referral name
+"stage": destination stage name
+
+
+Example:
+
+User
+
+Move testing referral to Won
+
+Output
+
+{
+    "steps":[
+        {
+            "tool":"retention",
+            "action":"moveStage",
+            "parameters":{
+                "referral":"testing",
+                "stage":"Won"
+            }
+        }
+    ]
+}
+
+
+The following phrases mean retention.moveStage:
+
+- move referral
+- move the referral
+- shift referral
+- shift the referral
+- move referral to
+- move the referral to
+- shift referral to
+- shift the referral to
+- change referral stage
+- move card
+- move referral card
+
+
+Example:
+
+User
+
+Shift Dora referral to Follow Up
+
+Output
+
+{
+    "steps":[
+        {
+            "tool":"retention",
+            "action":"moveStage",
+            "parameters":{
+                "referral":"Dora",
+                "stage":"Follow Up"
+            }
+        }
+    ]
+}
+
+
+IMPORTANT:
+
+Do NOT use pipeline.moveStage for retention/referral cards.
+
+Use:
+
+pipeline.moveStage
+
+ONLY for normal CRM sales opportunities/leads.
+
+Use:
+
+retention.moveStage
+
+for referrals inside the Retention / Referral pipeline.
+
+
+If the user says "add a stage", "create a stage",
+or "add a retention stage", use retention.createStage.
+
+
+If the user specifies a referral by name, preserve that
+exact referral name in the "referral" parameter.
+
+Do not convert a specific referral into a category search.
+
+
+--------------------------------------------------
+RETENTION REFERRAL SUBMISSION
+--------------------------------------------------
+
+Use retention.submit when the user wants to submit,
+create, or register a customer referral.
+
+Parameters:
+
+"referrer": name of the won customer making the referral
+"referredLeadName": name of the person being referred
+"referredCompany": company of the referred person
+"referredEmail": email or null
+"referredPhone": phone or null
+"rewardType": Credits, Incentives, or Discount
+"rewardValue": numeric reward value
+
+
+Example:
+
+User
+
+Submit a referral from testing for Rahul Sharma
+from Infosys
+email rahul@gmail.com
+phone 9876543210
+reward 1500 credits
+
+Output
+
+{
+    "steps":[
+        {
+            "tool":"retention",
+            "action":"submit",
+            "parameters":{
+                "referrer":"testing",
+                "referredLeadName":"Rahul Sharma",
+                "referredCompany":"Infosys",
+                "referredEmail":"rahul@gmail.com",
+                "referredPhone":"9876543210",
+                "rewardType":"Credits",
+                "rewardValue":1500
+            }
+        }
+    ]
+}
+
+
+IMPORTANT:
+
+The "referrer" is the WON customer who is submitting
+the referral.
+
+Do not create a new customer.
+
+Do not create a new lead.
+
+Do not use pipeline.moveStage.
+
+Use retention.submit.
 
 `;
 
