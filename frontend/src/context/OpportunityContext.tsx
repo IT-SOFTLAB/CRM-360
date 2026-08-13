@@ -110,7 +110,7 @@ export const OpportunityProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
       }
 
-      const isWonMove = stageId === 'p_6' || String(stageId || '').toLowerCase().includes('won') || (targetStage?.name || '').toLowerCase().includes('won');
+      const isWonMove = stageId === 'p_6' || String(stageId || '').toLowerCase().includes('won') || (stage?.name || '').toLowerCase().includes('won');
       if (isWonMove && referralCtx) {
         const already = referralCtx.referrals.some(r => r.referrerName === opp.customerName);
         if (!already) {
