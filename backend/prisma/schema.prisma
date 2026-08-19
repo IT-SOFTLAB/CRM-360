@@ -34,8 +34,6 @@ model User {
   refreshTokens       RefreshToken[]
   ledTeams            SalesTeam[]    @relation("TeamLeader")
   savedFilters        SavedFilter[]
-  tasksCreated        Task[]         @relation("TasksCreated")
-  tasksAssigned       Task[]         @relation("TasksAssigned")
   admin               User?          @relation("UserToUser", fields: [adminId], references: [id])
   subordinates        User[]         @relation("UserToUser")
   salesTeam           SalesTeam?     @relation("TeamMembers", fields: [salesTeamId], references: [id])
@@ -246,33 +244,6 @@ model SalesTeam {
   createdAt   DateTime @default(now())
   leader      User?    @relation("TeamLeader", fields: [leaderId], references: [id])
   members     User[]   @relation("TeamMembers")
-}
-
-model Task {
-  id           String        @id @default(cuid())
-  title        String
-  leadId       String?       @unique
-  assignedToId String?
-  assignedById String?
-  status       String        @default("Pending")
-  priority     String        @default("Normal")
-  deadline     DateTime?
-  remarks      String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  assignedBy   User?         @relation("TasksCreated", fields: [assignedById], references: [id])
-  assignedTo   User?         @relation("TasksAssigned", fields: [assignedToId], references: [id])
-  comments     TaskComment[]
-}
-
-model TaskComment {
-  id        String   @id @default(cuid())
-  taskId    String
-  userId    String
-  userName  String
-  content   String
-  createdAt DateTime @default(now())
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
 
 model CompanySettings {
