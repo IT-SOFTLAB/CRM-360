@@ -1204,70 +1204,78 @@ export default function DashboardView({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           
           {/* Grouped Bar Chart: Team Performance Comparison */}
-          <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
+          <div className="bg-card border border-border-crm rounded-2xl p-4 sm:p-5 space-y-4">
+            <div className="flex flex-row items-center justify-between gap-2 border-b border-border-crm/30 pb-2.5">
+              <div className="flex-1 pr-2">
                 <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">Team Performance</h3>
-                <p className="text-[10px] text-txt-secondary">Visual comparison of Leads Assigned vs Deals Won per team.</p>
+                <p className="text-[10px] text-txt-secondary leading-snug">Visual comparison of Leads Assigned vs Deals Won per team.</p>
               </div>
-              <span className="text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-200 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-bold bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 px-2.5 py-0.5 rounded-full shrink-0">
                 This Month
               </span>
             </div>
             
-            <div className="relative w-full h-48 bg-bg-main border border-border-crm/40 rounded-xl p-4 flex items-end justify-around">
+            <div className="relative w-full min-h-[220px] bg-bg-main border border-border-crm/40 rounded-xl p-3.5 flex items-end justify-around overflow-x-auto gap-2 min-w-0">
               {teamPerformanceData.map((row, idx) => {
                 const maxLeads = Math.max(...teamPerformanceData.map(t => Math.max(t.leads, t.won))) || 1;
                 const leadHeight = (row.leads / maxLeads) * 100;
                 const wonHeight = (row.won / maxLeads) * 100;
                 
                 return (
-                  <div key={idx} className="flex flex-col items-center w-1/4 space-y-2">
-                    <div className="flex items-end justify-center space-x-1.5 h-28 w-full animate-fade-in">
+                  <div key={idx} className="flex flex-col items-center shrink-0 min-w-[75px] sm:min-w-[90px] space-y-2" style={{ width: `${Math.max(100 / Math.max(teamPerformanceData.length, 1), 22)}%` }}>
+                    <div className="flex items-end justify-center space-x-1.5 h-24 sm:h-28 w-full animate-fade-in">
                       {/* Leads bar */}
                       <div 
-                        style={{ height: `${leadHeight}%` }} 
-                        className="w-4.5 bg-blue-500 hover:bg-blue-600 rounded-t-sm transition-all duration-300 relative group cursor-pointer"
+                        style={{ height: `${Math.max(leadHeight, row.leads > 0 ? 6 : 0)}%` }} 
+                        className="w-4 sm:w-5 bg-blue-500 hover:bg-blue-600 rounded-t-sm transition-all duration-300 relative group cursor-pointer"
                         title={`Leads: ${row.leads}`}
                       >
-                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-30">
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-30 pointer-events-none">
                           L: {row.leads}
                         </div>
                       </div>
                       {/* Won bar */}
                       <div 
-                        style={{ height: `${wonHeight}%` }} 
-                        className="w-4.5 bg-emerald-500 hover:bg-emerald-600 rounded-t-sm transition-all duration-300 relative group cursor-pointer"
+                        style={{ height: `${Math.max(wonHeight, row.won > 0 ? 6 : 0)}%` }} 
+                        className="w-4 sm:w-5 bg-emerald-500 hover:bg-emerald-600 rounded-t-sm transition-all duration-300 relative group cursor-pointer"
                         title={`Won: ${row.won}`}
                       >
-                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-30">
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-30 pointer-events-none">
                           W: {row.won}
                         </div>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-txt-primary truncate max-w-full">{row.team}</span>
-                    <span className="text-xs text-slate-500 font-medium whitespace-nowrap">
-                      {row.rev} <span className="text-blue-600 font-bold">({row.pct}%)</span>
-                    </span>
+                    {/* Stacked labels to prevent collision on small screens */}
+                    <div className="flex flex-col items-center text-center w-full min-w-0 px-1">
+                      <span className="text-[11px] font-bold text-txt-primary truncate w-full" title={row.team}>
+                        {row.team}
+                      </span>
+                      <span className="text-[10px] font-extrabold text-primary leading-tight mt-0.5">
+                        {formatCompactRevenue(row.revNum)}
+                      </span>
+                      <span className="text-[9px] font-semibold text-slate-500 dark:text-slate-400">
+                        ({row.pct}%)
+                      </span>
+                    </div>
                   </div>
                 );
               })}
             </div>
             
-            <div className="flex justify-center gap-4 text-[10px] font-bold text-txt-secondary pt-1">
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-6 text-[10px] font-bold text-txt-secondary pt-1">
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500"></span> Assigned Leads</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500"></span> Won Opportunities</span>
             </div>
           </div>
 
           {/* Horizontal Bar Chart: Top Salespersons */}
-          <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
+          <div className="bg-card border border-border-crm rounded-2xl p-4 sm:p-5 space-y-4">
+            <div className="flex flex-row items-center justify-between gap-2 border-b border-border-crm/30 pb-2.5">
+              <div className="flex-1 pr-2">
                 <h3 className="font-extrabold text-sm tracking-tight text-txt-primary">Top Sales Executives</h3>
-                <p className="text-[10px] text-txt-secondary">Revenue generated by leading sales reps ({prevMonthDateRange.monthLabel}).</p>
+                <p className="text-[10px] text-txt-secondary leading-snug">Revenue generated by leading sales reps ({prevMonthDateRange.monthLabel}).</p>
               </div>
-              <span className="text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
+              <span className="text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 px-2.5 py-0.5 rounded-full shrink-0">
                 Prev Month 
               </span>
             </div>
