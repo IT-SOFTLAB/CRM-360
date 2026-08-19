@@ -1,10 +1,10 @@
-const groq = require("../config/groq");
+const { groq, GROQ_MODEL } = require("../config/groq");
 
 async function askGroq(prompt) {
 
     const completion = await groq.chat.completions.create({
 
-        model: "llama-3.3-70b-versatile",
+        model: GROQ_MODEL,
 
         messages: [
             {

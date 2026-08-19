@@ -405,7 +405,7 @@ export default function DashboardView({
         return isThisMonth(oppDate);
       });
       
-      const wonOpps = teamOpps.filter(o => o.stageId === 'p_6');
+      const wonOpps = teamOpps.filter(isWonOpp);
       const revSum = wonOpps.reduce((sum, o) => sum + (o.dealValue || 0), 0);
 
       return {
@@ -457,7 +457,7 @@ export default function DashboardView({
     const salesMap: { [name: string]: number } = {};
 
     const prevMonthOpps = opportunities.filter(o => {
-      if (o.stageId !== 'p_6' || !o.assignedSalesperson) return false;
+      if (!isWonOpp(o) || !o.assignedSalesperson) return false;
       const oppDate = o.closedDate || o.createdDate || o.createdAt || o.expectedClosing;
       return isPrevMonthDate(oppDate);
     });
@@ -633,7 +633,7 @@ export default function DashboardView({
         return isPrevMonthDate(oDate);
       });
 
-      const uWonOpps = uOpps.filter(o => o.stageId === 'p_6');
+      const uWonOpps = uOpps.filter(isWonOpp);
       const uWonCount = uWonOpps.length;
       const uRevVal = uWonOpps.reduce((sum, o) => sum + (o.dealValue || 0), 0);
 
@@ -666,7 +666,7 @@ export default function DashboardView({
     ).length;
     const propCount = myOpps.filter(o => o.stageId === 'p_4' || (o.stage || '').toLowerCase() === 'proposal').length;
     const negoCount = myOpps.filter(o => o.stageId === 'p_5' || (o.stage || '').toLowerCase() === 'negotiation').length;
-    const wonCount = myOpps.filter(o => o.stageId === 'p_6' || (o.stage || '').toLowerCase() === 'won').length;
+    const wonCount = myOpps.filter(isWonOpp).length;
     
     const total = newCount + qualCount + propCount + negoCount + wonCount || 1;
     
@@ -689,7 +689,7 @@ export default function DashboardView({
     const myQuotes = quotations.filter(q => q.salesperson === user?.name).length;
     const myCusts = customers.filter(c => c.assignedSalesperson === user?.name).length;
     const wonSum = myOpps
-      .filter(o => o.stageId === 'p_6' || o.stage === 'Won' || o.stage === 'Won 🎉')
+      .filter(isWonOpp)
       .reduce((sum, o) => sum + (o.dealValue || 0), 0);
     
     return {
@@ -710,9 +710,9 @@ export default function DashboardView({
     return sorted.slice(0, 3).map(o => {
       const stageLower = (o.stage || '').toLowerCase();
       let color = "bg-blue-100 text-blue-800";
-      if (stageLower.includes('won') || o.stageId === 'p_6') {
+      if (isWonOpp(o)) {
         color = "bg-green-100 text-green-800";
-      } else if (stageLower.includes('lost') || o.stageId === 'p_7') {
+      } else if (isLostOpp(o)) {
         color = "bg-red-100 text-red-800";
       }
       return {
@@ -748,7 +748,7 @@ export default function DashboardView({
     }
 
     filteredOpps.forEach(o => {
-      if (o.stageId === 'p_6') {
+      if (isWonOpp(o)) {
         const closedDate = o.closedDate ? new Date(o.closedDate) : new Date(o.createdDate || o.createdAt || now);
         months.forEach(m => {
           if (closedDate.getMonth() === m.monthIndex && closedDate.getFullYear() === m.year) {
@@ -781,7 +781,7 @@ export default function DashboardView({
         return memberNames.includes(assigned);
       });
       
-      const wonOpps = teamOpps.filter(o => o.stageId === 'p_6');
+      const wonOpps = teamOpps.filter(isWonOpp);
       const rev = wonOpps.reduce((sum, o) => sum + (o.dealValue || 0), 0);
       return {
         name: team.name,
@@ -819,7 +819,7 @@ export default function DashboardView({
     const salesMap: { [name: string]: number } = {};
 
     const prevMonthOpps = filteredOpps.filter(o => {
-      if (o.stageId !== 'p_6' || !o.assignedSalesperson) return false;
+      if (!isWonOpp(o) || !o.assignedSalesperson) return false;
       const oppDate = o.closedDate || o.createdDate || o.createdAt || o.expectedClosing;
       return isPrevMonthDate(oppDate);
     });
@@ -912,7 +912,7 @@ export default function DashboardView({
               const yr = startYr + i;
               const isCurrent = yr === now.getFullYear();
               const val = filteredOpps
-                .filter(o => o.stageId === 'p_6')
+                .filter(isWonOpp)
                 .filter(o => {
                   const d = new Date(o.closedDate || o.createdDate || o.createdAt || now);
                   return d.getFullYear() === yr;
@@ -929,7 +929,7 @@ export default function DashboardView({
               const mo = startMo + i;
               const isCurrent = yr === now.getFullYear() && mo === now.getMonth();
               const val = filteredOpps
-                .filter(o => o.stageId === 'p_6')
+                .filter(isWonOpp)
                 .filter(o => {
                   const cd = new Date(o.closedDate || o.createdDate || o.createdAt || now);
                   return cd.getFullYear() === yr && cd.getMonth() === mo;
@@ -953,7 +953,7 @@ export default function DashboardView({
                                 day.getDate() === now.getDate();
 
               const val = filteredOpps
-                .filter(o => o.stageId === 'p_6')
+                .filter(isWonOpp)
                 .filter(o => {
                   const cd = new Date(o.closedDate || o.createdDate || o.createdAt || now);
                   return cd >= day && cd <= dayEnd;
@@ -1100,9 +1100,9 @@ export default function DashboardView({
 
                 {/* Deal Status Pie — 2/4 width equivalent (w-72) */}
                 {(() => {
-                  const openN  = filteredOpps.filter(o => o.stageId !== 'p_6' && o.stageId !== 'p_7').length;
-                  const wonN   = filteredOpps.filter(o => o.stageId === 'p_6').length;
-                  const lostN  = filteredOpps.filter(o => o.stageId === 'p_7').length;
+                  const openN  = filteredOpps.filter(o => !isWonOpp(o) && !isLostOpp(o)).length;
+                  const wonN   = filteredOpps.filter(isWonOpp).length;
+                  const lostN  = filteredOpps.filter(isLostOpp).length;
                   const totalN = openN + wonN + lostN || 1;
 
                   const pieSegs = buildPieSegs([openN, wonN, lostN], totalN);
