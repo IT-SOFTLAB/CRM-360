@@ -33,6 +33,7 @@ export default function SalesTeamView() {
 
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<'performance' | 'leads' | 'opportunities' | 'activities'>('performance');
@@ -566,6 +567,8 @@ export default function SalesTeamView() {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     try {
       await api.post('/salesteam', teamForm);
       crm.addToast('success', 'Sales team created successfully');
@@ -580,6 +583,8 @@ export default function SalesTeamView() {
       loadTeams();
     } catch (err: any) {
       crm.addToast('error', err?.response?.data?.message || 'Failed to create team');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -1762,9 +1767,17 @@ export default function SalesTeamView() {
 
               <button
                 type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-2 text-xs font-semibold transition cursor-pointer"
+                disabled={submitting}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl py-2 text-xs font-semibold transition cursor-pointer flex items-center justify-center gap-2"
               >
-                Create Team
+                {submitting ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />
+                    Creating...
+                  </>
+                ) : (
+                  'Create Team'
+                )}
               </button>
             </form>
           </div>

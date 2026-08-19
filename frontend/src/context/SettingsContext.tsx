@@ -119,10 +119,10 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
     if (res) {
       setSettingsUsers(prev => prev.map(u => u.id === userId ? { ...u, ...res } : u));
-      if (toastCtx) toastCtx.addToast('success', 'User account updated successfully');
+      // if (toastCtx) toastCtx.addToast('success', 'User account updated successfully');
     } else {
       setSettingsUsers(prev => prev.map(u => u.id === userId ? { ...u, name, email, role, status, adminId, admin: adminObj } : u));
-      if (toastCtx) toastCtx.addToast('success', 'User account updated locally ');
+      // if (toastCtx) toastCtx.addToast('success', 'User account updated locally ');
     }
   };
 

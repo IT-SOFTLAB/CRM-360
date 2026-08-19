@@ -5,14 +5,26 @@ const prisma = new PrismaClient();
 exports.createTeam = async (req, res) => {
   try {
     const { name, description, leaderId, memberIds, category } = req.body;
-    if (!name) {
-      return res.status(400).json({ message: 'Team name is required' });
+    const trimmedName = name.trim();
+
+    // Prevent duplicate team creation
+    const existing = await prisma.salesTeam.findFirst({
+      where: {
+        name: {
+          equals: trimmedName,
+          mode: 'insensitive'
+        }
+      }
+    });
+
+    if (existing) {
+      return res.status(400).json({ message: 'A sales team with this name already exists' });
     }
 
     // Create the team
     const team = await prisma.salesTeam.create({
       data: {
-        name,
+        name: trimmedName,
         description,
         category,
         leaderId: leaderId || null
