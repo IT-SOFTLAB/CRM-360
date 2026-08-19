@@ -25,6 +25,18 @@ const formatCRMRevenue = (val: number) => {
   return `₹${crVal % 1 === 0 ? crVal.toFixed(0) : crVal.toFixed(1)} Crore`;
 };
 
+const formatCompactRevenue = (val: number) => {
+  if (!val) return "₹0";
+  if (val < 1000) return `₹${val}`;
+  if (val < 100000) return `₹${(val / 1000).toFixed(0)}k`;
+  if (val < 10000000) {
+    const lakh = val / 100000;
+    return `₹${lakh % 1 === 0 ? lakh.toFixed(0) : lakh.toFixed(1)}L`;
+  }
+  const cr = val / 10000000;
+  return `₹${cr % 1 === 0 ? cr.toFixed(0) : cr.toFixed(1)}Cr`;
+};
+
 export default function SalesTeamView() {
   const crm = useCRM();
   const searchParams = useSearchParams();
@@ -37,6 +49,7 @@ export default function SalesTeamView() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedTeam, setSelectedTeam] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<'performance' | 'leads' | 'opportunities' | 'activities'>('performance');
+  const [activeBarKey, setActiveBarKey] = useState<string | null>(null);
   const [kanbanDeals, setKanbanDeals] = useState<any[]>([]);
   const [selectedTeamLeadIds, setSelectedTeamLeadIds] = useState<string[]>([]);
   const [selectedTeamOppIds, setSelectedTeamOppIds] = useState<string[]>([]);
@@ -979,20 +992,38 @@ export default function SalesTeamView() {
 
               <div className="relative w-full h-48 bg-bg-main border border-border-crm/40 rounded-xl p-4 flex items-end justify-around">
                 {userMetrics.chartBars.map((bar, idx) => {
-                  const heightPercent = userMetrics.maxBarVal > 0 ? (bar.val / userMetrics.maxBarVal) * 80 : 0;
+                  const heightPercent = userMetrics.maxBarVal > 0 ? (bar.val / userMetrics.maxBarVal) * 70 : 0;
                   const isHighlight = !!bar.isCurrent;
-                  
+                  const barKey = `${bar.name}-${idx}`;
+                  const isSelected = activeBarKey === barKey;
+
                   return (
-                    <div key={idx} className="flex flex-col items-center group relative h-full justify-end" style={{ width: `${100 / userMetrics.chartBars.length}%` }}>
-                      {/* Tooltip on hover */}
-                      <div className="absolute top-1 opacity-0 group-hover:opacity-100 transition-all duration-200 pointer-events-none z-20 bg-slate-900/90 text-white dark:bg-slate-100 dark:text-slate-900 text-[10px] font-bold px-2 py-1 rounded-md shadow-lg whitespace-nowrap -translate-y-1 group-hover:translate-y-0 flex flex-col items-center">
+                    <div 
+                      key={idx} 
+                      onClick={() => setActiveBarKey(isSelected ? null : barKey)}
+                      className="flex flex-col items-center group relative h-full justify-end cursor-pointer" 
+                      style={{ width: `${100 / userMetrics.chartBars.length}%` }}
+                    >
+                      {/* Tooltip on hover or when selected */}
+                      <div className={`absolute top-0 transition-all duration-200 pointer-events-none z-20 bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 text-[10px] font-bold px-2 py-1 rounded-md shadow-lg whitespace-nowrap flex flex-col items-center ${
+                        isSelected ? 'opacity-100 translate-y-0 scale-105' : 'opacity-0 group-hover:opacity-100 -translate-y-1 group-hover:translate-y-0'
+                      }`}>
                         <span>{formatCRMRevenue(bar.val)}</span>
                         <span className="text-[8px] font-medium opacity-80">{bar.name}</span>
-                        <div className="w-1.5 h-1.5 bg-slate-900/90 dark:bg-slate-100 rotate-45 -mb-1 -mt-0.5" />
+                        <div className="w-1.5 h-1.5 bg-slate-900 dark:bg-slate-100 rotate-45 -mb-1 -mt-0.5" />
                       </div>
-                      
+
+                      {/* Always-visible compact revenue text above bar */}
+                      <span className={`text-[9px] font-extrabold mb-1 select-none transition-all ${
+                        isHighlight || isSelected ? 'text-primary' : 'text-slate-600 dark:text-slate-400'
+                      }`}>
+                        {formatCompactRevenue(bar.val)}
+                      </span>
+
                       {/* Bar Graphic */}
-                      <div className={`w-5 border rounded-t-sm transition-all duration-300 relative cursor-pointer ${
+                      <div className={`w-5 border rounded-t-sm transition-all duration-300 relative ${
+                        isSelected ? 'ring-2 ring-primary ring-offset-1 scale-105' : ''
+                      } ${
                         isHighlight
                           ? 'bg-blue-100 dark:bg-blue-900/30 border-blue-300/50'
                           : 'bg-slate-100 dark:bg-slate-800/40 border-border-crm/30'
@@ -1003,8 +1034,8 @@ export default function SalesTeamView() {
                       </div>
 
                       {/* Period label */}
-                      <span className={`text-[8px] font-bold uppercase mt-1.5 ${
-                        isHighlight ? 'text-primary' : 'text-slate-400'
+                      <span className={`text-[8px] font-bold uppercase mt-1.5 select-none ${
+                        isHighlight || isSelected ? 'text-primary font-black' : 'text-slate-400'
                       }`}>{bar.name}</span>
                     </div>
                   );
