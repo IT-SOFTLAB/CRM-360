@@ -158,6 +158,7 @@ res.cookie("refreshToken", refreshToken, {
     res.json({
       user: userWithoutPassword,
       accessToken,
+      token: accessToken,
       refreshToken
     });
   } catch (err) {

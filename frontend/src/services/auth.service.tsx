@@ -24,8 +24,16 @@ export const authService = {
   login: async (credentials: any) => {
     try {
       const res = await api.post('/auth/login', credentials);
-      localStorage.setItem('crm_user', JSON.stringify(res.data.user));
-      localStorage.setItem('token', res.data.token);
+      if (res.data?.user) {
+        localStorage.setItem('crm_user', JSON.stringify(res.data.user));
+      }
+      const token = res.data?.accessToken || res.data?.token;
+      if (token) {
+        localStorage.setItem('token', token);
+      }
+      if (res.data?.refreshToken) {
+        localStorage.setItem('refreshToken', res.data.refreshToken);
+      }
       return res.data;
     } catch (err) {
       console.warn('API error during login', err);
@@ -48,6 +56,7 @@ export const authService = {
       const res = await api.post('/auth/logout');
       localStorage.removeItem('crm_user');
       localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       return res.data;
     } catch (err) {
       console.error('API error during logout', err);

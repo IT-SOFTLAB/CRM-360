@@ -73,7 +73,15 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        await api.post('/auth/refresh');
+        const storedRefreshToken = typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null;
+        const refreshRes = await api.post('/auth/refresh', { refreshToken: storedRefreshToken });
+
+        if (refreshRes.data?.accessToken) {
+          localStorage.setItem('token', refreshRes.data.accessToken);
+        }
+        if (refreshRes.data?.refreshToken) {
+          localStorage.setItem('refreshToken', refreshRes.data.refreshToken);
+        }
 
         processQueue(null);
 
@@ -84,6 +92,7 @@ api.interceptors.response.use(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('crm_user');
           localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
 
           window.location.href = '/';
         }

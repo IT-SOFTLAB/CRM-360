@@ -64,14 +64,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      // Silently refresh the accessToken cookie so API calls work on reload
+      // Silently refresh the accessToken cookie or token fallback so API calls work on reload
       try {
-        await api.post('/auth/refresh');
+        const storedRefreshToken = localStorage.getItem('refreshToken');
+        const refreshRes = await api.post('/auth/refresh', { refreshToken: storedRefreshToken });
+        if (refreshRes.data?.accessToken) {
+          localStorage.setItem('token', refreshRes.data.accessToken);
+        }
+        if (refreshRes.data?.refreshToken) {
+          localStorage.setItem('refreshToken', refreshRes.data.refreshToken);
+        }
         // Token refreshed — restore user from localStorage
         setUser(JSON.parse(savedUser));
       } catch {
         // Refresh token expired or invalid — force logout
         localStorage.removeItem('crm_user');
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         setUser(null);
       } finally {
         setAuthReady(true);
@@ -144,6 +153,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const handleLogout = async () => {
     setUser(null);
     localStorage.removeItem('crm_user');
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     setAuthForm(DEFAULT_AUTH_FORM);
     try {
       await authService.logout();
