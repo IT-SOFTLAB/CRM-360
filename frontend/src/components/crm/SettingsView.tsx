@@ -93,7 +93,12 @@ export default function SettingsView({
     adminId: ''
   });
   const [editLoading, setEditLoading] = useState(false);
+const [showDeleteModal, setShowDeleteModal] = useState(false);
 
+const [userToDelete, setUserToDelete] = useState<{
+  id: string;
+  name: string;
+} | null>(null);
   React.useEffect(() => {
     setInviteError('');
   }, [inviteForm.email, inviteForm.name, inviteForm.password, inviteForm.adminId]);
@@ -369,26 +374,58 @@ export default function SettingsView({
                     <td className="py-2.5">
                       {userRole === 'SUPER_ADMIN' ? (
                         <div className="flex items-center space-x-2">
-                          <button
-                            disabled={usr.id === user?.id} // cannot deactivate self
-                            type="button"
-                            onClick={() => {
-                              const nextStatus = usr.status === 'Inactive' ? 'Active' : 'Inactive';
-                              if (onUpdateUser) {
-                                onUpdateUser(usr.id, usr.name, usr.email, usr.role, nextStatus);
-                              }
-                            }}
-                            className={`relative inline-flex h-4.5 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                              usr.status !== 'Inactive' ? 'bg-emerald-600' : 'bg-slate-400'
-                            } ${usr.id === user?.id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            title={usr.id === user?.id ? 'You cannot deactivate your own account' : `Click to ${usr.status === 'Inactive' ? 'Activate' : 'Deactivate'}`}
-                          >
-                            <span
-                              className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                usr.status !== 'Inactive' ? 'translate-x-3.5' : 'translate-x-0'
-                              }`}
-                            />
-                          </button>
+                         <button
+  disabled={usr.id === user?.id}
+  type="button"
+  onClick={() => {
+    const nextStatus =
+      usr.status === 'Inactive' ? 'Active' : 'Inactive';
+
+    if (onUpdateUser) {
+      onUpdateUser(
+        usr.id,
+        usr.name,
+        usr.email,
+        usr.role,
+        nextStatus
+      );
+    }
+  }}
+  className={`relative inline-flex h-6 w-11 shrink-0 items-center
+    rounded-full cursor-pointer border-0
+    transition-colors duration-200 ease-out
+    focus:outline-none
+    ${
+      usr.status !== 'Inactive'
+        ? 'bg-emerald-600'
+        : 'bg-slate-400'
+    }
+    ${
+      usr.id === user?.id
+        ? 'opacity-50 cursor-not-allowed'
+        : ''
+    }`}
+  title={
+    usr.id === user?.id
+      ? 'You cannot deactivate your own account'
+      : `Click to ${
+          usr.status === 'Inactive'
+            ? 'Activate'
+            : 'Deactivate'
+        }`
+  }
+>
+  <span
+    className={`pointer-events-none block h-5 w-5 rounded-full
+      bg-white shadow-md
+      transition-transform duration-200 ease-out
+      ${
+        usr.status !== 'Inactive'
+          ? 'translate-x-5'
+          : 'translate-x-1'
+      }`}
+  />
+</button>
                           <span className={`text-[10px] font-bold ${
                             usr.status !== 'Inactive' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'
                           }`}>
@@ -431,7 +468,14 @@ export default function SettingsView({
                         {usr.role !== 'SUPER_ADMIN' && (
                           <button
                             type="button"
-                            onClick={() => onDeleteUser(usr.id)}
+                           onClick={() => {
+  setUserToDelete({
+    id: usr.id,
+    name: usr.name,
+  });
+
+  setShowDeleteModal(true);
+}}
                             className="text-rose-500 hover:text-rose-700 cursor-pointer transition p-1 rounded-md inline-block"
                             title="Delete User"
                           >
@@ -717,6 +761,78 @@ export default function SettingsView({
           </div>
         </div>
       )}
+
+    {/* DELETE USER CONFIRMATION MODAL */}
+{showDeleteModal && userToDelete && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+    
+    <div className="bg-card border border-border-crm rounded-2xl w-full max-w-sm p-6 shadow-2xl text-txt-primary">
+
+      {/* Close Button */}
+      <button
+        type="button"
+        onClick={() => {
+          setShowDeleteModal(false);
+          setUserToDelete(null);
+        }}
+        className="absolute top-4 right-4 text-txt-secondary hover:text-txt-primary cursor-pointer"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      {/* Delete Icon */}
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 mb-4">
+        <Trash2 className="w-6 h-6 text-red-500" />
+      </div>
+
+      {/* Content */}
+      <h3 className="text-lg font-bold text-txt-primary">
+        Delete user?
+      </h3>
+
+      <p className="text-sm text-txt-secondary mt-2 leading-relaxed">
+        Are you sure you want to delete{' '}
+        <span className="font-semibold text-txt-primary">
+          {userToDelete.name}
+        </span>
+        ?
+      </p>
+
+      <p className="text-xs text-txt-secondary mt-1">
+        This action cannot be undone.
+      </p>
+
+      {/* Buttons */}
+      <div className="flex justify-end gap-3 mt-6">
+
+        <button
+          type="button"
+          onClick={() => {
+            setShowDeleteModal(false);
+            setUserToDelete(null);
+          }}
+          className="px-5 py-2.5 rounded-xl border border-border-crm text-sm font-medium text-txt-secondary hover:bg-bg-main transition cursor-pointer"
+        >
+          Cancel
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            onDeleteUser(userToDelete.id);
+            setShowDeleteModal(false);
+            setUserToDelete(null);
+          }}
+          className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition cursor-pointer flex items-center gap-2 shadow-md"
+        >
+          <Trash2 className="w-4 h-4 text-white" />
+          Delete
+        </button>
+
+      </div>
+    </div>
+  </div>
+)}
     </div>
   );
 }
