@@ -64,6 +64,27 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
+  const desktopNotificationsRef = React.useRef<HTMLDivElement>(null);
+  const mobileNotificationsRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!showNotifications) return;
+      const target = event.target as Node;
+      const isInsideDesktop = desktopNotificationsRef.current?.contains(target);
+      const isInsideMobile = mobileNotificationsRef.current?.contains(target);
+
+      if (!isInsideDesktop && !isInsideMobile) {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showNotifications]);
+
   const [navTeams, setNavTeams] = useState<any[]>([]);
   const [showTeamsDropdown, setShowTeamsDropdown] = useState(false);
 
@@ -432,7 +453,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
                   <LogOut className="w-4.5 h-4.5" />
                 </button>
                 {userRole !== 'SUPER_ADMIN' && currentTab !== 'leads' && currentTab !== 'opportunities' && (
-                  <div className="relative shrink-0">
+                  <div ref={mobileNotificationsRef} className="relative shrink-0">
                     <button
                       onClick={() => {
                         setShowNotifications(!showNotifications);
@@ -560,7 +581,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
 
               {/* Notifications shifted from 1st navbar - hidden for SUPER_ADMIN */}
               {userRole !== 'SUPER_ADMIN' && (
-                <div className="relative shrink-0">
+                <div ref={desktopNotificationsRef} className="relative shrink-0">
                   <button
                     onClick={() => {
                       setShowNotifications(!showNotifications);
