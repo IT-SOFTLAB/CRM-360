@@ -7,9 +7,6 @@ class AgentService {
     
  async chat(message, req = null) {
 
-        //-----------------------------------
-// Confirmation Check
-//-----------------------------------
 
 if (
 
