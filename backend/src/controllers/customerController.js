@@ -15,9 +15,9 @@ exports.getCustomers = async (req, res) => {
     const user = req.user;
     const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
 
-    let whereClause = {};
+    let whereClause = { organizationId: req.organizationId };
     if (userRole === 'USER') {
-      whereClause = { assignedSalesperson: user.name };
+      whereClause.assignedSalesperson = user.name;
     }
 
     const customers = await prisma.customer.findMany({
@@ -48,9 +48,10 @@ exports.getCustomerById = async (req, res) => {
 
   try {
 
-    const customer = await prisma.customer.findUnique({
+    const customer = await prisma.customer.findFirst({
       where: {
-        id: req.params.id
+        id: req.params.id,
+        organizationId: req.organizationId
       }
     });
 
@@ -98,6 +99,7 @@ exports.createCustomer = async (req, res) => {
     const customer = await prisma.customer.create({
 
       data: {
+        organizationId: req.organizationId,
 
         opportunityId,
 
@@ -144,38 +146,67 @@ exports.updateCustomer = async (req, res) => {
 
     const { id } = req.params;
 
-    const customer = await prisma.customer.update({
-
-      where: {
-        id
-      },
-
-      data: req.body
-
+    const existing = await prisma.customer.findFirst({
+      where: { id, organizationId: req.organizationId }
     });
+    if (!existing) return res.status(404).json({ message: "Customer not found" });
 
+  await prisma.customer.updateMany({
+  where: {
+    id,
+    organizationId: req.organizationId
+  },
+  data: req.body
+});
+
+const customer = await prisma.customer.findFirst({
+  where: {
+    id,
+    organizationId: req.organizationId
+  }
+});
     // Sync associated Opportunity & Lead in PostgreSQL
     if (req.body.assignedSalesperson !== undefined || req.body.assignedSalespersonId !== undefined) {
       const oppId = customer.opportunityId;
       if (oppId) {
         // Update Opportunity
-        const updatedOpp = await prisma.opportunity.update({
-          where: { id: oppId },
-          data: {
-            assignedSalesperson: req.body.assignedSalesperson,
-            assignedSalespersonId: req.body.assignedSalespersonId
-          }
-        });
+        const oppCheck = await prisma.opportunity.findFirst({ where: { id: oppId, organizationId: req.organizationId } });
+        let updatedOpp = null;
+        if (oppCheck) {
+         await prisma.opportunity.updateMany({
+  where: {
+    id: oppId,
+    organizationId: req.organizationId
+  },
+  data: {
+    assignedSalesperson: req.body.assignedSalesperson,
+    assignedSalespersonId: req.body.assignedSalespersonId
+  }
+});
+
+updatedOpp = await prisma.opportunity.findFirst({
+  where: {
+    id: oppId,
+    organizationId: req.organizationId
+  }
+});
+        }
 
         // Update Lead
-        if (updatedOpp.leadId) {
-          await prisma.lead.update({
-            where: { id: updatedOpp.leadId },
-            data: {
-              assignedUser: req.body.assignedSalesperson,
-              assignedUserId: req.body.assignedSalespersonId
-            }
-          });
+        if (updatedOpp && updatedOpp.leadId) {
+          const leadCheck = await prisma.lead.findFirst({ where: { id: updatedOpp.leadId, organizationId: req.organizationId } });
+          if (leadCheck) {
+           await prisma.lead.updateMany({
+  where: {
+    id: updatedOpp.leadId,
+    organizationId: req.organizationId
+  },
+  data: {
+    assignedUser: req.body.assignedSalesperson,
+    assignedUserId: req.body.assignedSalespersonId
+  }
+});
+          }
         }
       }
     }
@@ -207,13 +238,17 @@ DELETE CUSTOMER
 exports.deleteCustomer = async (req, res) => {
 
   try {
-
-    await prisma.customer.delete({
-      where: {
-        id: req.params.id
-      }
+    const existing = await prisma.customer.findFirst({
+      where: { id: req.params.id, organizationId: req.organizationId }
     });
+    if (!existing) return res.status(404).json({ message: "Customer not found" });
 
+  await prisma.customer.deleteMany({
+  where: {
+    id: req.params.id,
+    organizationId: req.organizationId
+  }
+});
     res.json({
       message: "Customer deleted successfully"
     });

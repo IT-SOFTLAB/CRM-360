@@ -6,20 +6,65 @@ import { CRMProvider, useCRM } from '@/context/CRMContext';
 import ShellLayout from './ShellLayout';
 import heroMascot from "@/assets/hero-mascot.jpeg";
 function AuthGuard({ children }: { children: React.ReactNode }) {
-  const crm = useCRM();
-  const router = useRouter();
-  const pathname = usePathname();
+const crm = useCRM();
 
-  useEffect(() => {
-    // Wait until the silent token-refresh check is complete before making routing decisions
-    if (!crm.authReady) return;
+const router = useRouter();
 
-    if (!crm.user && pathname !== '/login') {
-      router.push('/login');
-    } else if (crm.user && (pathname === '/login' || pathname === '/')) {
-      router.push('/dashboard');
+const pathname = usePathname();
+
+
+
+useEffect(() => {
+  // Wait until authentication is ready
+  if (!crm.authReady) return;
+
+  // User is not logged in
+  if (!crm.user) {
+    if (pathname !== "/login") {
+      router.replace("/login");
     }
-  }, [crm.user, crm.authReady, pathname, router]);
+    return;
+  }
+
+  const userOrganizationId = crm.user.organizationId;
+
+  // If organization ID is missing, logout/redirect
+  if (!userOrganizationId) {
+    router.replace("/login");
+    return;
+  }
+
+  // Redirect root or login to user's organization dashboard
+  if (pathname === "/" || pathname === "/login") {
+    router.replace(`/org/${userOrganizationId}/dashboard`);
+    return;
+  }
+
+  // Extract organization from URL
+  // /org/orgA/dashboard
+  const pathParts = pathname.split("/").filter(Boolean);
+
+  const urlOrganizationId =
+    pathParts[0] === "org"
+      ? pathParts[1]
+      : undefined;
+
+  // SECURITY:
+  // User tries to access another organization
+  if (
+    urlOrganizationId &&
+    urlOrganizationId !== userOrganizationId
+  ) {
+    router.replace("/login");
+    return;
+  }
+
+}, [
+  crm.authReady,
+  crm.user,
+  pathname,
+  router,
+]);
 
   // Show a loading spinner while auth is initialising (token refresh in progress)
   // This prevents the flash redirect to /login on page reload
@@ -154,7 +199,27 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <ShellLayout>{children}</ShellLayout>;
+// Extract organization ID from current URL
+const pathParts = pathname.split("/").filter(Boolean);
+
+const urlOrganizationId =
+  pathParts[0] === "org"
+    ? pathParts[1]
+    : undefined;
+
+const userOrganizationId =
+  crm.user?.organizationId;
+
+// Don't render unauthorized organization content
+if (
+  crm.user &&
+  urlOrganizationId &&
+  userOrganizationId &&
+  urlOrganizationId !== userOrganizationId
+) {
+  return null;
+}
+return <ShellLayout>{children}</ShellLayout>;
 }
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {

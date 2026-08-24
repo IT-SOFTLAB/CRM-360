@@ -10,6 +10,7 @@ exports.createTeam = async (req, res) => {
     // Prevent duplicate team creation
     const existing = await prisma.salesTeam.findFirst({
       where: {
+        organizationId: req.organizationId,
         name: {
           equals: trimmedName,
           mode: 'insensitive'
@@ -27,21 +28,22 @@ exports.createTeam = async (req, res) => {
         name: trimmedName,
         description,
         category,
-        leaderId: leaderId || null
+        leaderId: leaderId || null,
+        organizationId: req.organizationId
       }
     });
 
     // If memberIds are provided, associate them with this team
     if (memberIds && Array.isArray(memberIds) && memberIds.length > 0) {
       await prisma.user.updateMany({
-        where: { id: { in: memberIds } },
+        where: { id: { in: memberIds }, organizationId: req.organizationId },
         data: { salesTeamId: team.id }
       });
     }
 
     // Return full team details with leader and members
-    const fullTeam = await prisma.salesTeam.findUnique({
-      where: { id: team.id },
+    const fullTeam = await prisma.salesTeam.findFirst({
+      where: { id: team.id, organizationId: req.organizationId },
       include: {
         leader: { select: { id: true, name: true, email: true } },
         members: { select: { id: true, name: true, email: true, role: true } }
@@ -59,6 +61,7 @@ exports.createTeam = async (req, res) => {
 exports.getTeams = async (req, res) => {
   try {
     const teams = await prisma.salesTeam.findMany({
+      where: { organizationId: req.organizationId },
       include: {
         leader: { select: { id: true, name: true, email: true } },
         members: { select: { id: true, name: true, email: true, role: true, department: true } }
@@ -76,8 +79,8 @@ exports.getTeams = async (req, res) => {
 exports.getTeamById = async (req, res) => {
   try {
     const { id } = req.params;
-    const team = await prisma.salesTeam.findUnique({
-      where: { id },
+    const team = await prisma.salesTeam.findFirst({
+      where: { id, organizationId: req.organizationId },
       include: {
         leader: { select: { id: true, name: true, email: true } },
         members: { select: { id: true, name: true, email: true, role: true, department: true } }
@@ -99,42 +102,51 @@ exports.updateTeam = async (req, res) => {
     const { id } = req.params;
     const { name, description, leaderId, memberIds, category, status } = req.body;
 
-    const existingTeam = await prisma.salesTeam.findUnique({ where: { id } });
+    const existingTeam = await prisma.salesTeam.findFirst({ where: { id, organizationId: req.organizationId } });
     if (!existingTeam) {
       return res.status(404).json({ message: 'Sales team not found' });
     }
 
     // Update basic team info
-    const team = await prisma.salesTeam.update({
-      where: { id },
-      data: {
-        name: name || existingTeam.name,
-        description: description !== undefined ? description : existingTeam.description,
-        category: category !== undefined ? category : existingTeam.category,
-        leaderId: leaderId !== undefined ? leaderId : existingTeam.leaderId,
-        status: status || existingTeam.status
-      }
-    });
+   await prisma.salesTeam.updateMany({
+  where: {
+    id,
+    organizationId: req.organizationId
+  },
+  data: {
+    name: name || existingTeam.name,
+    description: description !== undefined
+      ? description
+      : existingTeam.description,
+    category: category !== undefined
+      ? category
+      : existingTeam.category,
+    leaderId: leaderId !== undefined
+      ? leaderId
+      : existingTeam.leaderId,
+    status: status || existingTeam.status
+  }
+});
 
     // Update members if memberIds provided
     if (memberIds && Array.isArray(memberIds)) {
       // 1. Remove all old members (set salesTeamId to null for users who were in this team)
       await prisma.user.updateMany({
-        where: { salesTeamId: id },
+        where: { salesTeamId: id, organizationId: req.organizationId },
         data: { salesTeamId: null }
       });
 
       // 2. Add new members
       if (memberIds.length > 0) {
         await prisma.user.updateMany({
-          where: { id: { in: memberIds } },
+          where: { id: { in: memberIds }, organizationId: req.organizationId },
           data: { salesTeamId: id }
         });
       }
     }
 
-    const fullTeam = await prisma.salesTeam.findUnique({
-      where: { id },
+    const fullTeam = await prisma.salesTeam.findFirst({
+      where: { id, organizationId: req.organizationId },
       include: {
         leader: { select: { id: true, name: true, email: true } },
         members: { select: { id: true, name: true, email: true, role: true } }
@@ -153,13 +165,23 @@ exports.deleteTeam = async (req, res) => {
   try {
     const { id } = req.params;
 
+    const existingTeam = await prisma.salesTeam.findFirst({ where: { id, organizationId: req.organizationId } });
+    if (!existingTeam) {
+      return res.status(404).json({ message: 'Sales team not found' });
+    }
+
     // Reset salesTeamId for all member users
     await prisma.user.updateMany({
-      where: { salesTeamId: id },
+      where: { salesTeamId: id, organizationId: req.organizationId },
       data: { salesTeamId: null }
     });
 
-    await prisma.salesTeam.delete({ where: { id } });
+  await prisma.salesTeam.deleteMany({
+  where: {
+    id,
+    organizationId: req.organizationId
+  }
+});
     res.json({ message: 'Sales team deleted successfully' });
   } catch (err) {
     console.error('Delete sales team error:', err);

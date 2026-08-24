@@ -17,7 +17,8 @@ exports.createTask = async (req, res) => {
         assignedById: req.user.id,
         priority: priority || 'Normal',
         deadline: deadline ? new Date(deadline) : null,
-        remarks: remarks || ''
+        remarks: remarks || '',
+        organizationId: req.organizationId
       },
       include: {
         assignedTo: { select: { id: true, name: true, email: true } },
@@ -36,11 +37,11 @@ exports.createTask = async (req, res) => {
 exports.getTasks = async (req, res) => {
   try {
     const user = req.user;
-    let whereClause = {};
+    let whereClause = { organizationId: req.organizationId };
 
     // Enforce ownership: Sales Executives only see tasks assigned to them
     if (user.role === 'USER') {
-      whereClause = { assignedToId: user.id };
+      whereClause.assignedToId = user.id;
     }
 
     const tasks = await prisma.task.findMany({
@@ -63,8 +64,8 @@ exports.getTasks = async (req, res) => {
 exports.getTaskById = async (req, res) => {
   try {
     const { id } = req.params;
-    const task = await prisma.task.findUnique({
-      where: { id },
+    const task = await prisma.task.findFirst({
+      where: { id, organizationId: req.organizationId },
       include: {
         assignedTo: { select: { id: true, name: true, email: true } },
         assignedBy: { select: { id: true, name: true, email: true } },
@@ -91,7 +92,7 @@ exports.updateTask = async (req, res) => {
     const { id } = req.params;
     const { title, status, priority, deadline, remarks, assignedToId } = req.body;
 
-    const existingTask = await prisma.task.findUnique({ where: { id } });
+    const existingTask = await prisma.task.findFirst({ where: { id, organizationId: req.organizationId } });
     if (!existingTask) {
       return res.status(404).json({ message: 'Task not found' });
     }
@@ -113,14 +114,36 @@ exports.updateTask = async (req, res) => {
       if (assignedToId !== undefined) updatedData.assignedToId = assignedToId;
     }
 
-    const task = await prisma.task.update({
-      where: { id },
-      data: updatedData,
-      include: {
-        assignedTo: { select: { id: true, name: true, email: true } },
-        assignedBy: { select: { id: true, name: true, email: true } }
+   await prisma.task.updateMany({
+  where: {
+    id,
+    organizationId: req.organizationId
+  },
+  data: updatedData
+});
+
+const task = await prisma.task.findFirst({
+  where: {
+    id,
+    organizationId: req.organizationId
+  },
+  include: {
+    assignedTo: {
+      select: {
+        id: true,
+        name: true,
+        email: true
       }
-    });
+    },
+    assignedBy: {
+      select: {
+        id: true,
+        name: true,
+        email: true
+      }
+    }
+  }
+});
 
     res.json(task);
   } catch (err) {
@@ -133,7 +156,16 @@ exports.updateTask = async (req, res) => {
 exports.deleteTask = async (req, res) => {
   try {
     const { id } = req.params;
-    await prisma.task.delete({ where: { id } });
+    const existingTask = await prisma.task.findFirst({ where: { id, organizationId: req.organizationId } });
+    if (!existingTask) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+   await prisma.task.deleteMany({
+  where: {
+    id,
+    organizationId: req.organizationId
+  }
+});
     res.json({ message: 'Task deleted successfully' });
   } catch (err) {
     console.error('Delete task error:', err);
@@ -150,7 +182,7 @@ exports.addTaskComment = async (req, res) => {
       return res.status(400).json({ message: 'Comment content required' });
     }
 
-    const task = await prisma.task.findUnique({ where: { id } });
+    const task = await prisma.task.findFirst({ where: { id, organizationId: req.organizationId } });
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
     }

@@ -8,10 +8,11 @@ exports.getDashboard = async (req, res) => {
     const user = req.user;
     const userRole = (user?.role || 'USER').toUpperCase().replace(/[\s_]+/g, '_');
     
-    let whereClause = {};
-    let rewardWhereClause = {};
+    let whereClause = { organizationId: req.organizationId };
+    let rewardWhereClause = { referral: { organizationId: req.organizationId } };
     if (userRole === 'USER') {
       whereClause = {
+        organizationId: req.organizationId,
         OR: [
           { createdById: user.id },
           { createdBy: user.name }
@@ -19,6 +20,7 @@ exports.getDashboard = async (req, res) => {
       };
       rewardWhereClause = {
         referral: {
+          organizationId: req.organizationId,
           OR: [
             { createdById: user.id },
             { createdBy: user.name }
@@ -96,6 +98,7 @@ exports.createReferral = async(req,res)=>{
         } = req.body;
 
       let firstStage = await prisma.referralPipeline.findFirst({
+        where: { organizationId: req.organizationId },
         orderBy: {
             sequence: "asc"
         }
@@ -107,7 +110,8 @@ exports.createReferral = async(req,res)=>{
                   name: "New",
                   sequence: 1,
                   color: "#3B82F6",
-                  isFinal: false
+                  isFinal: false,
+                  organizationId: req.organizationId
               }
           });
       }
@@ -126,6 +130,7 @@ exports.createReferral = async(req,res)=>{
               rewardValue:Number(rewardValue),
               createdBy: req.user?.name || "System",
               createdById: req.user?.id || null,
+              organizationId: req.organizationId,
               currentStage: {
                 connect: {
                   id: firstStage.id,
@@ -159,9 +164,10 @@ exports.getAllReferrals = async(req,res)=>{
         const user = req.user;
         const userRole = (user?.role || 'USER').toUpperCase().replace(/[\s_]+/g, '_');
         
-        let whereClause = {};
+        let whereClause = { organizationId: req.organizationId };
         if (userRole === 'USER') {
           whereClause = {
+            organizationId: req.organizationId,
             OR: [
               { createdById: user.id },
               { createdBy: user.name }
@@ -195,9 +201,10 @@ exports.getAllReferrals = async(req,res)=>{
 
 exports.getReferral = async(req,res)=>{
     try{
-        const referral = await prisma.referral.findUnique({
+        const referral = await prisma.referral.findFirst({
             where:{
-                id:req.params.id
+                id:req.params.id,
+                organizationId: req.organizationId
             },
             include:{
                 currentStage:true,
@@ -230,21 +237,28 @@ exports.getReferral = async(req,res)=>{
 exports.updateReferral = async(req,res)=>{
 
     try{
+        const existing = await prisma.referral.findFirst({ where: { id: req.params.id, organizationId: req.organizationId } });
+        if (!existing) return res.status(404).json({message: 'Not found'});
 
-        const referral = await prisma.referral.update({
+     await prisma.referral.updateMany({
+    where: {
+        id: req.params.id,
+        organizationId: req.organizationId
+    },
 
-            where:{
-                id:req.params.id
-            },
+    data: req.body
+});
 
-            data:req.body,
+const referral = await prisma.referral.findFirst({
+    where: {
+        id: req.params.id,
+        organizationId: req.organizationId
+    },
 
-            include:{
-                currentStage:true
-            }
-
-        });
-
+    include: {
+        currentStage: true
+    }
+});
         res.json(referral);
 
     }catch(err){
@@ -258,14 +272,29 @@ exports.updateReferral = async(req,res)=>{
 exports.deleteReferral = async(req,res)=>{
 
     try{
+        const existing = await prisma.referral.findFirst({ where: { id: req.params.id, organizationId: req.organizationId } });
+        if (!existing) return res.status(404).json({message: 'Not found'});
 
-        await prisma.referralHistory.deleteMany({
+      await prisma.referralHistory.deleteMany({
+    where: {
+        referralId: req.params.id,
+        organizationId: req.organizationId
+    }
+});
 
-            where:{
-                referralId:req.params.id
-            }
+await prisma.referralReward.deleteMany({
+    where: {
+        referralId: req.params.id,
+        organizationId: req.organizationId
+    }
+});
 
-        });
+await prisma.referral.deleteMany({
+    where: {
+        id: req.params.id,
+        organizationId: req.organizationId
+    }
+});
 
         await prisma.referralReward.deleteMany({
 
@@ -303,9 +332,10 @@ exports.changeStage = async (req, res) => {
     const { id } = req.params;
 
     // Check stage exists
-    const stage = await prisma.referralPipeline.findUnique({
+    const stage = await prisma.referralPipeline.findFirst({
       where: {
         id: stageId,
+        organizationId: req.organizationId
       },
     });
 
@@ -315,19 +345,29 @@ exports.changeStage = async (req, res) => {
       });
     }
 
-    // Update referral
-    const referral = await prisma.referral.update({
-      where: {
-        id,
-      },
-      data: {
-        currentStageId: stageId,
-      },
-      include: {
-        currentStage: true,
-      },
-    });
+    const existing = await prisma.referral.findFirst({ where: { id, organizationId: req.organizationId } });
+    if (!existing) return res.status(404).json({message: 'Not found'});
 
+    // Update referral
+ await prisma.referral.updateMany({
+  where: {
+    id,
+    organizationId: req.organizationId
+  },
+  data: {
+    currentStageId: stageId
+  }
+});
+
+const referral = await prisma.referral.findFirst({
+  where: {
+    id,
+    organizationId: req.organizationId
+  },
+  include: {
+    currentStage: true
+  }
+});
     // Add history
     await prisma.referralHistory.create({
       data: {
@@ -335,6 +375,7 @@ exports.changeStage = async (req, res) => {
         stageId,
         changedBy: "System", // Replace with req.user.id after auth is enabled
         remarks: "Stage Changed",
+        organizationId: req.organizationId
       },
     });
 
@@ -351,22 +392,31 @@ exports.changeStage = async (req, res) => {
 exports.approveReward = async(req,res)=>{
 
     try{
+        const existing = await prisma.referral.findFirst({ where: { id: req.params.id, organizationId: req.organizationId } });
+        if (!existing) return res.status(404).json({message: 'Not found'});
 
-        const referral = await prisma.referral.update({
+   await prisma.referral.updateMany({
+    where: {
+        id: req.params.id,
+        organizationId: req.organizationId
+    },
 
-            where:{
-                id:req.params.id
-            },
+    data: {
+        rewardApproved: true
+    }
+});
 
-            data:{
-                rewardApproved:true
-            }
-
-        });
+const referral = await prisma.referral.findFirst({
+    where: {
+        id: req.params.id,
+        organizationId: req.organizationId
+    }
+});
 
 const reward = await prisma.referralReward.findFirst({
     where: {
-        referralId: req.params.id
+        referralId: req.params.id,
+        organizationId: req.organizationId
     }
 });
 
@@ -388,7 +438,9 @@ if (reward) {
 
                 approved:true,
 
-              approvedBy: "System"
+              approvedBy: "System",
+
+              organizationId: req.organizationId
 
             }
 
@@ -412,7 +464,8 @@ exports.payReward = async (req, res) => {
   try {
     const reward = await prisma.referralReward.findFirst({
       where: {
-        referralId: req.params.id
+        referralId: req.params.id,
+        organizationId: req.organizationId
       }
     });
 
@@ -430,7 +483,8 @@ exports.payReward = async (req, res) => {
 
     const updatedReward = await prisma.referralReward.update({
       where: {
-        id: reward.id
+        id: reward.id,
+         organizationId: req.organizationId
       },
       data: {
         paid: true,

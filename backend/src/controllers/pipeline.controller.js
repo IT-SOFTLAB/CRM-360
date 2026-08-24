@@ -8,6 +8,7 @@ exports.getStages = async (req, res) => {
   try {
 
     let stages = await prisma.referralPipeline.findMany({
+      where: { organizationId: req.organizationId },
       orderBy: {
         sequence: "asc",
       },
@@ -29,10 +30,12 @@ exports.getStages = async (req, res) => {
           sequence: 1,
           color: "#3B82F6",
           isFinal: false,
+          organizationId: req.organizationId,
         },
       });
 
       stages = await prisma.referralPipeline.findMany({
+        where: { organizationId: req.organizationId },
         orderBy: {
           sequence: "asc",
         },
@@ -73,6 +76,7 @@ exports.createStage = async (req, res) => {
 
     const existing = await prisma.referralPipeline.findFirst({
       where: {
+        organizationId: req.organizationId,
         name: {
           equals: name,
           mode: "insensitive",
@@ -87,6 +91,7 @@ exports.createStage = async (req, res) => {
     }
 
    const lastStage = await prisma.referralPipeline.findFirst({
+    where: { organizationId: req.organizationId },
     orderBy:{
         sequence:"desc"
     }
@@ -102,6 +107,7 @@ const nextSequence = lastStage
         color: color || "#3B82F6",
         isFinal: isFinal || false,
        sequence: nextSequence,
+       organizationId: req.organizationId,
       },
     });
 
@@ -120,9 +126,10 @@ exports.deleteStage = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const stage = await prisma.referralPipeline.findUnique({
+    const stage = await prisma.referralPipeline.findFirst({
       where: {
         id,
+        organizationId: req.organizationId,
       },
       include: {
         referrals: true,
@@ -142,7 +149,7 @@ exports.deleteStage = async (req, res) => {
       });
     }
 
-  const count = await prisma.referralPipeline.count();
+  const count = await prisma.referralPipeline.count({ where: { organizationId: req.organizationId } });
 
 if (count === 1) {
 
@@ -161,11 +168,12 @@ if (count === 1) {
       });
     }
 
-    await prisma.referralPipeline.delete({
-      where: {
-        id,
-      },
-    });
+   await prisma.referralPipeline.deleteMany({
+  where: {
+    id,
+    organizationId: req.organizationId,
+  },
+});
 
     res.json({
       message: "Stage deleted successfully",
@@ -186,9 +194,10 @@ exports.reorderStages = async (req, res) => {
     if (stagesList && Array.isArray(stagesList)) {
       await prisma.$transaction(
         stagesList.map((stage, index) =>
-          prisma.referralPipeline.update({
+          prisma.referralPipeline.updateMany({
             where: {
               id: stage.id,
+              organizationId: req.organizationId,
             },
             data: {
               sequence: stage.sequence !== undefined ? Number(stage.sequence) : (stage.order !== undefined ? Number(stage.order) : index + 1),
@@ -199,6 +208,7 @@ exports.reorderStages = async (req, res) => {
     }
 
     const updatedStages = await prisma.referralPipeline.findMany({
+      where: { organizationId: req.organizationId },
       orderBy: {
         sequence: "asc",
       },

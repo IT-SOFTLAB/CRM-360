@@ -12,6 +12,7 @@ const createLead = async (req, res) => {
 
     const lead = await prisma.lead.create({
       data: {
+        organizationId: req.organizationId,
         contactName: req.body.contactName,
         company: req.body.company,
         email: req.body.email,
@@ -30,6 +31,7 @@ const createLead = async (req, res) => {
     // Automatically create a corresponding Opportunity in the "New" stage
     await prisma.opportunity.create({
       data: {
+        organizationId: req.organizationId,
         leadId: lead.id,
         customerName: lead.contactName,
         company: lead.company,
@@ -71,14 +73,12 @@ const getAllLeads = async (req, res) => {
     const user = req.user;
     const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
 
-    let whereClause = {};
+    let whereClause = { organizationId: req.organizationId };
     if (userRole === 'USER') {
-      whereClause = {
-        OR: [
-          { assignedUserId: user.id },
-          { assignedUser: user.name }
-        ]
-      };
+      whereClause.OR = [
+        { assignedUserId: user.id },
+        { assignedUser: user.name }
+      ];
     }
 
     const leads = await prisma.lead.findMany({
@@ -101,9 +101,14 @@ const deleteLead = async (req, res) => {
   try {
     const { id } = req.params;
 
+    const existing = await prisma.lead.findFirst({
+      where: { id: id, organizationId: req.organizationId }
+    });
+    if (!existing) return res.status(404).json({ message: "Lead not found" });
+
     // Delete associated opportunities first
     await prisma.opportunity.deleteMany({
-      where: { leadId: id }
+      where: { leadId: id, organizationId: req.organizationId }
     }).catch(err => console.log("Associated opportunities deletion failed:", err.message));
 
     await prisma.lead.delete({
@@ -131,9 +136,10 @@ const updateLead = async (req, res) => {
     const { id } = req.params;
 
     // Get current lead to check if assignee changed
-    const currentLead = await prisma.lead.findUnique({
-      where: { id }
+    const currentLead = await prisma.lead.findFirst({
+      where: { id, organizationId: req.organizationId }
     });
+    if (!currentLead) return res.status(404).json({ message: "Lead not found" });
 
     const lead = await prisma.lead.update({
       where: {
@@ -187,20 +193,20 @@ const updateLead = async (req, res) => {
 
     if (Object.keys(oppUpdateData).length > 0) {
       await prisma.opportunity.updateMany({
-        where: { leadId: id },
+        where: { leadId: id, organizationId: req.organizationId },
         data: oppUpdateData
       });
     }
 
     if (req.body.assignedUser !== undefined || req.body.assignedUserId !== undefined) {
       const opps = await prisma.opportunity.findMany({
-        where: { leadId: id },
+        where: { leadId: id, organizationId: req.organizationId },
         select: { id: true }
       });
       const oppIds = opps.map(o => o.id);
       if (oppIds.length > 0) {
         await prisma.customer.updateMany({
-          where: { opportunityId: { in: oppIds } },
+          where: { opportunityId: { in: oppIds }, organizationId: req.organizationId },
           data: {
             assignedSalesperson: req.body.assignedUser,
             assignedSalespersonId: req.body.assignedUserId
@@ -297,10 +303,21 @@ const importLeads = async (req, res) => {
 
     if (teamId) {
       try {
-        const team = await prisma.salesTeam.findUnique({
-          where: { id: teamId },
-          include: { leader: true, members: { select: { id: true, name: true } } }
-        });
+       const team = await prisma.salesTeam.findFirst({
+  where: {
+    id: teamId,
+    organizationId: req.organizationId
+  },
+  include: {
+    leader: true,
+    members: {
+      select: {
+        id: true,
+        name: true
+      }
+    }
+  }
+});
         if (team) {
           if (team.leader) {
             initialAssigneeName = team.leader.name;
@@ -351,6 +368,7 @@ const importLeads = async (req, res) => {
       try {
         lead = await prisma.lead.create({
           data: {
+            organizationId: req.organizationId,
             contactName: trimmedName,
             company: trimmedCompany,
             email: trimmedEmail,
@@ -369,6 +387,7 @@ const importLeads = async (req, res) => {
         // Automatically create a corresponding Opportunity in the "New" stage
         await prisma.opportunity.create({
           data: {
+            organizationId: req.organizationId,
             leadId: lead.id,
             customerName: lead.contactName,
             company: lead.company,
@@ -413,7 +432,8 @@ const bulkAssignLeads = async (req, res) => {
     // Fetch leads details for email notification
   const leadsForEmail = await prisma.lead.findMany({
   where: {
-    id: { in: ids }
+    id: { in: ids },
+    organizationId: req.organizationId
   },
   select: {
     contactName: true,
@@ -424,7 +444,8 @@ const bulkAssignLeads = async (req, res) => {
     // 1. Update in PostgreSQL
     const updated = await prisma.lead.updateMany({
       where: {
-        id: { in: ids }
+        id: { in: ids },
+        organizationId: req.organizationId
       },
       data: {
         assignedUser,
@@ -435,7 +456,8 @@ const bulkAssignLeads = async (req, res) => {
     // 2. Update associated opportunities in PostgreSQL
     await prisma.opportunity.updateMany({
       where: {
-        leadId: { in: ids }
+        leadId: { in: ids },
+        organizationId: req.organizationId
       },
       data: {
         assignedSalesperson: assignedUser,
@@ -445,13 +467,13 @@ const bulkAssignLeads = async (req, res) => {
 
     // Update associated customers in PostgreSQL
     const opps = await prisma.opportunity.findMany({
-      where: { leadId: { in: ids } },
+      where: { leadId: { in: ids }, organizationId: req.organizationId },
       select: { id: true }
     });
     const oppIds = opps.map(o => o.id);
     if (oppIds.length > 0) {
       await prisma.customer.updateMany({
-        where: { opportunityId: { in: oppIds } },
+        where: { opportunityId: { in: oppIds }, organizationId: req.organizationId },
         data: {
           assignedSalesperson: assignedUser,
           assignedSalespersonId: assignedUserId

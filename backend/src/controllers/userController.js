@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 exports.getAllUsers = async (req, res) => {
   try {
     const users = await prisma.user.findMany({
+      where: { organizationId: req.organizationId },
       include: {
         admin: {
           select: { id: true, name: true }
@@ -33,7 +34,7 @@ exports.updateUser = async (req, res) => {
     const { id } = req.params;
     const { name, email, role, status, isLocked, department, category, salesTeamId, adminId } = req.body;
     
-    const existing = await prisma.user.findUnique({ where: { id } });
+    const existing = await prisma.user.findFirst({ where: { id, organizationId: req.organizationId } });
     if (!existing) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -42,7 +43,8 @@ exports.updateUser = async (req, res) => {
       const existingName = await prisma.user.findFirst({
         where: {
           name: { equals: name.trim(), mode: 'insensitive' },
-          id: { not: id }
+          id: { not: id },
+          organizationId: req.organizationId
         }
       });
       if (existingName) {
@@ -54,7 +56,8 @@ exports.updateUser = async (req, res) => {
       const existingEmail = await prisma.user.findFirst({
         where: {
           email: { equals: email.toLowerCase().trim(), mode: 'insensitive' },
-          id: { not: id }
+          id: { not: id },
+          organizationId: req.organizationId
         }
       });
       if (existingEmail) {
@@ -78,15 +81,28 @@ exports.updateUser = async (req, res) => {
     if (salesTeamId !== undefined) dataToUpdate.salesTeamId = salesTeamId || null;
     if (adminId !== undefined) dataToUpdate.adminId = adminId || null;
 
-    const updatedUser = await prisma.user.update({
-      where: { id },
-      data: dataToUpdate,
-      include: {
-        admin: {
-          select: { id: true, name: true }
-        }
+   await prisma.user.updateMany({
+  where: {
+    id,
+    organizationId: req.organizationId
+  },
+  data: dataToUpdate
+});
+
+const updatedUser = await prisma.user.findFirst({
+  where: {
+    id,
+    organizationId: req.organizationId
+  },
+  include: {
+    admin: {
+      select: {
+        id: true,
+        name: true
       }
-    });
+    }
+  }
+});
 
     const { password, ...clean } = updatedUser;
     res.json(clean);
@@ -106,7 +122,7 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'New password must be at least 6 characters long' });
     }
 
-    const user = await prisma.user.findUnique({ where: { id } });
+    const user = await prisma.user.findFirst({ where: { id, organizationId: req.organizationId } });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -116,11 +132,15 @@ exports.resetPassword = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await prisma.user.update({
-      where: { id },
-      data: { password: hashedPassword }
-    });
-
+  await prisma.user.updateMany({
+  where: {
+    id,
+    organizationId: req.organizationId
+  },
+  data: {
+    password: hashedPassword
+  }
+});
     // Invalidate refresh tokens
     await prisma.refreshToken.deleteMany({ where: { userId: id } });
 
@@ -140,7 +160,7 @@ exports.deleteUser = async (req, res) => {
       return res.status(400).json({ message: 'You cannot delete yourself' });
     }
 
-    const user = await prisma.user.findUnique({ where: { id } });
+    const user = await prisma.user.findFirst({ where: { id, organizationId: req.organizationId } });
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -150,12 +170,21 @@ exports.deleteUser = async (req, res) => {
     }
 
     // Set salesTeamId to null on team assignments
-    await prisma.salesTeam.updateMany({
-      where: { leaderId: id },
-      data: { leaderId: null }
-    });
-
-    await prisma.user.delete({ where: { id } });
+  await prisma.salesTeam.updateMany({
+  where: {
+    leaderId: id,
+    organizationId: req.organizationId
+  },
+  data: {
+    leaderId: null
+  }
+});
+await prisma.user.deleteMany({
+  where: {
+    id,
+    organizationId: req.organizationId
+  }
+});
     res.json({ message: 'User deleted successfully' });
   } catch (err) {
     console.error('Delete user error:', err);

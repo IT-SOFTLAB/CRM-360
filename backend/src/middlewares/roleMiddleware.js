@@ -44,22 +44,27 @@ const authorizeOwnership = (modelName, idParamName = 'id') => {
       }
 
       if (modelName === 'Lead') {
-        const lead = await prisma.lead.findUnique({ where: { id: recordId } });
+    const lead = await prisma.lead.findFirst({
+  where: {
+    id: recordId,
+    organizationId: req.organizationId
+  }
+});
         if (lead && lead.assignedUserId !== user.id) {
           return res.status(403).json({ message: 'Access denied. You do not own this Lead.' });
         }
       } else if (modelName === 'Opportunity') {
-        const opp = await prisma.opportunity.findUnique({ where: { id: recordId } });
+        const opp = await prisma.opportunity.findUnique({ where: { id: recordId,  organizationId: req.organizationId } });
         if (opp && opp.assignedSalespersonId !== user.id) {
           return res.status(403).json({ message: 'Access denied. You do not own this Opportunity.' });
         }
       } else if (modelName === 'Customer') {
-        const customer = await prisma.customer.findUnique({ where: { id: recordId } });
+        const customer = await prisma.customer.findUnique({ where: { id: recordId,  organizationId: req.organizationId } });
         if (customer && customer.assignedSalespersonId !== user.id) {
           return res.status(403).json({ message: 'Access denied. You do not own this Customer.' });
         }
       } else if (modelName === 'Task') {
-        const task = await prisma.task.findUnique({ where: { id: recordId } });
+        const task = await prisma.task.findUnique({ where: { id: recordId,  organizationId: req.organizationId } });
         if (task && task.assignedToId !== user.id && task.assignedById !== user.id) {
           return res.status(403).json({ message: 'Access denied. You are not assigned to this Task.' });
         }

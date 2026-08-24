@@ -1,5 +1,5 @@
 const express = require('express');
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 const notificationController = require('../controllers/notificationController');
 const authenticateJWT = require('../middlewares/authMiddleware');
 

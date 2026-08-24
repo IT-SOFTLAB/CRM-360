@@ -76,22 +76,30 @@ app.use(
         }
     })
 );
-app.use("/api/leads", leadRoutes);
-app.use("/api/activities", activityRoutes);
-app.use("/api/opportunities", opportunityRoutes);
-app.use("/api/customers", customerRoutes);
+const organizationMiddleware = require('./src/middlewares/organizationMiddleware');
+
+const orgRouter = express.Router();
+orgRouter.use('/:organizationId', organizationMiddleware);
+
+orgRouter.use("/:organizationId/leads", leadRoutes);
+orgRouter.use("/:organizationId/activities", activityRoutes);
+orgRouter.use("/:organizationId/opportunities", opportunityRoutes);
+orgRouter.use("/:organizationId/customers", customerRoutes);
+orgRouter.use("/:organizationId/salesteam", salesTeamRoutes);
+orgRouter.use("/:organizationId/users", userRoutes);
+orgRouter.use("/:organizationId/referrals", referralRoutes);
+orgRouter.use("/:organizationId/emails", emailRoutes);
+orgRouter.use("/:organizationId/quotations", quotationRoutes);
+orgRouter.use("/:organizationId/referral-pipeline", pipelineRoutes);
+orgRouter.use("/:organizationId/notifications", notificationRoutes);
+orgRouter.use("/:organizationId/calendar", calendarRoutes);
+orgRouter.use("/:organizationId/filters", savedFilterRoutes);
+
+app.use("/api/org", orgRouter);
 app.use("/api/auth", authRoutes);
 app.use("/auth", authRoutes);
-app.use("/api/salesteam", salesTeamRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/referrals", referralRoutes);
-app.use("/api/emails",emailRoutes);
-app.use("/api/quotations", quotationRoutes);
-app.use("/api/referral-pipeline", pipelineRoutes);
 app.use("/api/bootstrap", bootstrapRoutes);
-app.use("/api/notifications", notificationRoutes);
-app.use("/api/calendar", calendarRoutes);
-app.use("/api/filters", savedFilterRoutes);
+
 app.use(
   "/uploads",
   express.static(path.join(__dirname, "src", "uploads"))
@@ -128,7 +136,7 @@ app.get('/api/services', (req, res) => {
 });
 
 // Log actions (Audit log)
-async function logActivity(db, user, action, module, details) {
+async function logActivity(db, user, action, module, details, organizationId = 'orgA') {
   try {
     await prisma.auditLog.create({
       data: {
@@ -158,11 +166,11 @@ app.get('/api/pipelines', async (req, res) => {
   }
 });
 
-app.post('/api/pipelines', async (req, res) => {
+orgRouter.post('/pipelines', async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ message: 'Pipeline stage name required' });
   try {
-    const stages = await prisma.pipelineStage.findMany();
+    const stages = await prisma.pipelineStage.findMany({ where: { organizationId: req.organizationId } });
     const maxOrder = stages.reduce((max, p) => p.order > max ? p.order : max, 0);
     const newStage = await prisma.pipelineStage.create({
       data: {
@@ -170,14 +178,14 @@ app.post('/api/pipelines', async (req, res) => {
         order: maxOrder + 1
       }
     });
-    logActivity(null, null, 'CREATE_PIPELINE', 'Settings', `Created sales pipeline stage: ${name}`);
+    logActivity(null, null, 'CREATE_PIPELINE', 'Settings', `Created sales pipeline stage: ${name}`, req.organizationId);
     res.status(201).json(newStage);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-app.put('/api/pipelines/:id', async (req, res) => {
+orgRouter.put('/pipelines/:id', async (req, res) => {
   const { id } = req.params;
   const { name, order } = req.body;
   try {
@@ -189,14 +197,14 @@ app.put('/api/pipelines/:id', async (req, res) => {
       where: { id },
       data: updateData
     });
-    logActivity(null, null, 'UPDATE_PIPELINE', 'Settings', `Updated pipeline stage ID: ${id}`);
+    logActivity(null, null, 'UPDATE_PIPELINE', 'Settings', `Updated pipeline stage ID: ${id}`, req.organizationId);
     res.json(updatedStage);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-app.post('/api/pipelines/reorder', async (req, res) => {
+orgRouter.post('/pipelines/reorder', async (req, res) => {
   const { stages } = req.body; // Expect array of { id, order }
   if (!stages || !Array.isArray(stages)) return res.status(400).json({ message: 'Stages array required' });
   try {
@@ -218,7 +226,7 @@ app.post('/api/pipelines/reorder', async (req, res) => {
   }
 });
 
-app.delete('/api/pipelines/:id', async (req, res) => {
+orgRouter.delete('/pipelines/:id', async (req, res) => {
   const { id } = req.params;
   try {
     const stage = await prisma.pipelineStage.findUnique({
@@ -252,7 +260,7 @@ app.delete('/api/pipelines/:id', async (req, res) => {
       }
     });
 
-    logActivity(null, null, 'DELETE_PIPELINE', 'Settings', `Deleted pipeline stage: ${stage.name}`);
+    logActivity(null, null, 'DELETE_PIPELINE', 'Settings', `Deleted pipeline stage: ${stage.name}`, req.organizationId);
     res.json({ message: 'Stage deleted', fallbackStageId: fallbackId });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -271,11 +279,11 @@ app.get('/api/referral-pipelines', async (req, res) => {
   }
 });
 
-app.post('/api/referral-pipelines', async (req, res) => {
+orgRouter.post('/referral-pipelines', async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ message: 'Referral stage name required' });
   try {
-    const stages = await prisma.referralPipeline.findMany();
+    const stages = await prisma.referralPipeline.findMany({ where: { organizationId: req.organizationId } });
     const maxSequence = stages.reduce((max, p) => p.sequence > max ? p.sequence : max, 0);
     const newStage = await prisma.referralPipeline.create({
       data: {
@@ -285,14 +293,14 @@ app.post('/api/referral-pipelines', async (req, res) => {
         isFinal: false
       }
     });
-    await logActivity(null, null, 'CREATE_REFERRAL_PIPELINE', 'Settings', `Created referral stage: ${name}`);
+    await logActivity(null, null, 'CREATE_REFERRAL_PIPELINE', 'Settings', `Created referral stage: ${name}`, req.organizationId);
     res.status(201).json({ id: newStage.id, name: newStage.name, order: newStage.sequence, color: newStage.color });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-app.delete('/api/referral-pipelines/:id', async (req, res) => {
+orgRouter.delete('/referral-pipelines/:id', async (req, res) => {
   const { id } = req.params;
   try {
     await prisma.referralPipeline.delete({
@@ -329,7 +337,7 @@ app.get('/api/settings/branding', async (req, res) => {
   }
 });
 
-app.put('/api/settings/branding', async (req, res) => {
+orgRouter.put('/settings/branding', async (req, res) => {
   try {
     const { name, logoText, primaryColor, secondaryColor } = req.body;
     const settings = await prisma.companySettings.upsert({
@@ -349,7 +357,7 @@ app.put('/api/settings/branding', async (req, res) => {
       }
     });
 
-    await logActivity(null, null, 'UPDATE_BRANDING', 'Settings', `Updated company branding details.`);
+    await logActivity(null, null, 'UPDATE_BRANDING', 'Settings', `Updated company branding details.`, req.organizationId);
 
     res.json({
       name: settings.companyName,

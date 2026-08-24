@@ -1,5 +1,5 @@
 const express = require("express");
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 const authenticateJWT = require("../middlewares/authMiddleware");
 const upload = require("../middlewares/upload");
 const email = require("../controllers/emailController");

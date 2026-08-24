@@ -72,6 +72,7 @@ console.log(outlookEvent);
         const activity = await prisma.activity.create({
 
             data: {
+    organizationId: req.organizationId,
 
     title,
 
@@ -142,9 +143,9 @@ exports.getActivities = async (req, res) => {
         const user = req.user;
         const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
 
-        let whereClause = {};
+        let whereClause = { organizationId: req.organizationId };
         if (userRole === 'USER') {
-            whereClause = { salesperson: user.name };
+            whereClause.salesperson = user.name;
         }
 
         const activities = await prisma.activity.findMany({
@@ -178,13 +179,13 @@ exports.updateActivity = async (req, res) => {
         const { id } = req.params;
 
         // Get existing activity
-        const oldActivity = await prisma.activity.findUnique({
-
+        const oldActivity = await prisma.activity.findFirst({
             where: {
-                id
+                id,
+                organizationId: req.organizationId
             }
-
         });
+        if (!oldActivity) return res.status(404).json({ message: 'Not found' });
 
         const outlookTokens = await getOutlookTokens(req);
         if (oldActivity?.outlookEventId && outlookTokens?.accessToken) {
@@ -240,29 +241,30 @@ exports.updateActivity = async (req, res) => {
         }
 
         // Update activity in CRM database
-        const activity = await prisma.activity.update({
+       await prisma.activity.updateMany({
+    where: {
+        id,
+        organizationId: req.organizationId
+    },
+    data: {
+        ...req.body,
 
-            where: {
+        startTime: req.body.startTime
+            ? new Date(req.body.startTime)
+            : undefined,
 
-                id
+        endTime: req.body.endTime
+            ? new Date(req.body.endTime)
+            : undefined
+    }
+});
 
-            },
-
-            data: {
-
-                ...req.body,
-
-                startTime: req.body.startTime
-                    ? new Date(req.body.startTime)
-                    : undefined,
-
-                endTime: req.body.endTime
-                    ? new Date(req.body.endTime)
-                    : undefined
-
-            }
-
-        });
+const activity = await prisma.activity.findFirst({
+    where: {
+        id,
+        organizationId: req.organizationId
+    }
+});
 
         res.json(activity);
 
@@ -292,21 +294,27 @@ exports.toggleDone = async (req, res) => {
 
         const { done } = req.body;
 
-        const activity = await prisma.activity.update({
+        const existing = await prisma.activity.findFirst({ where: { id, organizationId: req.organizationId } });
+        if (!existing) return res.status(404).json({ message: 'Not found' });
 
-            where: {
+      await prisma.activity.updateMany({
+    where: {
+        id,
+        organizationId: req.organizationId
+    },
+    data: {
+        done: !done
+    }
+});
 
-                id
+const activity = await prisma.activity.findFirst({
+    where: {
+        id,
+        organizationId: req.organizationId
+    }
+});
 
-            },
-
-            data: {
-
-                done: !done
-
-            }
-
-        });
+res.json(activity);
 
         res.json(activity);
 
@@ -334,15 +342,13 @@ exports.deleteActivity = async (req, res) => {
         const { id } = req.params;
 
 const activity =
-    await prisma.activity.findUnique({
-
+    await prisma.activity.findFirst({
         where: {
-
-            id
-
+            id,
+            organizationId: req.organizationId
         }
-
     });
+if (!activity) return res.status(404).json({ message: 'Not found' });
 
 const outlookTokens = await getOutlookTokens(req);
 if (activity?.outlookEventId && outlookTokens?.accessToken) {
@@ -355,15 +361,12 @@ if (activity?.outlookEventId && outlookTokens?.accessToken) {
 
 }
 
-        await prisma.activity.delete({
-
-            where: {
-
-                id
-
-            }
-
-        });
+       await prisma.activity.deleteMany({
+    where: {
+        id,
+        organizationId: req.organizationId
+    }
+});
 
         res.json({
 

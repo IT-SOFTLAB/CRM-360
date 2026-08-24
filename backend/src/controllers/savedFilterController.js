@@ -6,7 +6,7 @@ exports.getSavedFilters = async (req, res) => {
   try {
     const userId = req.user.id;
     const filters = await prisma.savedFilter.findMany({
-      where: { userId },
+      where: { userId, organizationId: req.organizationId },
       orderBy: { createdAt: 'desc' }
     });
     res.json(filters);
@@ -30,7 +30,8 @@ exports.createSavedFilter = async (req, res) => {
       data: {
         name,
         filters, // Stored as JSON
-        userId
+        userId,
+        organizationId: req.organizationId
       }
     });
 
@@ -47,8 +48,8 @@ exports.deleteSavedFilter = async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const existing = await prisma.savedFilter.findUnique({
-      where: { id }
+    const existing = await prisma.savedFilter.findFirst({
+      where: { id, organizationId: req.organizationId }
     });
 
     if (!existing) {

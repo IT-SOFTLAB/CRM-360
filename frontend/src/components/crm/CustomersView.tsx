@@ -15,7 +15,6 @@ const CustomerView = () => {
     const { customers, user, setCustomers, addToast, settingsUsers = [], loadCRMData } = useCRM();
     const userRole = (user?.role || '').toUpperCase().replace(/[\s_]+/g, '_');
     const isManager = userRole === 'ADMIN' || userRole === 'SUPER_ADMIN';
-
     const [teams, setTeams] = useState<any[]>([]);
     const [activeFilter, setActiveFilter] = useState<'all' | 'my' | 'team'>('all');
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);

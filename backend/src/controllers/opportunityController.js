@@ -14,9 +14,10 @@ exports.getAllOpportunities = async (req, res) => {
         const user = req.user;
         const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
 
-        let whereClause = {};
+        let whereClause = { organizationId: req.organizationId };
         if (userRole === 'USER') {
             whereClause = {
+                organizationId: req.organizationId,
                 OR: [
                     { assignedSalespersonId: user.id },
                     { assignedSalesperson: user.name }
@@ -55,10 +56,11 @@ exports.getOpportunity = async (req, res) => {
 
         const { id } = req.params;
 
-        const opportunity = await prisma.opportunity.findUnique({
+        const opportunity = await prisma.opportunity.findFirst({
 
             where: {
-                id
+                id,
+                organizationId: req.organizationId
             }
 
         });
@@ -127,7 +129,9 @@ exports.createOpportunity = async (req, res) => {
 
                 expectedClosing: expectedClosing
                     ? new Date(expectedClosing)
-                    : null
+                    : null,
+
+                organizationId: req.organizationId
 
             }
 
@@ -159,6 +163,9 @@ exports.updateOpportunity = async (req, res) => {
     delete oppUpdateData.category;
     delete oppUpdateData.serviceType;
 
+    const existing = await prisma.opportunity.findFirst({ where: { id, organizationId: req.organizationId } });
+    if (!existing) return res.status(404).json({ message: "Opportunity Not Found" });
+
     const updatedOpportunity = await prisma.opportunity.update({
       where: { id },
       data: oppUpdateData
@@ -169,8 +176,8 @@ exports.updateOpportunity = async (req, res) => {
     // Also update associated lead and customer if salesperson changes
     if (req.body.assignedSalesperson !== undefined || req.body.assignedSalespersonId !== undefined) {
       if (leadId) {
-        await prisma.lead.update({
-          where: { id: leadId },
+        await prisma.lead.updateMany({
+          where: { id: leadId, organizationId: req.organizationId },
           data: {
             assignedUser: req.body.assignedSalesperson,
             assignedUserId: req.body.assignedSalespersonId
@@ -178,7 +185,7 @@ exports.updateOpportunity = async (req, res) => {
         });
       }
       await prisma.customer.updateMany({
-        where: { opportunityId: id },
+        where: { opportunityId: id, organizationId: req.organizationId },
         data: {
           assignedSalesperson: req.body.assignedSalesperson,
           assignedSalespersonId: req.body.assignedSalespersonId
@@ -189,8 +196,8 @@ exports.updateOpportunity = async (req, res) => {
     // Also update associated lead's status if stage changes
     if (req.body.stage !== undefined) {
       if (leadId) {
-        await prisma.lead.update({
-          where: { id: leadId },
+        await prisma.lead.updateMany({
+          where: { id: leadId, organizationId: req.organizationId },
           data: {
             status: req.body.stage
           }
@@ -211,8 +218,8 @@ exports.updateOpportunity = async (req, res) => {
       if (req.body.serviceType !== undefined) leadUpdateData.serviceType = req.body.serviceType;
       
       if (Object.keys(leadUpdateData).length > 0) {
-        await prisma.lead.update({
-          where: { id: leadId },
+        await prisma.lead.updateMany({
+          where: { id: leadId, organizationId: req.organizationId },
           data: leadUpdateData
         }).catch(err => console.log("Associated lead update failed:", err.message));
       }
@@ -223,7 +230,8 @@ exports.updateOpportunity = async (req, res) => {
 
       const existingCustomer = await prisma.customer.findFirst({
         where: {
-          opportunityId: id
+          opportunityId: id,
+          organizationId: req.organizationId
         }
       });
 
@@ -237,7 +245,8 @@ exports.updateOpportunity = async (req, res) => {
             email: updatedOpportunity.email,
             phone: updatedOpportunity.phone,
             assignedSalesperson: updatedOpportunity.assignedSalesperson,
-            dealValue: updatedOpportunity.dealValue
+            dealValue: updatedOpportunity.dealValue,
+            organizationId: req.organizationId
           }
         });
 
@@ -262,13 +271,14 @@ exports.deleteOpportunity = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const opp = await prisma.opportunity.findUnique({
-      where: { id }
+    const opp = await prisma.opportunity.findFirst({
+      where: { id, organizationId: req.organizationId }
     });
+    if (!opp) return res.status(404).json({ message: "Not found" });
 
     if (opp && opp.leadId) {
-      await prisma.lead.delete({
-        where: { id: opp.leadId }
+      await prisma.lead.deleteMany({
+        where: { id: opp.leadId, organizationId: req.organizationId }
       }).catch(err => console.warn("Associated lead deletion failed:", err.message));
     }
 
@@ -296,9 +306,10 @@ exports.convertLeadToOpportunity = async (req, res) => {
     const { dealValue, salesperson } = req.body;
 
     // Find Lead
-    const lead = await prisma.lead.findUnique({
+    const lead = await prisma.lead.findFirst({
       where: {
         id: leadId,
+        organizationId: req.organizationId
       },
     });
 
@@ -312,6 +323,7 @@ exports.convertLeadToOpportunity = async (req, res) => {
     const existing = await prisma.opportunity.findFirst({
       where: {
         leadId,
+        organizationId: req.organizationId
       },
     });
 
@@ -341,13 +353,15 @@ exports.convertLeadToOpportunity = async (req, res) => {
         expectedClosing: new Date(
           Date.now() + 30 * 24 * 60 * 60 * 1000
         ),
+        organizationId: req.organizationId
       },
     });
 
     // Update Lead Status
-    await prisma.lead.update({
+    await prisma.lead.updateMany({
       where: {
         id: lead.id,
+        organizationId: req.organizationId
       },
       data: {
         status: "Converted",
@@ -386,6 +400,7 @@ exports.bulkDeleteOpportunities = async (req, res) => {
         id: {
           in: ids,
         },
+        organizationId: req.organizationId
       },
       select: {
         id: true,
@@ -402,6 +417,7 @@ exports.bulkDeleteOpportunities = async (req, res) => {
           id: {
             in: leadIds,
           },
+          organizationId: req.organizationId
         },
       }).catch(err => console.warn("Prisma associated leads bulk delete failed:", err.message));
     }
@@ -412,6 +428,7 @@ exports.bulkDeleteOpportunities = async (req, res) => {
         id: {
           in: ids,
         },
+        organizationId: req.organizationId
       },
     });
 
@@ -443,7 +460,7 @@ exports.bulkAssignOpportunities = async (req, res) => {
 
     // 1. Get opportunities to find leadIds
     const opps = await prisma.opportunity.findMany({
-      where: { id: { in: ids } },
+      where: { id: { in: ids }, organizationId: req.organizationId },
       select: { leadId: true }
     });
     const leadIds = opps.map(o => o.leadId).filter(Boolean);
@@ -454,6 +471,7 @@ exports.bulkAssignOpportunities = async (req, res) => {
         id: {
           in: ids,
         },
+        organizationId: req.organizationId
       },
       data: {
         assignedSalesperson,
@@ -464,7 +482,7 @@ exports.bulkAssignOpportunities = async (req, res) => {
     // 3. Update associated leads in PostgreSQL
     if (leadIds.length > 0) {
       await prisma.lead.updateMany({
-        where: { id: { in: leadIds } },
+        where: { id: { in: leadIds }, organizationId: req.organizationId },
         data: {
           assignedUser: assignedSalesperson,
           assignedUserId: assignedSalespersonId
@@ -474,7 +492,7 @@ exports.bulkAssignOpportunities = async (req, res) => {
 
     // Update associated customers in PostgreSQL
     await prisma.customer.updateMany({
-      where: { opportunityId: { in: ids } },
+      where: { opportunityId: { in: ids }, organizationId: req.organizationId },
       data: {
         assignedSalesperson,
         assignedSalespersonId

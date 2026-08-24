@@ -11,6 +11,7 @@ const logOutgoingEmail = async (logData) => {
     // 1. Save to Prisma
     await prisma.emailLog.create({
       data: {
+        organizationId: logData.organizationId,
         id: 'elog_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
         recipientEmail: logData.recipientEmail,
         subject: logData.subject,
@@ -232,13 +233,13 @@ exports.sendMail = async (req, res) => {
   try {
     if (!leadId) {
       const leadObj = await prisma.lead.findFirst({
-        where: { email: { equals: recipientEmail, mode: 'insensitive' } }
+        where: { email: { equals: recipientEmail, mode: 'insensitive' }, organizationId: req.organizationId }
       });
       if (leadObj) leadId = leadObj.id;
     }
     if (!opportunityId) {
       const oppObj = await prisma.opportunity.findFirst({
-        where: { email: { equals: recipientEmail, mode: 'insensitive' } }
+        where: { email: { equals: recipientEmail, mode: 'insensitive' }, organizationId: req.organizationId }
       });
       if (oppObj) opportunityId = oppObj.id;
     }
@@ -249,6 +250,7 @@ exports.sendMail = async (req, res) => {
   if (!isValidEmail) {
     // Log as Invalid
     const logData = {
+      organizationId: req.organizationId,
       recipientEmail,
       subject,
       leadId,
@@ -310,6 +312,7 @@ exports.sendMail = async (req, res) => {
     }
 
     const logData = {
+      organizationId: req.organizationId,
       recipientEmail,
       subject,
       leadId,

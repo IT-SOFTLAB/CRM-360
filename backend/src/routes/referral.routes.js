@@ -1,5 +1,5 @@
 const express = require("express");
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
 const referralController = require("../controllers/referral.controller");
 const authenticateJWT = require("../middlewares/authMiddleware");

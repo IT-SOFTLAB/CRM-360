@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useParams } from "next/navigation";
 import "@/app/globals.css";
 import {
   Briefcase,
@@ -47,6 +47,12 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
   const crm = useCRM();
+  const params = useParams();
+
+const organizationId =
+  (params.organizationId as string) ||
+  crm.user?.organizationId ||
+  "orgA";
   const notificationsCtx = useNotifications();
   const {
     notifications,
@@ -188,21 +194,85 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
   }
 
 
-  const currentTab = pathname === '/' ? 'dashboard' : pathname.replace('/', '');
+const currentTab =
+  pathname === "/"
+    ? "dashboard"
+    : pathname.split("/").filter(Boolean).pop() || "dashboard";
 
-  const tabs = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3, href: '/dashboard', roles: ['SUPER_ADMIN', 'ADMIN', 'USER'] },
-    { id: 'leads', label: 'Leads', icon: User, href: '/leads', roles: ['ADMIN', 'USER'] },
-    { id: 'opportunities', label: 'Pipeline', icon: ClipboardList, href: '/opportunities', roles: ['ADMIN', 'USER'] },
-    { id: 'salesteam', label: 'Teams', icon: Users, href: '/salesteam', roles: ['SUPER_ADMIN', 'ADMIN'] },
-    { id: 'activities', label: 'Activities', icon: CalendarIcon, href: '/activities', roles: ['ADMIN', 'USER'] },
-    { id: 'emails', label: 'Emails', icon: Mail, href: '/emails', roles: ['ADMIN', 'USER'] },
-    { id: 'quotations', label: 'Quotations', icon: FileText, href: '/quotations', roles: ['ADMIN', 'USER'] },
-    { id: 'customers', label: 'Clients', icon: Building2, href: '/customers', roles: ['ADMIN', 'USER'] },
-    { id: 'referrals', label: 'Retention', icon: TrendingUp, href: '/referrals', roles: ['ADMIN', 'USER'] },
-    { id: 'settings', label: 'Settings', icon: SettingsIcon, href: '/settings', roles: ['SUPER_ADMIN', 'ADMIN', 'USER'] },
-  ];
+const basePath = `/org/${organizationId}`;
 
+const tabs = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: BarChart3,
+    href: `${basePath}/dashboard`,
+    roles: ["SUPER_ADMIN", "ADMIN", "USER"],
+  },
+  {
+    id: "leads",
+    label: "Leads",
+    icon: User,
+    href: `${basePath}/leads`,
+    roles: ["ADMIN", "USER"],
+  },
+  {
+    id: "opportunities",
+    label: "Pipeline",
+    icon: ClipboardList,
+    href: `${basePath}/opportunities`,
+    roles: ["ADMIN", "USER"],
+  },
+  {
+    id: "salesteam",
+    label: "Teams",
+    icon: Users,
+    href: `${basePath}/salesteam`,
+    roles: ["SUPER_ADMIN", "ADMIN"],
+  },
+  {
+    id: "activities",
+    label: "Activities",
+    icon: CalendarIcon,
+    href: `${basePath}/activities`,
+    roles: ["ADMIN", "USER"],
+  },
+  {
+    id: "emails",
+    label: "Emails",
+    icon: Mail,
+    href: `${basePath}/emails`,
+    roles: ["ADMIN", "USER"],
+  },
+  {
+    id: "quotations",
+    label: "Quotations",
+    icon: FileText,
+    href: `${basePath}/quotations`,
+    roles: ["ADMIN", "USER"],
+  },
+  {
+    id: "customers",
+    label: "Clients",
+    icon: Building2,
+    href: `${basePath}/customers`,
+    roles: ["ADMIN", "USER"],
+  },
+  {
+    id: "referrals",
+    label: "Retention",
+    icon: TrendingUp,
+    href: `${basePath}/referrals`,
+    roles: ["ADMIN", "USER"],
+  },
+  {
+    id: "settings",
+    label: "Settings",
+    icon: SettingsIcon,
+    href: `${basePath}/settings`,
+    roles: ["SUPER_ADMIN", "ADMIN", "USER"],
+  },
+];
   const activeTab = tabs.find(t => t.id === currentTab);
   const displayName = activeTab ? activeTab.label : currentTab;
 

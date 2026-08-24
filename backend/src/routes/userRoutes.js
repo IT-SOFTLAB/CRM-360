@@ -1,5 +1,5 @@
 const express = require('express');
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 const users = require('../controllers/userController');
 const authenticateJWT = require('../middlewares/authMiddleware');
 const { requireAdminOrSuperAdmin, requireSuperAdmin } = require('../middlewares/roleMiddleware');

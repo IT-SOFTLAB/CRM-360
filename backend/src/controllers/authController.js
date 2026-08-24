@@ -115,11 +115,16 @@ exports.login = async (req, res) => {
     }
 
     
-    const accessToken = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: '15m' }
-    );
+   const accessToken = jwt.sign(
+  {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    organizationId: user.organizationId
+  },
+  JWT_SECRET,
+  { expiresIn: '15m' }
+);
 
     const refreshToken = jwt.sign(
       { userId: user.id },
@@ -159,7 +164,8 @@ res.cookie("refreshToken", refreshToken, {
       user: userWithoutPassword,
       accessToken,
       token: accessToken,
-      refreshToken
+      refreshToken,
+      organizationId: user.organizationId
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -202,11 +208,16 @@ exports.refresh = async (req, res) => {
     await prisma.refreshToken.delete({ where: { id: dbToken.id } });
 
  
-    const nextAccessToken = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
-      JWT_SECRET,
-      { expiresIn: '15m' }
-    );
+   const nextAccessToken = jwt.sign(
+  {
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    organizationId: user.organizationId
+  },
+  JWT_SECRET,
+  { expiresIn: '15m' }
+);
 
     const nextRefreshToken = jwt.sign(
       { userId: user.id },

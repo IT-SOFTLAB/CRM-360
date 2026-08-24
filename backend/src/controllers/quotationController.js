@@ -70,6 +70,7 @@ exports.createQuotation = async (req, res) => {
         roundOff: Number(roundOff || 0),
         termsConditions,
         internalNotes,
+        organizationId: req.organizationId,
         items: {
           create: (items || []).map(item => ({
             product: item.product,
@@ -105,9 +106,9 @@ exports.getAllQuotations = async (req, res) => {
     const user = req.user;
     const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
 
-    let whereClause = {};
+    let whereClause = { organizationId: req.organizationId };
     if (userRole === 'USER') {
-      whereClause = { salesperson: user.name };
+      whereClause = { organizationId: req.organizationId, salesperson: user.name };
     }
 
     const quotations = await prisma.quotation.findMany({
@@ -149,11 +150,12 @@ exports.getQuotation = async (req, res) => {
 
   try {
 
-    const quotation = await prisma.quotation.findUnique({
+    const quotation = await prisma.quotation.findFirst({
 
       where: {
 
-        id: req.params.id
+        id: req.params.id,
+        organizationId: req.organizationId
 
       },
 
@@ -164,6 +166,10 @@ exports.getQuotation = async (req, res) => {
       }
 
     });
+
+    if (!quotation) {
+      return res.status(404).json({ message: "Quotation not found" });
+    }
 
     res.json(quotation);
 
@@ -186,6 +192,9 @@ exports.getQuotation = async (req, res) => {
 
 exports.updateQuotation = async (req, res) => {
   try {
+    const existing = await prisma.quotation.findFirst({ where: { id: req.params.id, organizationId: req.organizationId } });
+    if (!existing) return res.status(404).json({ message: "Quotation not found" });
+
     const {
       customerNameSnapshot,
       customerCompanyNameSnapshot,
@@ -296,6 +305,9 @@ exports.deleteQuotation = async (req, res) => {
 
   try {
 
+    const existing = await prisma.quotation.findFirst({ where: { id: req.params.id, organizationId: req.organizationId } });
+    if (!existing) return res.status(404).json({ message: "Quotation not found" });
+
     await prisma.quotation.delete({
 
       where: {
@@ -333,6 +345,9 @@ exports.deleteQuotation = async (req, res) => {
 exports.changeQuotationStatus = async (req, res) => {
 
   try {
+
+    const existing = await prisma.quotation.findFirst({ where: { id: req.params.id, organizationId: req.organizationId } });
+    if (!existing) return res.status(404).json({ message: "Quotation not found" });
 
     const quotation = await prisma.quotation.update({
 
@@ -380,7 +395,8 @@ exports.getOpportunityQuotations = async (req, res) => {
 
       where: {
 
-        opportunityId: req.params.id
+        opportunityId: req.params.id,
+        organizationId: req.organizationId
 
       },
 
@@ -423,9 +439,10 @@ exports.sendQuotationByOutlook = async (req, res) => {
       });
     }
 
-    const quotation = await prisma.quotation.findUnique({
+    const quotation = await prisma.quotation.findFirst({
       where: {
-        id: req.params.id
+        id: req.params.id,
+        organizationId: req.organizationId
       },
       include: {
         items: true

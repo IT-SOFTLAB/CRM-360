@@ -2,7 +2,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 
-const checkAndCreateActivityReminders = async (userId, userName) => {
+const checkAndCreateActivityReminders = async (userId, userName, organizationId) => {
   try {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -16,6 +16,7 @@ const checkAndCreateActivityReminders = async (userId, userName) => {
       where: {
         salesperson: userName,
         done: false,
+        organizationId,
         date: {
           gte: tomorrowStart,
           lte: tomorrowEnd
@@ -57,7 +58,7 @@ exports.getNotifications = async (req, res) => {
     const userName = req.user.name;
 
     // Trigger activity reminders generation
-    await checkAndCreateActivityReminders(userId, userName);
+    await checkAndCreateActivityReminders(userId, userName, req.organizationId);
 
     const notifications = await prisma.notification.findMany({
       where: { userId },

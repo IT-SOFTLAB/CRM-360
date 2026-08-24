@@ -37,6 +37,8 @@ model User {
   admin               User?          @relation("UserToUser", fields: [adminId], references: [id])
   subordinates        User[]         @relation("UserToUser")
   salesTeam           SalesTeam?     @relation("TeamMembers", fields: [salesTeamId], references: [id])
+  organizationId String @default("orgA")
+  @@index([organizationId])
 }
 
 model Lead {
@@ -55,6 +57,8 @@ model Lead {
   linkedinId      String?
   dealValue       Float    @default(0)
   assignedUserRel User?    @relation(fields: [assignedUserId], references: [id])
+  organizationId String @default("orgA")
+  @@index([organizationId])
 }
 
 model Activity {
@@ -78,6 +82,8 @@ model Activity {
   done            Boolean   @default(false)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  organizationId String @default("orgA")
+  @@index([organizationId])
 }
 
 model ReferralPipeline {
@@ -89,6 +95,8 @@ model ReferralPipeline {
   createdAt         DateTime          @default(now())
   referrals         Referral[]
   referralHistories ReferralHistory[]
+  organizationId String @default("orgA")
+  @@index([organizationId])
 }
 
 model Referral {
@@ -112,6 +120,8 @@ model Referral {
   currentStage      ReferralPipeline  @relation(fields: [currentStageId], references: [id])
   referralHistories ReferralHistory[]
   referralRewards   ReferralReward[]
+  organizationId String @default("orgA")
+  @@index([organizationId])
 }
 
 model ReferralHistory {
@@ -157,6 +167,8 @@ model Opportunity {
   description            String?
   linkedinId             String?
   assignedSalespersonRel User?     @relation(fields: [assignedSalespersonId], references: [id])
+  organizationId String @default("orgA")
+  @@index([organizationId])
 }
 
 model Customer {
@@ -174,6 +186,8 @@ model Customer {
   updatedAt              DateTime @updatedAt
   assignedSalespersonId  String?
   assignedSalespersonRel User?    @relation(fields: [assignedSalespersonId], references: [id])
+  organizationId String @default("orgA")
+  @@index([organizationId])
 }
 
 model Quotation {
@@ -210,6 +224,8 @@ model Quotation {
   termsConditions             String?
   internalNotes               String?
   items                       QuotationItem[]
+  organizationId String @default("orgA")
+  @@index([organizationId])
 }
 
 model QuotationItem {
@@ -244,6 +260,8 @@ model SalesTeam {
   createdAt   DateTime @default(now())
   leader      User?    @relation("TeamLeader", fields: [leaderId], references: [id])
   members     User[]   @relation("TeamMembers")
+  organizationId String @default("orgA")
+  @@index([organizationId])
 }
 
 model CompanySettings {
@@ -266,6 +284,8 @@ model CompanySettings {
   logoText       String?  @default("CRM 360")
   primaryColor   String?  @default("#2563EB")
   secondaryColor String?  @default("#0F172A")
+  organizationId String @default("orgA")
+  @@index([organizationId])
 }
 
 model Notification {
@@ -287,6 +307,8 @@ model AuditLog {
   details   String
   ipAddress String?
   createdAt DateTime @default(now())
+  organizationId String @default("orgA")
+  @@index([organizationId])
 }
 
 model EmailLog {
@@ -303,6 +325,8 @@ model EmailLog {
   sentAt         DateTime @default(now())
   createdAt      DateTime @default(now())
   updatedAt      DateTime
+  organizationId String @default("orgA")
+  @@index([organizationId])
 }
 
 model SavedFilter {
@@ -312,6 +336,8 @@ model SavedFilter {
   userId    String?
   createdAt DateTime @default(now())
   user      User?    @relation(fields: [userId], references: [id])
+  organizationId String @default("orgA")
+  @@index([organizationId])
 }
 
 model PipelineStage {
@@ -319,4 +345,24 @@ model PipelineStage {
   name      String   @unique
   order     Int
   createdAt DateTime @default(now())
+  organizationId String @default("orgA")
+  @@index([organizationId])
+}
+
+model OutlookIntegration {
+  id                    String   @id @default(cuid())
+
+  organizationId        String   @unique
+
+  clientId              String
+  clientSecret          String
+  tenantId              String
+  redirectUri           String
+
+  isConfigured          Boolean  @default(true)
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([organizationId])
 }

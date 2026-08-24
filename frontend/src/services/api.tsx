@@ -9,6 +9,23 @@ const api = axios.create({
   },
 });
 
+export const getCurrentOrganizationId = () => {
+  if (typeof window !== "undefined") {
+    const userStr = localStorage.getItem("crm_user");
+
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        return user.organizationId || null;
+      } catch (e) {
+        return null;
+      }
+    }
+  }
+
+  return null;
+};
+
 // Attach JWT token from localStorage to every request
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
@@ -16,6 +33,12 @@ api.interceptors.request.use((config) => {
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    const orgId = getCurrentOrganizationId();
+    if (orgId && config.url && !config.url.startsWith('/auth') && !config.url.startsWith('/bootstrap') && !config.url.startsWith('/ai') && !config.url.startsWith('/org/')) {
+      const path = config.url.startsWith('/') ? config.url : `/${config.url}`;
+      config.url = `/org/${orgId}${path}`;
     }
   }
 
