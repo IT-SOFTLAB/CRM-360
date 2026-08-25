@@ -20,40 +20,70 @@ exports.saveOutlookIntegration = async (req, res) => {
 
     if (!organizationId) {
       return res.status(400).json({
+        success: false,
         message: "Organization ID is missing",
       });
     }
 
-    if (!clientId || !clientSecret || !tenantId || !redirectUri) {
+    // Required fields except clientSecret on update
+    if (!clientId || !tenantId || !redirectUri) {
       return res.status(400).json({
+        success: false,
         message:
-          "Client ID, Client Secret, Tenant ID and Redirect URI are required",
+          "Client ID, Tenant ID and Redirect URI are required",
       });
     }
 
-    const integration =
-      await prisma.outlookIntegration.upsert({
+    const existingIntegration =
+      await prisma.outlookIntegration.findUnique({
         where: {
           organizationId,
         },
-
-        update: {
-          clientId,
-          clientSecret,
-          tenantId,
-          redirectUri,
-          isActive: true,
-        },
-
-        create: {
-          organizationId,
-          clientId,
-          clientSecret,
-          tenantId,
-          redirectUri,
-          isActive: true,
-        },
       });
+
+    // Client secret is required when creating configuration
+    if (!existingIntegration && !clientSecret) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Client Secret is required when creating Outlook integration",
+      });
+    }
+
+    const updateData = {
+      clientId,
+      tenantId,
+      redirectUri,
+        isConfigured: true,
+    };
+
+    // Only update secret if Super Admin entered a new one
+    if (clientSecret && clientSecret.trim()) {
+      updateData.clientSecret = clientSecret.trim();
+    }
+
+ const integration = await prisma.outlookIntegration.upsert({
+  where: {
+    organizationId,
+  },
+
+  update: {
+    clientId: clientId.trim(),
+    tenantId: tenantId.trim(),
+    redirectUri: redirectUri.trim(),
+    isConfigured: true,
+    ...updateData,
+  },
+
+  create: {
+    organizationId,
+    clientId: clientId.trim(),
+    clientSecret: clientSecret.trim(),
+    tenantId: tenantId.trim(),
+    redirectUri: redirectUri.trim(),
+    isConfigured: true,
+  },
+});
 
     return res.status(200).json({
       success: true,
@@ -63,7 +93,8 @@ exports.saveOutlookIntegration = async (req, res) => {
         clientId: integration.clientId,
         tenantId: integration.tenantId,
         redirectUri: integration.redirectUri,
-        isActive: integration.isActive,
+       isConfigured: integration.isConfigured,
+        hasClientSecret: !!integration.clientSecret,
       },
     });
 
@@ -81,7 +112,6 @@ exports.saveOutlookIntegration = async (req, res) => {
   }
 };
 
-
 // ==========================================
 // GET OUTLOOK CONFIGURATION
 // ==========================================
@@ -98,8 +128,9 @@ exports.getOutlookIntegration = async (req, res) => {
       });
 
     if (!integration) {
-      return res.status(404).json({
-        success: false,
+      return res.status(200).json({
+        success: true,
+        integration: null,
         message:
           "Outlook integration is not configured for this organization",
       });
@@ -113,9 +144,9 @@ exports.getOutlookIntegration = async (req, res) => {
         clientId: integration.clientId,
         tenantId: integration.tenantId,
         redirectUri: integration.redirectUri,
-        isActive: integration.isActive,
+        isConfigured: integration.isConfigured,
 
-        // Never send clientSecret to frontend
+        // Never send the actual secret
         hasClientSecret: !!integration.clientSecret,
       },
     });

@@ -6,15 +6,15 @@ const {
 
 const graph = require("@microsoft/microsoft-graph-client");
 
-const msalConfig = {
-    auth: {
-        clientId: process.env.CLIENT_ID,
-        authority: "https://login.microsoftonline.com/common",
-        clientSecret: process.env.CLIENT_SECRET
-    }
-};
+// const msalConfig = {
+//     auth: {
+//         clientId: process.env.CLIENT_ID,
+//         authority: "https://login.microsoftonline.com/common",
+//         clientSecret: process.env.CLIENT_SECRET
+//     }
+// };
 
-const cca = new ConfidentialClientApplication(msalConfig);
+// const cca = new ConfidentialClientApplication(msalConfig);
 
 // Common Graph scopes used throughout the CRM
 const SCOPES = [
@@ -38,28 +38,91 @@ const SCOPES = [
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-function getAuthUrl(state) {
+async function getOrganizationOutlookConfig(organizationId) {
+    if (!organizationId) {
+        throw new Error(
+            "Organization ID is required for Outlook configuration"
+        );
+    }
+
+    const integration =
+        await prisma.outlookIntegration.findUnique({
+            where: {
+                organizationId
+            }
+        });
+
+ if (!integration || !integration.isConfigured) {
+    throw new Error(
+        "Outlook integration is not configured for this organization"
+    );
+}
+    if (
+        !integration.clientId ||
+        !integration.clientSecret ||
+        !integration.tenantId ||
+        !integration.redirectUri
+    ) {
+        throw new Error(
+            "Outlook integration credentials are incomplete for this organization"
+        );
+    }
+
+    return {
+        clientId: integration.clientId,
+        clientSecret: integration.clientSecret,
+        tenantId: integration.tenantId,
+        redirectUri: integration.redirectUri
+    };
+}
+
+async function getCCA(organizationId) {
+    const config = await getOrganizationOutlookConfig(organizationId);
+
+    return {
+        cca: new ConfidentialClientApplication({
+            auth: {
+                clientId: config.clientId,
+                authority: `https://login.microsoftonline.com/${config.tenantId}`,
+                clientSecret: config.clientSecret
+            }
+        }),
+        redirectUri: config.redirectUri
+    };
+}
+
+async function getAuthUrl(organizationId, state) {
+    const { cca, redirectUri } = await getCCA(organizationId);
+
     return cca.getAuthCodeUrl({
         scopes: SCOPES,
-        redirectUri: process.env.REDIRECT_URI,
+        redirectUri,
         state: state || ""
     });
 }
 
-async function getTokenFromCode(code) {
+async function getTokenFromCode(code, organizationId) {
+    const { cca, redirectUri } = await getCCA(organizationId);
+
     const response = await cca.acquireTokenByCode({
         code,
         scopes: SCOPES,
-        redirectUri: process.env.REDIRECT_URI
+        redirectUri
     });
+
     return response;
 }
+async function refreshAccessToken(
+    refreshToken,
+    organizationId
+) {
+    const { cca } = await getCCA(organizationId);
 
-async function refreshAccessToken(refreshToken) {
     const response = await cca.acquireTokenByRefreshToken({
         refreshToken,
         scopes: SCOPES
     });
+
     return response;
 }
 
@@ -91,7 +154,7 @@ function isTokenExpired(token) {
  */
 async function getOutlookTokens(req) {
     const userId = req.user?.id || req.user?.userId;
-
+ const organizationId = req.organizationId;
     // 1. Prioritize Database Token (so we can automatically refresh it)
     if (userId) {
         try {
@@ -104,7 +167,10 @@ async function getOutlookTokens(req) {
                 if (isTokenExpired(user.outlookAccessToken) && user.outlookRefreshToken) {
                     console.log("GraphService: DB access token expired, attempting refresh...");
                     try {
-                        const refreshed = await refreshAccessToken(user.outlookRefreshToken);
+                    const refreshed = await refreshAccessToken(
+    user.outlookRefreshToken,
+    organizationId
+);
                         if (refreshed?.accessToken) {
                             const newAccessToken = refreshed.accessToken;
                             const newRefreshToken = refreshed.refreshToken || user.outlookRefreshToken;
@@ -177,7 +243,10 @@ async function getOutlookTokens(req) {
         if (isTokenExpired(sessionOutlook.accessToken) && sessionOutlook.refreshToken) {
             console.log("GraphService: Session access token expired, attempting refresh...");
             try {
-                const refreshed = await refreshAccessToken(sessionOutlook.refreshToken);
+              const refreshed = await refreshAccessToken(
+    sessionOutlook.refreshToken,
+    organizationId
+);
                 if (refreshed?.accessToken) {
                     sessionOutlook.accessToken = refreshed.accessToken;
                     sessionOutlook.refreshToken = refreshed.refreshToken || sessionOutlook.refreshToken;
@@ -232,6 +301,8 @@ async function getOutlookTokens(req) {
 }
 
 module.exports = {
+    getOrganizationOutlookConfig,
+    getCCA,
     getAuthUrl,
     getTokenFromCode,
     refreshAccessToken,

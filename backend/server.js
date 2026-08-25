@@ -26,6 +26,9 @@ const customerRoutes = require("./src/routes/customerRoutes.js");
 const quotationRoutes = require("./src/routes/quotationRoutes");
 const salesTeamRoutes = require("./src/routes/salesTeamRoutes.js");
 const userRoutes = require("./src/routes/userRoutes.js");
+const outlookIntegrationRoutes = require(
+  "./src/routes/outlookIntegrationRoutes.js"
+);
 const referralRoutes = require("./src/routes/referral.routes.js");
 const pipelineRoutes = require("./src/routes/pipeline.routes.js");
 const bootstrapRoutes = require("./src/routes/bootstrapRoutes.js");
@@ -76,17 +79,40 @@ app.use(
         }
     })
 );
-const organizationMiddleware = require('./src/middlewares/organizationMiddleware');
+const organizationMiddleware = require(
+  "./src/middlewares/organizationMiddleware"
+);
 
 const orgRouter = express.Router();
-orgRouter.use('/:organizationId', organizationMiddleware);
 
+// Organization validation middleware
+orgRouter.use("/:organizationId", organizationMiddleware);
+
+// CRM routes
 orgRouter.use("/:organizationId/leads", leadRoutes);
 orgRouter.use("/:organizationId/activities", activityRoutes);
 orgRouter.use("/:organizationId/opportunities", opportunityRoutes);
 orgRouter.use("/:organizationId/customers", customerRoutes);
 orgRouter.use("/:organizationId/salesteam", salesTeamRoutes);
 orgRouter.use("/:organizationId/users", userRoutes);
+
+// Outlook Integration
+orgRouter.use(
+  "/:organizationId/outlook-integration",
+  (req, res, next) => {
+    console.log(
+      "🔥 OUTLOOK MOUNT REACHED:",
+      req.method,
+      req.originalUrl,
+      "Organization:",
+      req.organizationId
+    );
+
+    next();
+  },
+  outlookIntegrationRoutes
+);
+
 orgRouter.use("/:organizationId/referrals", referralRoutes);
 orgRouter.use("/:organizationId/emails", emailRoutes);
 orgRouter.use("/:organizationId/quotations", quotationRoutes);

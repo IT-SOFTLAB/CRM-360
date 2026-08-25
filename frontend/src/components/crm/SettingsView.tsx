@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Check, X, Trash2, Plus, Pencil, Eye, EyeOff } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import ThemeToggle from '@/components/crm/ThemeToggle';
-
+import { outlookIntegrationService } from '@/services/outlookIntegration.service';
 interface SettingsViewProps {
   companyBranding: any;
   setCompanyBranding: (branding: any) => void;
@@ -45,6 +45,9 @@ export default function SettingsView({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showInvitePassword, setShowInvitePassword] = useState(false);
 
+const [showClientSecret, setShowClientSecret] = useState(false);
+
+
   const handleChangePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (changePasswordForm.newPassword.length < 6) {
@@ -72,6 +75,9 @@ export default function SettingsView({
     }
   };
   const [newCategoryName, setNewCategoryName] = useState('');
+ 
+
+
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteForm, setInviteForm] = useState({
     name: '',
@@ -176,7 +182,125 @@ const [userToDelete, setUserToDelete] = useState<{
     }
   };
 
+
+
   const userRole = (user?.role || '').toUpperCase().replace(' ', '_');
+
+const [outlookForm, setOutlookForm] = useState({
+  clientId: '',
+  clientSecret: '',
+  tenantId: '',
+  redirectUri: '',
+});
+
+const [outlookLoading, setOutlookLoading] = useState(false);
+const [outlookSaving, setOutlookSaving] = useState(false);
+const [outlookConfigured, setOutlookConfigured] = useState(false);
+const [hasClientSecret, setHasClientSecret] = useState(false);
+
+const loadOutlookIntegration = async () => {
+  if (userRole !== 'SUPER_ADMIN') return;
+
+  try {
+    setOutlookLoading(true);
+
+    const response =
+      await outlookIntegrationService.getIntegration();
+
+    if (response?.integration) {
+      const integration = response.integration;
+
+      setOutlookForm({
+        clientId: integration.clientId || '',
+        clientSecret: '',
+        tenantId: integration.tenantId || '',
+        redirectUri: integration.redirectUri || '',
+      });
+
+      setOutlookConfigured(true);
+      setHasClientSecret(
+        integration.hasClientSecret || false
+      );
+    }
+  } catch (error: any) {
+    if (error?.response?.status !== 404) {
+      console.error(
+        'Failed to load Outlook integration:',
+        error
+      );
+    }
+  } finally {
+    setOutlookLoading(false);
+  }
+};
+
+React.useEffect(() => {
+  loadOutlookIntegration();
+}, [userRole]);
+
+const handleSaveOutlookIntegration = async (
+  e: React.FormEvent
+) => {
+  e.preventDefault();
+
+  if (
+    !outlookForm.clientId.trim() ||
+    !outlookForm.tenantId.trim() ||
+    !outlookForm.redirectUri.trim()
+  ) {
+    addToast(
+      'error',
+      'Client ID, Tenant ID and Redirect URI are required'
+    );
+    return;
+  }
+
+  // Client Secret is required only when creating
+  if (
+    !outlookConfigured &&
+    !outlookForm.clientSecret.trim()
+  ) {
+    addToast(
+      'error',
+      'Client Secret is required'
+    );
+    return;
+  }
+
+  try {
+    setOutlookSaving(true);
+
+    await outlookIntegrationService.saveIntegration({
+      clientId: outlookForm.clientId.trim(),
+      clientSecret: outlookForm.clientSecret.trim(),
+      tenantId: outlookForm.tenantId.trim(),
+      redirectUri: outlookForm.redirectUri.trim(),
+    });
+
+    addToast(
+      'success',
+      'Outlook integration saved successfully'
+    );
+
+    setOutlookConfigured(true);
+    setHasClientSecret(true);
+
+    // Never keep the secret unnecessarily in frontend state
+    setOutlookForm((prev) => ({
+      ...prev,
+      clientSecret: '',
+    }));
+
+  } catch (error: any) {
+    addToast(
+      'error',
+      error?.response?.data?.message ||
+        'Failed to save Outlook integration'
+    );
+  } finally {
+    setOutlookSaving(false);
+  }
+};
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs text-txt-primary">
@@ -216,6 +340,164 @@ const [userToDelete, setUserToDelete] = useState<{
             </form>
           </div>
         )}
+
+{/* Outlook / Microsoft Integration */}
+{userRole === 'SUPER_ADMIN' && (
+  <div className="bg-card border border-border-crm rounded-2xl p-5 space-y-4">
+
+    <div>
+      <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">
+        Outlook / Microsoft Integration
+      </h4>
+
+      <p className="text-[11px] text-txt-secondary mt-1">
+        Configure Microsoft credentials for your organization.
+        Users will use this configuration when connecting
+        their Outlook accounts.
+      </p>
+    </div>
+
+    {outlookLoading ? (
+
+      <p className="text-sm text-txt-secondary">
+        Loading Outlook configuration...
+      </p>
+
+    ) : (
+
+      <form
+        onSubmit={handleSaveOutlookIntegration}
+        className="space-y-3"
+      >
+
+        {/* Client ID */}
+        <div>
+          <label className="block text-txt-secondary font-semibold mb-1">
+            Client ID
+          </label>
+
+          <input
+            type="text"
+            value={outlookForm.clientId}
+            onChange={(e) =>
+              setOutlookForm({
+                ...outlookForm,
+                clientId: e.target.value,
+              })
+            }
+            placeholder="Enter Microsoft Application (Client) ID"
+            className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none focus:border-blue-500"
+          />
+        </div>
+
+        {/* Client Secret */}
+        <div>
+          <label className="block text-txt-secondary font-semibold mb-1">
+            Client Secret
+            {hasClientSecret && (
+              <span className="ml-2 text-green-600 text-[10px]">
+                Secret already configured
+              </span>
+            )}
+          </label>
+
+          <div className="relative">
+
+            <input
+              type={
+                showClientSecret
+                  ? "text"
+                  : "password"
+              }
+              value={outlookForm.clientSecret}
+              onChange={(e) =>
+                setOutlookForm({
+                  ...outlookForm,
+                  clientSecret: e.target.value,
+                })
+              }
+              placeholder={
+                hasClientSecret
+                  ? "Enter a new secret to replace existing one"
+                  : "Enter Client Secret"
+              }
+              className="w-full border border-border-crm bg-bg-main rounded-xl pl-3 pr-10 py-2 text-txt-primary focus:outline-none focus:border-blue-500"
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowClientSecret(!showClientSecret)
+              }
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer"
+            >
+              {showClientSecret ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
+
+          </div>
+        </div>
+
+        {/* Tenant ID */}
+        <div>
+          <label className="block text-txt-secondary font-semibold mb-1">
+            Tenant ID
+          </label>
+
+          <input
+            type="text"
+            value={outlookForm.tenantId}
+            onChange={(e) =>
+              setOutlookForm({
+                ...outlookForm,
+                tenantId: e.target.value,
+              })
+            }
+            placeholder="Enter Microsoft Directory (Tenant) ID"
+            className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none focus:border-blue-500"
+          />
+        </div>
+
+        {/* Redirect URI */}
+        <div>
+          <label className="block text-txt-secondary font-semibold mb-1">
+            Redirect URI
+          </label>
+
+          <input
+            type="text"
+            value={outlookForm.redirectUri}
+            onChange={(e) =>
+              setOutlookForm({
+                ...outlookForm,
+                redirectUri: e.target.value,
+              })
+            }
+            placeholder="https://your-backend.com/auth/callback"
+            className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary focus:outline-none focus:border-blue-500"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={outlookSaving}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-2 font-semibold shadow cursor-pointer transition disabled:opacity-50"
+        >
+          {outlookSaving
+            ? 'Saving Outlook Configuration...'
+            : outlookConfigured
+              ? 'Update Outlook Configuration'
+              : 'Save Outlook Configuration'}
+        </button>
+
+      </form>
+    )}
+
+  </div>
+)}
 
         {/* Project Categories */}
         {(userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') && (

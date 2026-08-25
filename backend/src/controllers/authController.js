@@ -664,77 +664,132 @@ exports.acceptInvitation = async (req, res) => {
 
 exports.outlookCallback = async (req, res) => {
   try {
-    const token = await getTokenFromCode(req.query.code);
+    const { code, state } = req.query;
 
-    // Graph client with newly received token
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: "Authorization code is missing"
+      });
+    }
+
+    let parsedState = {};
+    let redirectPage = "emails";
+
+    if (state) {
+      try {
+        parsedState = JSON.parse(state);
+
+        if (parsedState.redirect) {
+          redirectPage = parsedState.redirect;
+        }
+      } catch (error) {
+        console.error(
+          "Failed to parse Outlook OAuth state:",
+          error.message
+        );
+      }
+    }
+
+    const userId =
+      parsedState.userId ||
+      req.session?.oauthUserId;
+
+    const organizationId =
+      parsedState.organizationId ||
+      req.session?.oauthOrganizationId;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is missing from Outlook authentication"
+      });
+    }
+
+    if (!organizationId) {
+      return res.status(400).json({
+        success: false,
+        message: "Organization ID is missing from Outlook authentication"
+      });
+    }
+
+    // Exchange authorization code using THIS organization's credentials
+    const token = await getTokenFromCode(
+      code,
+      organizationId
+    );
+
+    // Create Graph client
     const client = Client.init({
       authProvider: (done) => {
         done(null, token.accessToken);
       }
     });
 
-    // Get Outlook profile
+    // Get connected Outlook account
     const me = await client.api("/me").get();
-    const outlookEmail = me.mail || me.userPrincipalName;
 
-    req.session.outlook = {
-      accessToken: token.accessToken,
-      refreshToken: token.refreshToken,
-      email: outlookEmail
-    };
+    const outlookEmail =
+      me.mail || me.userPrincipalName;
 
-    console.log("Connected Outlook:", outlookEmail);
-
-    // Parse state if passed
-    let redirectPage = req.session?.oauthRedirect || "emails";
-    let stateUserId = null;
-
-    if (req.query.state) {
-      try {
-        const parsedState = JSON.parse(req.query.state);
-        if (parsedState.redirect) redirectPage = parsedState.redirect;
-        if (parsedState.userId) stateUserId = parsedState.userId;
-      } catch (e) {
-        // State was not JSON, use raw
-        if (req.query.state && typeof req.query.state === "string") {
-          redirectPage = req.query.state;
-        }
+    // Save Outlook tokens to this user
+    await prisma.user.update({
+      where: {
+        id: userId
+      },
+      data: {
+        outlookAccessToken: token.accessToken,
+        outlookRefreshToken: token.refreshToken,
+        outlookEmail
       }
-    }
-
-    // Persist to User DB if userId is available
-    const userIdToUpdate = stateUserId || req.session?.userId || req.user?.id;
-    if (userIdToUpdate) {
-      try {
-        await prisma.user.update({
-          where: { id: userIdToUpdate },
-          data: {
-            outlookAccessToken: token.accessToken,
-            outlookRefreshToken: token.refreshToken,
-            outlookEmail: outlookEmail
-          }
-        });
-      } catch (dbErr) {
-        console.warn("Could not save Outlook tokens to user DB:", dbErr.message);
-      }
-    }
-
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-    if (req.session) delete req.session.oauthRedirect;
-
-    // Save session before redirect
-    req.session.save((err) => {
-      if (err) {
-        console.error("Session save failed:", err);
-      }
-      return res.redirect(
-        `${frontendUrl}/${redirectPage}?connected=true`
-      );
     });
 
+    // Optional session storage
+    if (req.session) {
+      req.session.outlook = {
+        accessToken: token.accessToken,
+        refreshToken: token.refreshToken,
+        email: outlookEmail
+      };
+
+      delete req.session.oauthRedirect;
+      delete req.session.oauthUserId;
+      delete req.session.oauthOrganizationId;
+    }
+
+    console.log(
+      `Outlook connected: ${outlookEmail} for organization: ${organizationId}`
+    );
+
+    const frontendUrl =
+      process.env.FRONTEND_URL ||
+      "http://localhost:3000";
+
+    const redirectUrl =
+      `${frontendUrl}/${redirectPage}?connected=true`;
+
+    if (req.session) {
+      return req.session.save((err) => {
+        if (err) {
+          console.error(
+            "Session save failed:",
+            err
+          );
+        }
+
+        return res.redirect(redirectUrl);
+      });
+    }
+
+    return res.redirect(redirectUrl);
+
   } catch (err) {
-    console.error("Outlook OAuth callback error:", err);
-    res.status(500).json({
+    console.error(
+      "Outlook OAuth callback error:",
+      err
+    );
+
+    return res.status(500).json({
       success: false,
       message: err.message
     });
@@ -744,16 +799,48 @@ exports.outlookCallback = async (req, res) => {
 exports.outlookLogin = async (req, res) => {
   try {
     const redirect = req.query.redirect || "emails";
-    if (req.session) req.session.oauthRedirect = redirect;
 
-    const userId = req.user?.id || req.session?.userId;
-    const state = JSON.stringify({ userId, redirect });
+    const userId = req.user?.id;
+    const organizationId = req.user?.organizationId;
 
-    const url = await getAuthUrl(state);
-    res.redirect(url);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "User authentication failed"
+      });
+    }
+
+    if (!organizationId) {
+      return res.status(400).json({
+        success: false,
+        message: "Organization ID is missing"
+      });
+    }
+
+    if (req.session) {
+      req.session.oauthRedirect = redirect;
+      req.session.oauthUserId = userId;
+      req.session.oauthOrganizationId = organizationId;
+    }
+
+    const state = JSON.stringify({
+      userId,
+      organizationId,
+      redirect
+    });
+
+    const url = await getAuthUrl(
+      organizationId,
+      state
+    );
+
+    return res.redirect(url);
+
   } catch (err) {
     console.error("Outlook login error:", err);
-    res.status(500).json({
+
+    return res.status(500).json({
+      success: false,
       message: err.message
     });
   }

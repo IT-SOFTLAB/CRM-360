@@ -36,7 +36,14 @@ api.interceptors.request.use((config) => {
     }
 
     const orgId = getCurrentOrganizationId();
-    if (orgId && config.url && !config.url.startsWith('/auth') && !config.url.startsWith('/bootstrap') && !config.url.startsWith('/ai') && !config.url.startsWith('/org/')) {
+  if (
+      orgId &&
+      config.url &&
+      !config.url.startsWith('/auth') &&
+      !config.url.startsWith('/bootstrap') &&
+      !config.url.startsWith('/ai') &&
+      !config.url.startsWith('/org/')
+    ) {
       const path = config.url.startsWith('/') ? config.url : `/${config.url}`;
       config.url = `/org/${orgId}${path}`;
     }
