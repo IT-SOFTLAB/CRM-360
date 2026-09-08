@@ -22,6 +22,8 @@ export default function LeadsPage() {
       applyFilters={crm.applyFilters}
       settingsUsers={crm.settingsUsers}
       onBulkAssignLeads={crm.handleBulkAssignLeads}
+      pagination={crm.leadsPagination}
+      onPageChange={(page, limit) => crm.loadLeads?.(page, limit)}
     />
   );
 }

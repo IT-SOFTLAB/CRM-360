@@ -1,6 +1,9 @@
 const { PrismaClient } = require("@prisma/client");
 const AuthorizationService = require("./authorization.service");
-
+const {
+    getCache,
+    setCache
+} = require("../../config/redisCache");
 const prisma = new PrismaClient();
 
 class DashboardService {
@@ -11,9 +14,36 @@ class DashboardService {
     // Dashboard Summary
     //----------------------------------------
 
-    async getSummary(user, filters = {}){
+    async getSummary(user, filters = {}) {
 
-        let leadDateFilter = {};
+    // ----------------------------------------
+    // Redis Dashboard Cache
+    // ----------------------------------------
+
+    const organizationId = user.organizationId;
+
+    const userId = user.id;
+const userRole = user.role;
+
+const cacheKey = `crm:dashboard:${organizationId}:${userRole}:${userId}`;
+
+    // Check Redis first
+    const cachedDashboard = await getCache(cacheKey);
+
+    if (cachedDashboard) {
+
+        console.log(
+            `Dashboard cache HIT: ${cacheKey}`
+        );
+
+        return cachedDashboard;
+    }
+
+    console.log(
+        `Dashboard cache MISS: ${cacheKey}`
+    );
+
+    let leadDateFilter = {};
 
 if (filters.startDate && filters.endDate) {
 
@@ -59,25 +89,7 @@ if (filters.startDate && filters.endDate) {
 
             });
 
-            //----------------------------------------
-// Pipeline Value
-//----------------------------------------
 
-const pipeline = await prisma.opportunity.aggregate({
-
-    where: opportunityWhere,
-
-    _sum: {
-
-        dealValue: true
-
-    }
-
-});
-
-//----------------------------------------
-// Today's Activities
-//----------------------------------------
 
 const today = new Date();
 
@@ -90,7 +102,7 @@ tomorrow.setDate(today.getDate() + 1);
 const todayActivities = await prisma.activity.count({
 
     where: {
-
+          organizationId: user.organizationId,
         date: {
 
             gte: today,
@@ -110,7 +122,7 @@ const todayActivities = await prisma.activity.count({
 const pendingActivities = await prisma.activity.count({
 
     where: {
-
+         organizationId: user.organizationId,
         done: false
 
     }
@@ -276,7 +288,7 @@ wonDeals / closedDeals
 
 
 
-return {
+const dashboardData = {
 
     totalLeads,
 
@@ -284,40 +296,52 @@ return {
 
     wonDeals,
 
-lostDeals,
+    lostDeals,
 
-winRate,
+    winRate,
 
-  pipelineValue: revenue._sum.dealValue || 0,
+    pipelineValue:
+        revenue._sum.dealValue || 0,
 
-averageDealSize:
+    averageDealSize:
+        Math.round(
+            revenue._avg.dealValue || 0
+        ),
 
-    Math.round(
+    largestDeal:
+        revenue._max.dealValue || 0,
 
-        revenue._avg.dealValue || 0
-
-    ),
-
-largestDeal:
-
-    revenue._max.dealValue || 0,
-
-smallestDeal:
-
-    revenue._min.dealValue || 0,
+    smallestDeal:
+        revenue._min.dealValue || 0,
 
     todayActivities,
 
     pendingActivities,
 
-    pipelineStages: stageSummary,
+    pipelineStages:
+        stageSummary,
 
-    leadCategories: categorySummary
-
+    leadCategories:
+        categorySummary
 };
 
+// ----------------------------------------
+// Store Dashboard in Redis
+// TTL = 5 minutes
+// ----------------------------------------
 
-    }
+await setCache(
+    cacheKey,
+    dashboardData,
+    300
+);
+
+console.log(
+    `Dashboard cached: ${cacheKey}`
+);
+
+return dashboardData;
+ }
 
 }
 

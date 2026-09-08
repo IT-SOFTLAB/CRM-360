@@ -1,5 +1,14 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { getCache, setCache, deletePatternCache } = require('../config/redisCache');
+
+const invalidateLeadCache = async (organizationId) => {
+  if (!organizationId) return;
+  // Invalidate all leads list queries for this organization
+  await deletePatternCache(`crm:leads:${organizationId}:*`);
+  // Invalidate dashboard metrics as lead count/categories changed
+  await deletePatternCache(`crm:dashboard:${organizationId}:*`);
+};
 
 const createLead = async (req, res) => {
   try {
@@ -58,8 +67,9 @@ const createLead = async (req, res) => {
         console.error("Error sending assignment email in createLead:", err);
       });
     }
-
-    res.status(201).json(lead);
+   await invalidateLeadCache(req.organizationId);
+  res.status(201).json(lead);
+    
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -72,8 +82,28 @@ const getAllLeads = async (req, res) => {
   try {
     const user = req.user;
     const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+    const organizationId = req.organizationId;
+    const userId = user.id;
 
-    let whereClause = { organizationId: req.organizationId };
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const limit = Math.max(1, parseInt(req.query.limit, 10) || 10);
+    const isPaginated = req.query.page !== undefined || req.query.limit !== undefined;
+    const searchStr = (req.query.search || '').trim();
+
+    // Construct unique cache key
+    const cacheKey = `crm:leads:${organizationId}:${userRole}:${userId}:p${page}_l${limit}_s${searchStr || 'all'}_paginated:${isPaginated}`;
+
+    // 1. Check Redis Cache First
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      console.log(`Leads cache HIT: ${cacheKey}`);
+      return res.status(200).json(cachedData);
+    }
+
+    console.log(`Leads cache MISS: ${cacheKey}`);
+
+    // Build Prisma query
+    let whereClause = { organizationId };
     if (userRole === 'USER') {
       whereClause.OR = [
         { assignedUserId: user.id },
@@ -81,19 +111,58 @@ const getAllLeads = async (req, res) => {
       ];
     }
 
-    const leads = await prisma.lead.findMany({
-      where: whereClause,
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
+    if (searchStr) {
+      whereClause.AND = [
+        {
+          OR: [
+            { contactName: { contains: searchStr, mode: 'insensitive' } },
+            { company: { contains: searchStr, mode: 'insensitive' } },
+            { email: { contains: searchStr, mode: 'insensitive' } },
+            { phone: { contains: searchStr, mode: 'insensitive' } }
+          ]
+        }
+      ];
+    }
 
-    res.status(200).json(leads);
+    let responseData;
+
+    if (isPaginated) {
+      const skip = (page - 1) * limit;
+      const [leads, totalCount] = await Promise.all([
+        prisma.lead.findMany({
+          where: whereClause,
+          skip,
+          take: limit,
+          orderBy: { createdAt: "desc" }
+        }),
+        prisma.lead.count({ where: whereClause })
+      ]);
+
+      const totalPages = Math.ceil(totalCount / limit);
+      responseData = {
+        leads,
+        pagination: {
+          totalCount,
+          page,
+          limit,
+          totalPages
+        }
+      };
+    } else {
+      const leads = await prisma.lead.findMany({
+        where: whereClause,
+        orderBy: { createdAt: "desc" }
+      });
+      responseData = leads;
+    }
+
+    // 2. Store in Redis Cache (TTL = 5 minutes / 300 seconds)
+    await setCache(cacheKey, responseData, 300);
+
+    return res.status(200).json(responseData);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      message: error.message
-    });
+    console.error("getAllLeads error:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -116,7 +185,7 @@ const deleteLead = async (req, res) => {
            id: id
       }
     });
-
+   await invalidateLeadCache(req.organizationId);
     res.status(200).json({
       success: true,
       message: "Lead and associated opportunities deleted successfully"
@@ -216,8 +285,9 @@ const updateLead = async (req, res) => {
     }
 
 
-
-    res.status(200).json(lead);
+  await invalidateLeadCache(req.organizationId);
+res.status(200).json(lead);
+    
 
   } catch (error) {
     console.log(error);
@@ -408,7 +478,8 @@ const importLeads = async (req, res) => {
 
       createdLeads.push(lead);
     }
-
+    
+await invalidateLeadCache(req.organizationId);
     res.status(200).json({
       success: true,
       message: `Successfully imported ${createdLeads.length} leads.`,
@@ -490,7 +561,8 @@ const bulkAssignLeads = async (req, res) => {
         console.error("Error sending bulk lead assign email:", err);
       });
     }
-
+   
+await invalidateLeadCache(req.organizationId);
     res.status(200).json({ success: true, message: `Successfully assigned ${ids.length} leads`, updatedCount: updated.count });
   } catch (error) {
     console.error('Bulk assign leads error:', error);

@@ -1,8 +1,8 @@
 import api from './api';
 
 export const dashboardService = {
-  getDashboard: async () => {
-    const res = await api.get('/dashboard');
+  getDashboard: async (organizationId: string) => {
+    const res = await api.get(`/org/${organizationId}/dashboard`);
     return res.data;
   },
 

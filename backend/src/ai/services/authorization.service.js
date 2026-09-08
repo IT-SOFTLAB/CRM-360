@@ -48,33 +48,34 @@ class AuthorizationService {
 
   leadFilter(user) {
 
-    // ADMIN and SUPER_ADMIN -> all records
     if (this.isAdminLike(user)) {
-      return {};
+        return {
+            organizationId: user.organizationId
+        };
     }
 
-    // USER -> own records only
     return {
-      assignedUserId: user.id
+        organizationId: user.organizationId,
+        assignedUserId: user.id
     };
-  }
+}
 
   //------------------------------------
   // Build Prisma filter for opportunities
   //------------------------------------
 
-  opportunityFilter(user) {
-
-    // ADMIN and SUPER_ADMIN -> all records
+ opportunityFilter(user) {
     if (this.isAdminLike(user)) {
-      return {};
+        return {
+            organizationId: user.organizationId
+        };
     }
 
-    // USER -> own records only
     return {
-      assignedSalespersonId: user.id
+        organizationId: user.organizationId,
+        assignedSalespersonId: user.id
     };
-  }
+}
 
 
   //------------------------------------
