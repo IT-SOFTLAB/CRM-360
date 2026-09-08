@@ -4,29 +4,43 @@ const prisma = new PrismaClient();
 
 class LeadService {
 
+
+    validateOrganization(user) {
+
+    if (!user?.organizationId) {
+
+        throw new Error(
+            "Organization access is required."
+        );
+
+    }
+
+}
     //----------------------------------------------------
     // Find User by Name
     //----------------------------------------------------
 
-    async findUserByName(name) {
+ async findUserByName(name, currentUser) {
 
-        return await prisma.user.findFirst({
+    this.validateOrganization(currentUser);
 
-            where: {
+    return await prisma.user.findFirst({
 
-                name: {
+        where: {
 
-                    equals: name,
+            name: {
+                equals: name,
+                mode: "insensitive"
+            },
 
-                    mode: "insensitive"
+            organizationId:
+                currentUser.organizationId
 
-                }
+        }
 
-            }
+    });
 
-        });
-
-    }
+}
 
     //----------------------------------------------------
     // Find Leads by Category
@@ -34,26 +48,20 @@ class LeadService {
 
 async findLeadsByCategory(category, user) {
 
+    this.validateOrganization(user);
+
     const where = {
 
         category: {
-
             equals: category,
-
             mode: "insensitive"
+        },
 
-        }
+        ...AuthorizationService.leadFilter(
+            user
+        )
 
     };
-
-    //------------------------------------
-    // Authorization
-    //------------------------------------
-
-    Object.assign(
-        where,
-        AuthorizationService.leadFilter(user)
-    );
 
     return await prisma.lead.findMany({
 
@@ -77,34 +85,76 @@ async bulkAssign(
     user
 ) {
 
-    //------------------------------------
-    // Build Filter
-    //------------------------------------
-
-    const where = {
-
-        id: {
-
-            in: ids
-
-        }
-
-    };
+    this.validateOrganization(user);
 
     //------------------------------------
-    // USER -> only own leads
+    // Authorization
     //------------------------------------
 
-    if (!AuthorizationService.isAdmin(user)) {
+    if (!AuthorizationService.canBulkAssign(user)) {
 
-        where.assignedUserId = user.id;
+        throw new Error(
+            "Access denied. Only Admin or Super Admin can bulk assign leads."
+        );
 
     }
+
+    //------------------------------------
+    // Find only accessible leads
+    //------------------------------------
+
+    const leads =
+        await prisma.lead.findMany({
+
+            where: {
+
+                id: {
+                    in: ids
+                },
+
+                ...AuthorizationService.leadFilter(
+                    user
+                )
+
+            },
+
+            select: {
+                id: true
+            }
+
+        });
+
+    const authorizedIds =
+        leads.map(
+            lead => lead.id
+        );
+
+    if (authorizedIds.length === 0) {
+
+        return {
+            count: 0
+        };
+
+    }
+
+    //------------------------------------
+    // Update Leads
+    //------------------------------------
 
     const updated =
         await prisma.lead.updateMany({
 
-            where,
+            where: {
+
+                id: {
+                    in: authorizedIds
+                },
+
+                ...AuthorizationService.leadFilter(
+                    user
+                )
+
+            },
 
             data: {
 
@@ -116,29 +166,97 @@ async bulkAssign(
 
         });
 
-    // Synchronize corresponding opportunities and customers
+    //------------------------------------
+    // Update Opportunities
+    //------------------------------------
+
     await prisma.opportunity.updateMany({
-      where: { leadId: { in: ids } },
-      data: {
-        assignedSalesperson: assignedUser,
-        assignedSalespersonId: assignedUserId
-      }
+
+        where: {
+
+            leadId: {
+                in: authorizedIds
+            },
+
+            organizationId:
+                user.organizationId
+
+        },
+
+        data: {
+
+            assignedSalesperson:
+                assignedUser,
+
+            assignedSalespersonId:
+                assignedUserId
+
+        }
+
     });
 
-    const opps = await prisma.opportunity.findMany({
-      where: { leadId: { in: ids } },
-      select: { id: true }
-    });
-    const oppIds = opps.map(o => o.id);
-    if (oppIds.length > 0) {
-      await prisma.customer.updateMany({
-        where: { opportunityId: { in: oppIds } },
+    //------------------------------------
+    // Find Opportunities
+    //------------------------------------
+
+    const opportunities =
+        await prisma.opportunity.findMany({
+
+            where: {
+
+                leadId: {
+                    in: authorizedIds
+                },
+
+                organizationId:
+                    user.organizationId
+
+            },
+
+            select: {
+                id: true
+            }
+
+        });
+
+    const opportunityIds =
+        opportunities.map(
+            opportunity =>
+                opportunity.id
+        );
+
+    //------------------------------------
+    // Update Customers
+    //------------------------------------
+
+if (opportunityIds.length > 0) {
+
+    await prisma.customer.updateMany({
+
+        where: {
+
+            opportunityId: {
+                in: opportunityIds
+            },
+
+            organizationId:
+                user.organizationId
+
+        },
+
         data: {
-          assignedSalesperson: assignedUser,
-          assignedSalespersonId: assignedUserId
+
+            assignedSalesperson:
+                assignedUser,
+
+            assignedSalespersonId:
+                assignedUserId
+
         }
-      });
-    }
+
+    });
+
+}
 
     return updated;
 
@@ -150,66 +268,91 @@ async bulkAssign(
 
 async searchLeads(filters = {}, user) {
 
-    const where = {};
+    this.validateOrganization(user);
+
+    const where = {
+
+        ...AuthorizationService.leadFilter(
+            user
+        )
+
+    };
+
+    //------------------------------------
+    // Category
+    //------------------------------------
 
     if (filters.category) {
 
         where.category = {
 
-            equals: filters.category,
+            equals:
+                filters.category,
 
-            mode: "insensitive"
+            mode:
+                "insensitive"
 
         };
 
     }
+
+    //------------------------------------
+    // Assigned User
+    //------------------------------------
 
     if (filters.assignedUser) {
 
         where.assignedUser = {
 
-            equals: filters.assignedUser,
+            equals:
+                filters.assignedUser,
 
-            mode: "insensitive"
+            mode:
+                "insensitive"
 
         };
 
     }
+
+    //------------------------------------
+    // Status
+    //------------------------------------
 
     if (filters.status) {
 
         where.status = {
 
-            equals: filters.status,
+            equals:
+                filters.status,
 
-            mode: "insensitive"
+            mode:
+                "insensitive"
 
         };
 
     }
 
+    //------------------------------------
+    // Contact Name
+    //------------------------------------
+
     if (filters.contactName) {
 
-    where.contactName = {
+        where.contactName = {
 
-        equals: filters.contactName,
+            equals:
+                filters.contactName,
 
-        mode: "insensitive"
+            mode:
+                "insensitive"
 
-    };
+        };
 
-}
+    }
 
-
-
-//------------------------------------
-// Authorization Filter
-//------------------------------------
-
-Object.assign(
-    where,
-    AuthorizationService.leadFilter(user)
-);
+    //------------------------------------
+    // Query
+    //------------------------------------
 
     return await prisma.lead.findMany({
 
@@ -217,19 +360,28 @@ Object.assign(
 
         orderBy: {
 
-            createdAt: "desc"
+            createdAt:
+                "desc"
 
         }
 
     });
 
-} 
+}
 
 //----------------------------------------------------
 // Create Lead
 //----------------------------------------------------
 
 async createLead(data) {
+
+      if (!data?.organizationId) {
+
+        throw new Error(
+            "Organization access is required."
+        );
+
+    }
 
    return await prisma.lead.create({
 
@@ -253,7 +405,9 @@ async createLead(data) {
 
         status: "New",
 
-        dealValue: data.dealValue || 0
+      dealValue: data.dealValue || 0,
+
+organizationId: data.organizationId
 
     }
 
@@ -268,21 +422,22 @@ async createLead(data) {
 
 async updateLead(contactName, updateData, user) {
 
-    const lead = await prisma.lead.findFirst({
+    this.validateOrganization(user);
 
-        where: {
+  const lead = await prisma.lead.findFirst({
 
-            contactName: {
+    where: {
 
-                equals: contactName,
+        contactName: {
+            equals: contactName,
+            mode: "insensitive"
+        },
 
-                mode: "insensitive"
+        organizationId: user.organizationId
 
-            }
+    }
 
-        }
-
-    });
+});
 
     if (!lead) {
 
@@ -294,17 +449,6 @@ async updateLead(contactName, updateData, user) {
 // Authorization
 //------------------------------------
 
-if (!AuthorizationService.isAdmin(user)) {
-
-    if (lead.assignedUserId !== user.id) {
-
-        throw new Error(
-            "Access denied. You do not own this lead."
-        );
-
-    }
-
-}
 
     const updatedLead = await prisma.lead.update({
 
@@ -332,26 +476,49 @@ if (!AuthorizationService.isAdmin(user)) {
     if (updateData.assignedUserId !== undefined) oppUpdateData.assignedSalespersonId = updateData.assignedUserId;
 
     if (Object.keys(oppUpdateData).length > 0) {
-      await prisma.opportunity.updateMany({
-        where: { leadId: lead.id },
-        data: oppUpdateData
-      });
+     await prisma.opportunity.updateMany({
+  where: {
+    leadId: lead.id,
+    organizationId: user.organizationId
+  },
+  data: oppUpdateData
+});
     }
 
     if (updateData.assignedUser !== undefined || updateData.assignedUserId !== undefined) {
-      const opps = await prisma.opportunity.findMany({
-        where: { leadId: lead.id },
-        select: { id: true }
-      });
+ const opps = await prisma.opportunity.findMany({
+  where: {
+    leadId: lead.id,
+    organizationId: user.organizationId
+  },
+  select: { id: true }
+});
       const oppIds = opps.map(o => o.id);
       if (oppIds.length > 0) {
-        await prisma.customer.updateMany({
-          where: { opportunityId: { in: oppIds } },
-          data: {
-            assignedSalesperson: updateData.assignedUser,
-            assignedSalespersonId: updateData.assignedUserId
-          }
-        });
+      await prisma.customer.updateMany({
+
+    where: {
+
+        opportunityId: {
+            in: oppIds
+        },
+
+        organizationId:
+            user.organizationId
+
+    },
+
+    data: {
+
+        assignedSalesperson:
+            updateData.assignedUser,
+
+        assignedSalespersonId:
+            updateData.assignedUserId
+
+    }
+
+});
       }
     }
 

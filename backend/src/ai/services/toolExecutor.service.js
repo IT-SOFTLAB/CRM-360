@@ -3,48 +3,81 @@ const LeadTool = require("../tools/lead.tool");
 const ActivityTool = require("../tools/activity.tool");
 const PipelineTool = require("../tools/pipeline.tool");
 const WorkflowService =
-require("./workflow.service");
+    require("./workflow.service");
 const EmailTool = require("../tools/email.tool");
 const ReportTool = require("../tools/report.tool");
 const QuotationTool = require("../tools/quotation.tool");
 const ClientTool = require("../tools/client.tool");
 const RetentionTool = require("../tools/retention.tool");
+
 class ToolExecutor {
 
     constructor() {
 
-   this.tools = {
+        this.tools = {
 
-    dashboard: DashboardTool,
+            dashboard: DashboardTool,
 
-    lead: LeadTool,
+            lead: LeadTool,
 
-    activity: ActivityTool,
+            activity: ActivityTool,
 
-    pipeline: PipelineTool,
+            pipeline: PipelineTool,
 
-    email: EmailTool,
+            email: EmailTool,
 
-    report: ReportTool,
+            report: ReportTool,
 
-    quotation: QuotationTool,
-    client: ClientTool,
-    retention: RetentionTool
+            quotation: QuotationTool,
 
-};
+            client: ClientTool,
+
+            retention: RetentionTool
+
+        };
+
     }
 
     //-----------------------------------------
     // Execute Workflow
     //-----------------------------------------
 
-   async execute(plan, req = null) {
+    async execute(plan, req = null) {
 
         const workflowResults = [];
 
+        //-----------------------------------------
+        // Authentication safety check
+        //-----------------------------------------
+
+        if (!req?.user) {
+
+            return {
+
+                success: false,
+
+                steps: [],
+
+                context: {},
+
+                message: "Authentication required."
+
+            };
+
+        }
+
+        //-----------------------------------------
+        // Execute workflow steps
+        //-----------------------------------------
+
         for (const step of plan.steps) {
 
-            const tool = this.tools[step.tool];
+            const tool =
+                this.tools[step.tool];
+
+            //-----------------------------------------
+            // Tool validation
+            //-----------------------------------------
 
             if (!tool) {
 
@@ -54,22 +87,43 @@ class ToolExecutor {
 
                     tool: step.tool,
 
-                    message: `Tool '${step.tool}' not found.`
+                    action: step.action,
+
+                    message:
+                        `Tool '${step.tool}' not found.`
 
                 });
 
-                continue;
+                break;
 
             }
 
             try {
 
-               const result =
-    await tool.execute(step, req);
-                    WorkflowService.save(
-    step,
-    result
-);
+                //-----------------------------------------
+                // Pass req to tool
+                //
+                // req.user contains:
+                // - id
+                // - name
+                // - role
+                // - organizationId
+                //-----------------------------------------
+
+                const result =
+                    await tool.execute(
+                        step,
+                        req
+                    );
+
+                //-----------------------------------------
+                // Save workflow context
+                //-----------------------------------------
+
+                WorkflowService.save(
+                    step,
+                    result
+                );
 
                 workflowResults.push({
 
@@ -80,6 +134,19 @@ class ToolExecutor {
                     result
 
                 });
+
+                //-----------------------------------------
+                // Stop workflow on failure
+                //-----------------------------------------
+
+                if (
+                    result &&
+                    result.success === false
+                ) {
+
+                    break;
+
+                }
 
             }
 
@@ -97,20 +164,26 @@ class ToolExecutor {
 
                 });
 
+                break;
+
             }
 
         }
 
-      return {
+        return {
 
-    steps: workflowResults,
+            success: true,
 
-    context: WorkflowService.getAll()
+            steps: workflowResults,
 
-};
+            context:
+                WorkflowService.getAll()
+
+        };
 
     }
 
 }
 
-module.exports = new ToolExecutor();
+module.exports =
+    new ToolExecutor();

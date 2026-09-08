@@ -3,6 +3,73 @@ const { PLANNER_PROMPT } = require("../prompts/plannerPrompt");
 
 class PlannerService {
 
+validatePlan(plan) {
+
+    if (!plan || !Array.isArray(plan.steps)) {
+        return {
+            valid: false,
+            message: "Invalid AI execution plan."
+        };
+    }
+
+    for (const step of plan.steps) {
+
+        if (
+            !step ||
+            typeof step.tool !== "string" ||
+            typeof step.action !== "string"
+        ) {
+            return {
+                valid: false,
+                message: "Invalid tool or action."
+            };
+        }
+
+        const allowedActions =
+            ALLOWED_ACTIONS[step.tool];
+
+        if (!allowedActions) {
+            return {
+                valid: false,
+                message:
+                    `Tool '${step.tool}' is not allowed.`
+            };
+        }
+
+        if (
+            !allowedActions.includes(
+                step.action
+            )
+        ) {
+            return {
+                valid: false,
+                message:
+                    `Action '${step.action}' is not allowed for tool '${step.tool}'.`
+            };
+        }
+
+        if (
+            step.parameters !== undefined &&
+            (
+                typeof step.parameters !== "object" ||
+                step.parameters === null ||
+                Array.isArray(step.parameters)
+            )
+        ) {
+            return {
+                valid: false,
+                message:
+                    "Step parameters must be an object."
+            };
+        }
+    }
+
+    return {
+        valid: true
+    };
+}
+
+
     async createPlan(userMessage) {
 
         try {

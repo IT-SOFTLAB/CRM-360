@@ -1,5 +1,8 @@
 const { PrismaClient } = require("@prisma/client");
 const { parseDate } = require("../utils/dateParser");
+const AuthorizationService = require("../services/authorization.service");
+const UserResolverService =
+    require("../services/userResolver.service");
 
 const prisma = new PrismaClient();
 
@@ -8,7 +11,6 @@ module.exports = {
     async schedule(params, req) {
 
         const {
-
             title,
             type,
             date,
@@ -17,46 +19,121 @@ module.exports = {
             description,
             lead,
             salesperson
-
         } = params;
 
-        // If salesperson is not specified in parameters, assign it to the logged in user
-        let assignedSalesperson = salesperson;
-        if (!assignedSalesperson && req && req.user) {
-            assignedSalesperson = req.user.name;
+        //----------------------------------
+        // Organization validation
+        //----------------------------------
+
+        if (!req?.user?.organizationId) {
+            return {
+                success: false,
+                message: "Organization access is required."
+            };
         }
 
-        // Default the title if not provided by LLM
+        const organizationId = req.user.organizationId;
+//----------------------------------
+// Assigned salesperson
+//----------------------------------
+
+let assignedSalesperson;
+
+// USER -> always assign to self
+if (!AuthorizationService.isAdminLike(req.user)) {
+
+    assignedSalesperson =
+        req.user.name;
+
+} else {
+
+    // ADMIN / SUPER_ADMIN
+    if (salesperson) {
+
+        const resolvedUser =
+            await UserResolverService.resolve(
+                salesperson,
+                req.user
+            );
+
+        if (!resolvedUser) {
+
+            return {
+                success: false,
+                message:
+                    `Salesperson '${salesperson}' not found.`
+            };
+
+        }
+
+        assignedSalesperson =
+            resolvedUser.name;
+
+    } else {
+
+        // Default to logged-in user
+        assignedSalesperson =
+            req.user.name;
+
+    }
+
+}
+        //----------------------------------
+        // Default activity title
+        //----------------------------------
+
         let activityTitle = title;
+
         if (!activityTitle) {
-            const leadName = lead;
-            activityTitle = leadName 
-                ? `Follow-up with ${leadName}` 
-                : `${type || 'Follow-up'} Activity`;
+
+            activityTitle = lead
+                ? `Follow-up with ${lead}`
+                : `${type || "Follow-up"} Activity`;
+
         }
 
         //----------------------------------
-        // Find Lead (optional)
+        // Find Lead
         //----------------------------------
 
         let leadRecord = null;
 
         if (lead) {
 
+            const leadWhere = {
+
+                contactName: {
+                    equals: lead,
+                    mode: "insensitive"
+                },
+
+                organizationId
+
+            };
+
+            //----------------------------------
+            // Apply role / ownership restrictions
+            //----------------------------------
+
+            Object.assign(
+                leadWhere,
+                AuthorizationService.leadFilter(req.user)
+            );
+
             leadRecord = await prisma.lead.findFirst({
 
-                where: {
-
-                    contactName: {
-
-                        equals: lead,
-                        mode: "insensitive"
-
-                    }
-
-                }
+                where: leadWhere
 
             });
+
+            if (!leadRecord) {
+
+                return {
+                    success: false,
+                    message: `Lead "${lead}" not found or you do not have access.`
+                };
+
+            }
 
         }
 
@@ -76,13 +153,15 @@ module.exports = {
 
                 time: time || "10:00",
 
-                duration: duration || 30,
+                duration: Number(duration) || 30,
 
-                description,
+                description: description || null,
 
                 salesperson: assignedSalesperson,
 
-                leadId: leadRecord?.id
+                leadId: leadRecord?.id || null,
+
+                organizationId
 
             }
 

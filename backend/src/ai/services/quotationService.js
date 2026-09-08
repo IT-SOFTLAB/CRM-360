@@ -1,21 +1,29 @@
 const { PrismaClient } = require("@prisma/client");
+const AuthorizationService =
+    require("./authorization.service");
 
 const prisma = new PrismaClient();
 
 class QuotationService {
 
+    //----------------------------------------
+    // Generate Quotation Number
+    //----------------------------------------
 
-    async generateQuotationNumber() {
+    async generateQuotationNumber(organizationId) {
 
-        const latest = await prisma.quotation.findFirst({
+        const latest =
+            await prisma.quotation.findFirst({
 
-            orderBy: {
+                where: {
+                    organizationId
+                },
 
-                createdAt: "desc"
+                orderBy: {
+                    createdAt: "desc"
+                }
 
-            }
-
-        });
+            });
 
         if (!latest) {
 
@@ -24,133 +32,264 @@ class QuotationService {
         }
 
         const current = parseInt(
-
-            latest.quotationNumber.replace("QT-", ""),
-
+            latest.quotationNumber.replace(
+                "QT-",
+                ""
+            ),
             10
-
         );
 
-        return `QT-${String(current + 1).padStart(6, "0")}`;
+        return `QT-${String(
+            current + 1
+        ).padStart(6, "0")}`;
 
     }
+
+
     //----------------------------------------
     // Create Quotation
     //----------------------------------------
 
     async create(user, params) {
 
-     const leadName =
+        //------------------------------------
+        // Organization validation
+        //------------------------------------
 
-    params.lead ||
+        if (!user?.organizationId) {
 
-    params.client ||
-
-    params.customer;
-
-
-    const opportunity = await prisma.opportunity.findFirst({
-
-    where: {
-
-        customerName: {
-
-            contains: leadName,
-
-            mode: "insensitive"
+            return {
+                success: false,
+                message:
+                    "Organization access is required."
+            };
 
         }
 
-    }
+        const organizationId =
+            user.organizationId;
 
-});
 
-if (!opportunity) {
+        //------------------------------------
+        // Resolve customer / lead name
+        //------------------------------------
 
-    return {
+        const leadName =
+            params.lead ||
+            params.client ||
+            params.customer;
 
-        success: false,
+        if (!leadName) {
 
-        message: "Opportunity not found."
+            return {
+                success: false,
+                message:
+                    "Lead or customer name is required."
+            };
 
-    };
+        }
 
-}
 
-const customer = await prisma.customer.findFirst({
+        //------------------------------------
+        // Find Opportunity
+        //------------------------------------
 
-    where: {
+        const opportunityWhere = {
 
-        opportunityId: opportunity.id
+            customerName: {
 
-    }
+                contains: leadName,
 
-});
+                mode: "insensitive"
 
-const quotationNumber =
+            },
 
-    await this.generateQuotationNumber();
+            ...AuthorizationService.opportunityFilter(
+                user
+            )
 
-    
-  
+        };
 
-    const quotation = await prisma.quotation.create({
+        const opportunity =
+            await prisma.opportunity.findFirst({
 
-    data: {
+                where: opportunityWhere
 
-        quotationNumber,
+            });
 
-        opportunityId: opportunity.id,
+        if (!opportunity) {
 
-    customerId: customer ? customer.id : null,
+            return {
 
-       customerNameSnapshot: opportunity.customerName,
+                success: false,
 
-customerCompanyNameSnapshot: opportunity.company || "",
+                message:
+                    "Opportunity not found or you do not have access."
 
-customerEmailSnapshot: opportunity.email || "",
+            };
 
-customerPhoneSnapshot: opportunity.phone || "",
+        }
 
-salesperson: opportunity.assignedSalesperson || "",
 
-        quotationDate: new Date(),
+        //------------------------------------
+        // Find Customer
+        //------------------------------------
 
-        expirationDate: new Date(
-            Date.now() + 30 * 24 * 60 * 60 * 1000
-        ),
+        const customerWhere = {
 
-        paymentTerms: "Net 30",
+            opportunityId:
+                opportunity.id,
 
-        currency: "INR",
+            ...AuthorizationService.customerFilter(
+                user
+            )
 
-        subtotal: 0,
+        };
 
-        tax: 0,
+        const customer =
+            await prisma.customer.findFirst({
 
-        total: 0,
+                where: customerWhere
 
-        status: "Draft",
+            });
 
-        // Fields missing in Customer model
-        customerGstinSnapshot: null,
 
-        billingAddressSnapshot: null,
+        //------------------------------------
+        // Generate quotation number
+        //------------------------------------
 
-        shippingAddressSnapshot: null
+        const quotationNumber =
+            await this.generateQuotationNumber(
+                organizationId
+            );
 
-    }
 
-});
-      
+        //------------------------------------
+        // Create quotation
+        //------------------------------------
+
+        const quotation =
+            await prisma.quotation.create({
+
+                data: {
+
+                    //--------------------------------
+                    // Organization
+                    //--------------------------------
+
+                    organizationId,
+
+
+                    //--------------------------------
+                    // References
+                    //--------------------------------
+
+                    quotationNumber,
+
+                    opportunityId:
+                        opportunity.id,
+
+                    customerId:
+                        customer
+                            ? customer.id
+                            : null,
+
+
+                    //--------------------------------
+                    // Customer snapshots
+                    //--------------------------------
+
+                    customerNameSnapshot:
+                        opportunity.customerName,
+
+                    customerCompanyNameSnapshot:
+                        opportunity.company || "",
+
+                    customerEmailSnapshot:
+                        opportunity.email || "",
+
+                    customerPhoneSnapshot:
+                        opportunity.phone || "",
+
+
+                    //--------------------------------
+                    // Salesperson
+                    //--------------------------------
+
+                    salesperson:
+                        opportunity.assignedSalesperson ||
+                        "",
+
+
+                    //--------------------------------
+                    // Dates
+                    //--------------------------------
+
+                    quotationDate:
+                        new Date(),
+
+                    expirationDate:
+                        new Date(
+                            Date.now() +
+                            30 *
+                            24 *
+                            60 *
+                            60 *
+                            1000
+                        ),
+
+
+                    //--------------------------------
+                    // Financials
+                    //--------------------------------
+
+                    paymentTerms:
+                        "Net 30",
+
+                    currency:
+                        "INR",
+
+                    subtotal: 0,
+
+                    tax: 0,
+
+                    total: 0,
+
+                    status:
+                        "Draft",
+
+
+                    //--------------------------------
+                    // Optional snapshots
+                    //--------------------------------
+
+                    customerGstinSnapshot:
+                        null,
+
+                    billingAddressSnapshot:
+                        null,
+
+                    shippingAddressSnapshot:
+                        null
+
+                }
+
+            });
+
+
+        //------------------------------------
+        // Response
+        //------------------------------------
 
         return {
 
             success: true,
 
-            message: "Quotation created successfully.",
+            message:
+                "Quotation created successfully.",
 
-            data: quotation
+            data:
+                quotation
 
         };
 
@@ -158,4 +297,5 @@ salesperson: opportunity.assignedSalesperson || "",
 
 }
 
-module.exports = new QuotationService();
+module.exports =
+    new QuotationService();

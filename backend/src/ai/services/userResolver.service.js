@@ -7,27 +7,29 @@ class UserResolverService {
     async resolve(assignee, currentUser = null) {
 
         if (!assignee) {
-
             return null;
-
         }
 
         //-----------------------------------
         // "me"
         //-----------------------------------
 
-        if (
-
-            assignee.toLowerCase() === "me"
-
-        ) {
-
+        if (assignee.toLowerCase() === "me") {
             return currentUser;
+        }
 
+        //-----------------------------------
+        // Current user is required
+        // for organization-level lookup
+        //-----------------------------------
+
+        if (!currentUser || !currentUser.organizationId) {
+            return null;
         }
 
         //-----------------------------------
         // Search by Name
+        // ONLY inside current organization
         //-----------------------------------
 
         const user = await prisma.user.findFirst({
@@ -35,12 +37,11 @@ class UserResolverService {
             where: {
 
                 name: {
-
                     equals: assignee,
-
                     mode: "insensitive"
+                },
 
-                }
+                organizationId: currentUser.organizationId
 
             }
 

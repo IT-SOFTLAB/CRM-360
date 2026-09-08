@@ -23,15 +23,17 @@ async function createStage(parameters, req) {
         };
     }
 
-    const existing =
-        await prisma.referralPipeline.findFirst({
-            where: {
-                name: {
-                    equals: name,
-                    mode: "insensitive"
-                }
-            }
-        });
+ const existing =
+    await prisma.referralPipeline.findFirst({
+        where: {
+            name: {
+                equals: name,
+                mode: "insensitive"
+            },
+
+            organizationId: req.user.organizationId
+        }
+    });
 
     if (existing) {
         return {
@@ -40,13 +42,16 @@ async function createStage(parameters, req) {
         };
     }
 
-    const lastStage =
-        await prisma.referralPipeline.findFirst({
-            orderBy: {
-                sequence: "desc"
-            }
-        });
+const lastStage =
+    await prisma.referralPipeline.findFirst({
+        where: {
+            organizationId: req.user.organizationId
+        },
 
+        orderBy: {
+            sequence: "desc"
+        }
+    });
     const nextSequence =
         lastStage
             ? lastStage.sequence + 1
@@ -58,7 +63,8 @@ async function createStage(parameters, req) {
                 name,
                 color: color || "#3B82F6",
                 isFinal: isFinal || false,
-                sequence: nextSequence
+                sequence: nextSequence,
+                   organizationId: req.user.organizationId
             }
         });
 
@@ -99,6 +105,7 @@ async function moveStage(parameters, req) {
     const referralRecord =
         await prisma.referral.findFirst({
             where: {
+                  organizationId: req.user.organizationId,
                 OR: [
                     {
                         referredLeadName: {
@@ -129,15 +136,17 @@ async function moveStage(parameters, req) {
         };
     }
 
-    const stageRecord =
-        await prisma.referralPipeline.findFirst({
-            where: {
-                name: {
-                    equals: stage,
-                    mode: "insensitive"
-                }
-            }
-        });
+   const stageRecord =
+    await prisma.referralPipeline.findFirst({
+        where: {
+            name: {
+                equals: stage,
+                mode: "insensitive"
+            },
+
+            organizationId: req.user.organizationId
+        }
+    });
 
     if (!stageRecord) {
         return {
@@ -153,6 +162,7 @@ async function moveStage(parameters, req) {
                 id: referralRecord.id
             },
             data: {
+                
                 currentStageId: stageRecord.id
             },
             include: {
@@ -162,6 +172,7 @@ async function moveStage(parameters, req) {
 
     await prisma.referralHistory.create({
         data: {
+            organizationId: req.user.organizationId,
             referralId: referralRecord.id,
             stageId: stageRecord.id,
             changedBy: req?.user?.name || "System",
@@ -242,19 +253,22 @@ async function submit(parameters, req) {
 
     if (referrer && !finalReferrerName) {
 
-        const opportunity =
-            await prisma.opportunity.findFirst({
-                where: {
-                    customerName: {
-                        equals: referrer,
-                        mode: "insensitive"
-                    },
-                    stage: {
-                        equals: "Won",
-                        mode: "insensitive"
-                    }
-                }
-            });
+       const opportunity =
+    await prisma.opportunity.findFirst({
+        where: {
+            customerName: {
+                equals: referrer,
+                mode: "insensitive"
+            },
+
+            stage: {
+                equals: "Won",
+                mode: "insensitive"
+            },
+
+            organizationId: req.user.organizationId
+        }
+    });
         if (!opportunity) {
 
             return {
@@ -275,28 +289,66 @@ async function submit(parameters, req) {
     // If explicit referrerName was provided
     //------------------------------------------------
 
-    if (!finalReferrerName) {
+  //------------------------------------------------
+// Validate referrer belongs to this organization
+//------------------------------------------------
+
+if (finalReferrerName) {
+
+    const validReferrer =
+        await prisma.opportunity.findFirst({
+            where: {
+
+                customerName: {
+                    equals: finalReferrerName,
+                    mode: "insensitive"
+                },
+
+                stage: {
+                    equals: "Won",
+                    mode: "insensitive"
+                },
+
+                organizationId:
+                    req.user.organizationId
+            }
+        });
+
+    if (!validReferrer) {
 
         return {
             success: false,
             message:
-                "Referrer name is required. Specify the won customer who is making the referral."
+                `Won customer '${finalReferrerName}' not found in your organization.`
         };
 
     }
 
+    // Always use the verified opportunity
+    finalReferrerId =
+        validReferrer.id;
+
+    finalReferrerName =
+        validReferrer.customerName;
+
+    finalReferrerCompany =
+        validReferrer.company || "";
+}
 
     //------------------------------------------------
     // Find first retention stage
     //------------------------------------------------
 
-    let firstStage =
-        await prisma.referralPipeline.findFirst({
-            orderBy: {
-                sequence: "asc"
-            }
-        });
+  let firstStage =
+    await prisma.referralPipeline.findFirst({
+        where: {
+            organizationId: req.user.organizationId
+        },
 
+        orderBy: {
+            sequence: "asc"
+        }
+    });
     if (!firstStage) {
 
         firstStage =
@@ -305,7 +357,8 @@ async function submit(parameters, req) {
                     name: "New",
                     sequence: 1,
                     color: "#3B82F6",
-                    isFinal: false
+                    isFinal: false,
+                      organizationId: req.user.organizationId
                 }
             });
 
@@ -320,6 +373,8 @@ async function submit(parameters, req) {
         await prisma.referral.create({
 
             data: {
+
+                organizationId: req.user.organizationId,
 
                 referralCode:
                     generateReferralCode(),
@@ -363,6 +418,7 @@ async function submit(parameters, req) {
 
                 referralHistories: {
                     create: {
+                         organizationId: req.user.organizationId,
                         stageId: firstStage.id,
                         changedBy:
                             req?.user?.name || "System",

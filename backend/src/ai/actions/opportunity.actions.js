@@ -1,30 +1,71 @@
-const { PrismaClient } = require("@prisma/client");
-const PipelineService = require("../services/pipelineService");
-
-const prisma = new PrismaClient();
+const PipelineService =
+    require("../services/pipelineService");
 
 module.exports = {
 
     /**
      * Move a lead to the given pipeline stage.
-     * PipelineService handles auto-creating the opportunity/stage.
+     * PipelineService handles auto-creating
+     * the opportunity/stage.
      */
     async moveStage({ lead, stage }, req) {
 
-        const result = await PipelineService.moveStage(lead, stage, req.user);
+        //----------------------------------
+        // Organization validation
+        //----------------------------------
+
+        if (!req?.user?.organizationId) {
+
+            return {
+
+                success: false,
+
+                message:
+                    "Organization access is required."
+
+            };
+
+        }
+
+        //----------------------------------
+        // Move stage
+        //----------------------------------
+
+        const result =
+            await PipelineService.moveStage(
+
+                lead,
+
+                stage,
+
+                req.user
+
+            );
 
         if (!result) {
+
             return {
+
                 success: false,
-                message: `Lead "${lead}" not found. Please check the name and try again.`
+
+                message:
+                    `Lead "${lead}" not found or you do not have access.`
+
             };
+
         }
 
         return {
+
             success: true,
-            message: `"${lead}" has been moved to the ${result.stage} stage.`,
+
+            message:
+                `"${lead}" has been moved to the ${result.stage} stage.`,
+
             data: result
+
         };
+
     }
 
 };
