@@ -1,9 +1,16 @@
 import api from './api';
 
 export const leadService = {
-  getLeads: async () => {
+  getLeads: async (page?: number, limit?: number, search?: string) => {
     try {
-      const res = await api.get('/leads');
+      const params = new URLSearchParams();
+      if (page !== undefined) params.append('page', page.toString());
+      if (limit !== undefined) params.append('limit', limit.toString());
+      if (search) params.append('search', search);
+
+      const queryString = params.toString();
+      const endpoint = queryString ? `/leads?${queryString}` : '/leads';
+      const res = await api.get(endpoint);
       return res.data;
     } catch (err) {
       console.warn('API error fetching leads, fallback to offline', err);

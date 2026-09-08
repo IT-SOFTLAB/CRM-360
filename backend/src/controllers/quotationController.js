@@ -4,6 +4,13 @@ const prisma = new PrismaClient();
 const fs = require("fs");
 const path = require("path");
 const { generateQuotationPDF } = require("../services/pdfService");
+const { getCache, setCache, deletePatternCache } = require("../config/redisCache");
+
+
+const invalidateQuotationCache = async (organizationId) => {
+  if (!organizationId) return;
+  await deletePatternCache(`crm:quotations:${organizationId}:*`);
+};
 
 exports.createQuotation = async (req, res) => {
   try {
@@ -88,6 +95,7 @@ exports.createQuotation = async (req, res) => {
       }
     });
 
+    await invalidateQuotationCache(req.organizationId);
     res.status(201).json(quotation);
   } catch (err) {
     console.error("Create Quotation Error:", err);
@@ -101,48 +109,49 @@ exports.createQuotation = async (req, res) => {
 
 
 exports.getAllQuotations = async (req, res) => {
-
   try {
     const user = req.user;
     const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+    const organizationId = req.organizationId;
+    const userId = user.id;
 
-    let whereClause = { organizationId: req.organizationId };
+    const cacheKey = `crm:quotations:${organizationId}:${userRole}:${userId}`;
+
+    // 1. Check Redis Cache First
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      console.log(`Quotations cache HIT: ${cacheKey}`);
+      return res.status(200).json(cachedData);
+    }
+
+    console.log(`Quotations cache MISS: ${cacheKey}`);
+
+    let whereClause = { organizationId };
     if (userRole === 'USER') {
-      whereClause = { organizationId: req.organizationId, salesperson: user.name };
+      whereClause = { organizationId, salesperson: user.name };
     }
 
     const quotations = await prisma.quotation.findMany({
       where: whereClause,
       include: {
-
         items: true
-
       },
-
       orderBy: {
-
         createdAt: "desc"
-
       }
-
     });
 
-    res.json(quotations);
+    // 2. Store in Redis Cache (TTL = 5 minutes / 300 seconds)
+    await setCache(cacheKey, quotations, 300);
 
-  }
+    return res.status(200).json(quotations);
 
-  catch (err) {
-
-    console.log(err);
-
+  } catch (err) {
+    console.error("getAllQuotations error:", err);
     res.status(500).json({
-
       message: "Error"
-
     });
-
   }
-
 };
 
 
@@ -289,8 +298,8 @@ exports.updateQuotation = async (req, res) => {
         items: true,
       },
     });
-
- 
+   
+    await invalidateQuotationCache(req.organizationId);
     res.json(quotation);
   } catch (err) {
     console.error("Update Quotation Error:", err);
@@ -318,6 +327,7 @@ exports.deleteQuotation = async (req, res) => {
 
     });
 
+    await invalidateQuotationCache(req.organizationId);
     res.json({
 
       message: "Deleted"
@@ -365,6 +375,7 @@ exports.changeQuotationStatus = async (req, res) => {
 
     });
 
+    await invalidateQuotationCache(req.organizationId);
     res.json(quotation);
 
   }

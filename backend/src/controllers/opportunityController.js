@@ -2,22 +2,46 @@ const { PrismaClient } = require("@prisma/client");
 
 
 const prisma = new PrismaClient();
-
+const { getCache, setCache, deletePatternCache } = require("../config/redisCache")
 
 
 /*
 GET ALL
 */
+const invalidateOpportunityCache = async (organizationId) => {
+  if (!organizationId) return;
+  // Invalidate opportunities caches
+  await deletePatternCache(`crm:opportunities:${organizationId}:*`);
+  // Invalidate lead list caches (since opportunity edits sync to leads)
+  await deletePatternCache(`crm:leads:${organizationId}:*`);
+  // Invalidate dashboard caches (since pipeline value/stages/winRate change)
+  await deletePatternCache(`crm:dashboard:${organizationId}:*`);
+  // Invalidate customer caches (since 'Won' opportunities create customers)
+  await deletePatternCache(`crm:customers:${organizationId}:*`);
+};
 
 exports.getAllOpportunities = async (req, res) => {
     try {
         const user = req.user;
         const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+        const organizationId = req.organizationId;
+        const userId = user.id;
 
-        let whereClause = { organizationId: req.organizationId };
+        const cacheKey = `crm:opportunities:${organizationId}:${userRole}:${userId}`;
+
+        // 1. Check Redis Cache First
+        const cachedData = await getCache(cacheKey);
+        if (cachedData) {
+            console.log(`Opportunities cache HIT: ${cacheKey}`);
+            return res.status(200).json(cachedData);
+        }
+
+        console.log(`Opportunities cache MISS: ${cacheKey}`);
+
+        let whereClause = { organizationId };
         if (userRole === 'USER') {
             whereClause = {
-                organizationId: req.organizationId,
+                organizationId,
                 OR: [
                     { assignedSalespersonId: user.id },
                     { assignedSalesperson: user.name }
@@ -32,19 +56,18 @@ exports.getAllOpportunities = async (req, res) => {
             }
         });
 
-        res.json(opportunities);
+        // 2. Store in Redis Cache (TTL = 5 minutes / 300 seconds)
+        await setCache(cacheKey, opportunities, 300);
+
+        return res.status(200).json(opportunities);
 
     } catch (err) {
-
-        console.log(err);
-
+        console.error("getAllOpportunities error:", err);
         res.status(500).json({
             message: "Server Error"
         });
-
     }
 };
-
 
 /*
 GET ONE
@@ -136,7 +159,7 @@ exports.createOpportunity = async (req, res) => {
             }
 
         });
-
+       await invalidateOpportunityCache(req.organizationId);
         res.status(201).json(opportunity);
 
     }
@@ -144,7 +167,6 @@ exports.createOpportunity = async (req, res) => {
     catch (err) {
 
         console.log(err);
-
         res.status(500).json({
 
             message: "Server Error"
@@ -254,7 +276,7 @@ exports.updateOpportunity = async (req, res) => {
     }
 
 
-
+    await invalidateOpportunityCache(req.organizationId);
     res.json(updatedOpportunity);
 
   } catch (err) {
@@ -287,7 +309,7 @@ exports.deleteOpportunity = async (req, res) => {
     });
 
 
-
+await invalidateOpportunityCache(req.organizationId);
     res.json({
       success: true,
       message: "Deleted Successfully"
@@ -369,7 +391,7 @@ exports.convertLeadToOpportunity = async (req, res) => {
     });
 
 
-
+  await invalidateOpportunityCache(req.organizationId);
     res.status(201).json({
       message: "Lead converted successfully",
       opportunity,
@@ -431,7 +453,7 @@ exports.bulkDeleteOpportunities = async (req, res) => {
         organizationId: req.organizationId
       },
     });
-
+await invalidateOpportunityCache(req.organizationId);
     res.json({
       success: true,
       message: "Deleted successfully",
@@ -500,7 +522,7 @@ exports.bulkAssignOpportunities = async (req, res) => {
     });
 
 
-
+await invalidateOpportunityCache(req.organizationId);
     res.status(200).json({
       success: true,
       message: `Successfully assigned ${ids.length} opportunities`,

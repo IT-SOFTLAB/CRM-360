@@ -81,7 +81,7 @@ class AuthorizationService {
       ...orgFilter,
       assignedUserId: user.id
     };
-  }
+}
 
   //------------------------------------
   // Opportunity Filter
@@ -119,7 +119,7 @@ class AuthorizationService {
       ...orgFilter,
       assignedSalespersonId: user.id
     };
-  }
+}
 
 
   //------------------------------------

@@ -1,8 +1,16 @@
 const prisma = require("../config/prisma");
 const calendarService = require("../services/calendarService");
 const { getOutlookTokens } = require("../services/graphService");
+const { getCache, setCache, deletePatternCache } = require("../config/redisCache");
 
-// Create Activity
+
+const invalidateActivityCache = async (organizationId) => {
+  if (!organizationId) return;
+  // Invalidate activity list caches
+  await deletePatternCache(`crm:activities:${organizationId}:*`);
+  // Invalidate dashboard caches (since today's & pending activity counts change)
+  await deletePatternCache(`crm:dashboard:${organizationId}:*`);
+};
 
 exports.createActivity = async (req, res) => {
 
@@ -118,7 +126,7 @@ console.log(outlookEvent);
 }
         });
 
-
+ await invalidateActivityCache(req.organizationId);
         res.status(201).json(activity);
 
     } catch (err) {
@@ -138,12 +146,24 @@ console.log(outlookEvent);
 // Get All Activities
 
 exports.getActivities = async (req, res) => {
-
     try {
         const user = req.user;
         const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+        const organizationId = req.organizationId;
+        const userId = user.id;
 
-        let whereClause = { organizationId: req.organizationId };
+        const cacheKey = `crm:activities:${organizationId}:${userRole}:${userId}`;
+
+        // 1. Check Redis Cache First
+        const cachedData = await getCache(cacheKey);
+        if (cachedData) {
+            console.log(`Activities cache HIT: ${cacheKey}`);
+            return res.status(200).json(cachedData);
+        }
+
+        console.log(`Activities cache MISS: ${cacheKey}`);
+
+        let whereClause = { organizationId };
         if (userRole === 'USER') {
             whereClause.salesperson = user.name;
         }
@@ -155,18 +175,18 @@ exports.getActivities = async (req, res) => {
             }
         });
 
-        res.json(activities);
+        // 2. Store in Redis Cache (Short TTL = 60 seconds)
+        await setCache(cacheKey, activities, 60);
+
+        return res.status(200).json(activities);
 
     } catch (err) {
-
+        console.error("getActivities error:", err);
         res.status(500).json({
             message: err.message
         });
-
     }
-
 };
-
 
 
 
@@ -265,7 +285,7 @@ const activity = await prisma.activity.findFirst({
         organizationId: req.organizationId
     }
 });
-
+  await invalidateActivityCache(req.organizationId);
         res.json(activity);
 
     } catch (err) {
@@ -314,8 +334,7 @@ const activity = await prisma.activity.findFirst({
     }
 });
 
-res.json(activity);
-
+await invalidateActivityCache(req.organizationId);
         res.json(activity);
 
     }
@@ -367,7 +386,7 @@ if (activity?.outlookEventId && outlookTokens?.accessToken) {
         organizationId: req.organizationId
     }
 });
-
+  await invalidateActivityCache(req.organizationId);
         res.json({
 
             message: "Deleted Successfully"

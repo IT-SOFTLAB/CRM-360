@@ -1,6 +1,9 @@
 const { PrismaClient } = require("@prisma/client");
 const AuthorizationService = require("./authorization.service");
-
+const {
+    getCache,
+    setCache
+} = require("../../config/redisCache");
 const prisma = new PrismaClient();
 
 class DashboardService {
@@ -30,7 +33,7 @@ class DashboardService {
         // Date Filter
         //----------------------------------------
 
-        let leadDateFilter = {};
+    let leadDateFilter = {};
 
         if (
             filters.startDate &&

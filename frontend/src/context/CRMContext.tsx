@@ -36,6 +36,8 @@ export interface CRMContextType {
   handleSetupSubmit: (setupData: any) => Promise<boolean>;
   leads: any[];
   setLeads: React.Dispatch<React.SetStateAction<any[]>>;
+  leadsPagination?: any;
+  loadLeads?: (page?: number, limit?: number, search?: string) => Promise<void>;
   opportunities: any[];
   setOpportunities: React.Dispatch<React.SetStateAction<any[]>>;
   pipelines: any[];
@@ -259,10 +261,12 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
   const [leadsSearchQuery, setLeadsSearchQuery] = useState('');
   const [pipelineSearchQuery, setPipelineSearchQuery] = useState('');
 
-  const activeFilters = currentTab === 'opportunities' ? pipelineActiveFilters : leadsActiveFilters;
-  const setActiveFilters = currentTab === 'opportunities' ? setPipelineActiveFilters : setLeadsActiveFilters;
-  const searchQuery = currentTab === 'opportunities' ? pipelineSearchQuery : leadsSearchQuery;
-  const setSearchQuery = currentTab === 'opportunities' ? setPipelineSearchQuery : setLeadsSearchQuery;
+  const isOpportunitiesTab = pathname.includes('opportunities');
+
+  const activeFilters = isOpportunitiesTab ? pipelineActiveFilters : leadsActiveFilters;
+  const setActiveFilters = isOpportunitiesTab ? setPipelineActiveFilters : setLeadsActiveFilters;
+  const searchQuery = isOpportunitiesTab ? pipelineSearchQuery : leadsSearchQuery;
+  const setSearchQuery = isOpportunitiesTab ? setPipelineSearchQuery : setLeadsSearchQuery;
 
   const [savedFilters, setSavedFilters] = useState<any[]>([]);
 
@@ -562,6 +566,8 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       handleSetupSubmit: (setupData) => auth.handleSetupSubmit(setupData, loadCRMData),
       leads: leadsCtx.leads,
       setLeads: leadsCtx.setLeads,
+      leadsPagination: leadsCtx.pagination,
+      loadLeads: leadsCtx.loadLeads,
       opportunities: oppCtx.opportunities,
       setOpportunities: oppCtx.setOpportunities,
       pipelines: oppCtx.pipelines,

@@ -1,10 +1,19 @@
 "use client";
 
+import { useEffect } from "react";
 import { useCRM } from "@/context/CRMContext";
+import { useOpportunities } from "@/hooks/useOpportunities";
 import OpportunitiesView from "@/components/crm/OpportunitiesView";
 
 export default function OpportunitiesPage() {
   const crm = useCRM();
+  const { loadOpportunities } = useOpportunities();
+
+  useEffect(() => {
+    // Triggers /api/org/:orgId/opportunities which hits Redis caching
+    loadOpportunities();
+  }, []);
+
   return (
     <OpportunitiesView
       opportunities={crm.opportunities}

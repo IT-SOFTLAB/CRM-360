@@ -19,6 +19,8 @@ interface LeadsViewProps {
   applyFilters: (data: any[], type: 'leads' | 'opportunities' | 'emails') => any[];
   settingsUsers?: any[];
   onBulkAssignLeads?: (leadIds: string[], assignedUserId: string, assignedUser: string) => Promise<void>;
+  pagination?: { totalCount: number; page: number; limit: number; totalPages: number };
+  onPageChange?: (page: number, limit?: number) => void;
 }
 
 export default function LeadsView({
@@ -36,7 +38,9 @@ export default function LeadsView({
   setShowLeadCreateModal,
   applyFilters,
   settingsUsers = [],
-  onBulkAssignLeads
+  onBulkAssignLeads,
+  pagination,
+  onPageChange
 }: LeadsViewProps) {
   const router = useRouter();
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
@@ -335,6 +339,48 @@ export default function LeadsView({
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Footer */}
+      {pagination && onPageChange && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-3 border-t border-border-crm bg-bg-main text-xs text-txt-secondary select-none">
+          <div className="flex items-center gap-2">
+            <span>Rows per page:</span>
+            <select
+              value={pagination.limit}
+              onChange={(e) => onPageChange(1, Number(e.target.value))}
+              className="bg-card border border-border-crm rounded-lg px-2 py-1 text-txt-primary focus:outline-none cursor-pointer"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span>
+              Showing {pagination.totalCount === 0 ? 0 : (pagination.page - 1) * pagination.limit + 1} - {Math.min(pagination.page * pagination.limit, pagination.totalCount)} of {pagination.totalCount} leads
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <button
+              disabled={pagination.page <= 1}
+              onClick={() => onPageChange(pagination.page - 1, pagination.limit)}
+              className="px-3 py-1 rounded-lg border border-border-crm bg-card text-txt-primary disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 transition cursor-pointer font-semibold"
+            >
+              Previous
+            </button>
+            <span className="px-2 font-semibold text-txt-primary">
+              Page {pagination.page} of {pagination.totalPages || 1}
+            </span>
+            <button
+              disabled={pagination.page >= pagination.totalPages}
+              onClick={() => onPageChange(pagination.page + 1, pagination.limit)}
+              className="px-3 py-1 rounded-lg border border-border-crm bg-card text-txt-primary disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-100 transition cursor-pointer font-semibold"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Sliding Lead Detail Drawer */}
       {

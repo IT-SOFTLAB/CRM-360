@@ -1,8 +1,7 @@
 const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
-
-
+const { getCache, setCache, deletePatternCache } = require("../config/redisCache");
 
 /*
 ==================================
@@ -10,12 +9,37 @@ GET ALL CUSTOMERS
 ==================================
 */
 
+const invalidateCustomerCache = async (organizationId) => {
+  if (!organizationId) return;
+  // Invalidate customer list caches
+  await deletePatternCache(`crm:customers:${organizationId}:*`);
+  // Invalidate opportunity caches (since updating customer salesperson syncs to opps)
+  await deletePatternCache(`crm:opportunities:${organizationId}:*`);
+  // Invalidate lead caches (since updating customer salesperson syncs to leads)
+  await deletePatternCache(`crm:leads:${organizationId}:*`);
+  // Invalidate dashboard caches
+  await deletePatternCache(`crm:dashboard:${organizationId}:*`);
+};
+
 exports.getCustomers = async (req, res) => {
   try {
     const user = req.user;
     const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+    const organizationId = req.organizationId;
+    const userId = user.id;
 
-    let whereClause = { organizationId: req.organizationId };
+    const cacheKey = `crm:customers:${organizationId}:${userRole}:${userId}`;
+
+    // 1. Check Redis Cache First
+    const cachedData = await getCache(cacheKey);
+    if (cachedData) {
+      console.log(`Customers cache HIT: ${cacheKey}`);
+      return res.status(200).json(cachedData);
+    }
+
+    console.log(`Customers cache MISS: ${cacheKey}`);
+
+    let whereClause = { organizationId };
     if (userRole === 'USER') {
       whereClause.assignedSalesperson = user.name;
     }
@@ -27,11 +51,13 @@ exports.getCustomers = async (req, res) => {
       }
     });
 
-    res.json(customers);
+    // 2. Store in Redis Cache (TTL = 5 minutes / 300 seconds)
+    await setCache(cacheKey, customers, 300);
+
+    return res.status(200).json(customers);
 
   } catch (err) {
-    console.log(err);
-
+    console.error("getCustomers error:", err);
     res.status(500).json({
       message: "Server Error"
     });
@@ -117,7 +143,7 @@ exports.createCustomer = async (req, res) => {
       }
 
     });
-
+  await invalidateCustomerCache(req.organizationId);
     res.status(201).json(customer);
 
   } catch (err) {
@@ -211,8 +237,7 @@ updatedOpp = await prisma.opportunity.findFirst({
       }
     }
 
-
-
+await invalidateCustomerCache(req.organizationId);
     res.json(customer);
 
   } catch (err) {
@@ -249,6 +274,7 @@ exports.deleteCustomer = async (req, res) => {
     organizationId: req.organizationId
   }
 });
+await invalidateCustomerCache(req.organizationId);
     res.json({
       message: "Customer deleted successfully"
     });

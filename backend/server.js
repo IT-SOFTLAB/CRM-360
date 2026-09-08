@@ -1,4 +1,5 @@
 require("dotenv").config();
+const { connectRedis } = require("./src/config/redis");
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -35,6 +36,7 @@ const bootstrapRoutes = require("./src/routes/bootstrapRoutes.js");
 const notificationRoutes = require("./src/routes/notificationRoutes.js");
 const calendarRoutes = require("./src/routes/calenderRoutes.js");
 const savedFilterRoutes = require("./src/routes/savedFilterRoutes.js");
+const dashboardRoutes = require("./src/routes/dashboardRoutes.js");
 const aiRoutes = require("./src/ai/routes/ai.routes");
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -120,6 +122,7 @@ orgRouter.use("/:organizationId/referral-pipeline", pipelineRoutes);
 orgRouter.use("/:organizationId/notifications", notificationRoutes);
 orgRouter.use("/:organizationId/calendar", calendarRoutes);
 orgRouter.use("/:organizationId/filters", savedFilterRoutes);
+orgRouter.use("/:organizationId/dashboard", dashboardRoutes);
 
 app.use("/api/org", orgRouter);
 app.use("/api/auth", authRoutes);
@@ -484,6 +487,12 @@ app.get('/api/reports/analytics', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`CRM Mock Express API running on port ${PORT}`);
-});
+const startServer = async () => {
+  await connectRedis();
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+};
+
+startServer();

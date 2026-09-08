@@ -84,8 +84,16 @@ export const applyFilters = (
       } else if (type === 'opportunities') {
         const customerName = String(item.customerName || '');
         const company = String(item.company || '');
+        const email = String(item.email || '');
+        const phone = String(item.phone || '');
+        const salesperson = String(item.assignedSalesperson || '');
         const priority = String(item.priority || '');
-        return customerName.toLowerCase().includes(q) || company.toLowerCase().includes(q) || priority.toLowerCase().includes(q);
+        return customerName.toLowerCase().includes(q) ||
+               company.toLowerCase().includes(q) ||
+               email.toLowerCase().includes(q) ||
+               phone.toLowerCase().includes(q) ||
+               salesperson.toLowerCase().includes(q) ||
+               priority.toLowerCase().includes(q);
       } else if (type === 'emails') {
         const subject = String(item.subject || '');
         const sender = String(item.sender || '');

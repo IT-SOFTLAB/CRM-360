@@ -5,12 +5,20 @@ import { Lead } from '../types/lead';
 import { leadService } from '../services/lead.service';
 import { ToastContext } from './ToastContext';
 
+export interface PaginationInfo {
+  totalCount: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export interface LeadContextType {
   leads: Lead[];
   setLeads: React.Dispatch<React.SetStateAction<Lead[]>>;
+  pagination: PaginationInfo;
   showLeadCreateModal: boolean;
   setShowLeadCreateModal: React.Dispatch<React.SetStateAction<boolean>>;
-  loadLeads: () => Promise<void>;
+  loadLeads: (page?: number, limit?: number, search?: string) => Promise<void>;
   handleCreateLeadFromView: (leadForm: any) => Promise<void>;
   handleUpdateLeadFromView: (leadId: string, leadData: any) => Promise<void>;
   handleDeleteLeadFromView: (leadId: string) => Promise<void>;
@@ -21,14 +29,31 @@ export const LeadContext = createContext<LeadContextType | undefined>(undefined)
 
 export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    totalCount: 0,
+    page: 1,
+    limit: 10,
+    totalPages: 1
+  });
   const [showLeadCreateModal, setShowLeadCreateModal] = useState(false);
   const toastCtx = useContext(ToastContext);
 
-  const loadLeads = async () => {
-    const apiLeads = await leadService.getLeads();
-    if (apiLeads) {
-      const sorted = [...apiLeads].sort((a, b) => new Date(b.createdAt || b.createdDate).getTime() - new Date(a.createdAt || a.createdDate).getTime());
-      setLeads(sorted);
+  const loadLeads = async (page: number = 1, limit: number = 10, search?: string) => {
+    const response = await leadService.getLeads(page, limit, search);
+    if (response) {
+      if (Array.isArray(response)) {
+        const sorted = [...response].sort((a, b) => new Date(b.createdAt || b.createdDate).getTime() - new Date(a.createdAt || a.createdDate).getTime());
+        setLeads(sorted);
+        setPagination({
+          totalCount: response.length,
+          page: 1,
+          limit: Math.max(10, response.length),
+          totalPages: 1
+        });
+      } else if (response.leads && response.pagination) {
+        setLeads(response.leads);
+        setPagination(response.pagination);
+      }
     } else if (leads.length === 0) {
       setLeads([]);
     }
@@ -119,6 +144,7 @@ export const LeadProvider: React.FC<{ children: React.ReactNode }> = ({ children
     <LeadContext.Provider value={{
       leads,
       setLeads,
+      pagination,
       showLeadCreateModal,
       setShowLeadCreateModal,
       loadLeads,
