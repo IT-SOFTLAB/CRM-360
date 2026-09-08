@@ -8,77 +8,64 @@ const prisma = new PrismaClient();
 
 class DashboardService {
 
+
+    
     //----------------------------------------
     // Dashboard Summary
     //----------------------------------------
 
     async getSummary(user, filters = {}) {
 
-        //----------------------------------------
-        // Organization validation
-        //----------------------------------------
+    // ----------------------------------------
+    // Redis Dashboard Cache
+    // ----------------------------------------
 
-        if (!user || !user.organizationId) {
+    const organizationId = user.organizationId;
 
-            throw new Error(
-                "Organization access is required."
-            );
+    const userId = user.id;
+const userRole = user.role;
 
-        }
+const cacheKey = `crm:dashboard:${organizationId}:${userRole}:${userId}`;
 
-        const organizationId =
-            user.organizationId;
+    // Check Redis first
+    const cachedDashboard = await getCache(cacheKey);
 
-        //----------------------------------------
-        // Date Filter
-        //----------------------------------------
+    if (cachedDashboard) {
+
+        console.log(
+            `Dashboard cache HIT: ${cacheKey}`
+        );
+
+        return cachedDashboard;
+    }
+
+    console.log(
+        `Dashboard cache MISS: ${cacheKey}`
+    );
 
     let leadDateFilter = {};
 
-        if (
-            filters.startDate &&
-            filters.endDate
-        ) {
+if (filters.startDate && filters.endDate) {
 
-            leadDateFilter = {
+    leadDateFilter = {
 
-             createdAt: {
+        createdAt: {
 
-    gte: new Date(filters.startDate),
+            gte: filters.startDate,
 
-    lte: new Date(filters.endDate)
-
-}
-
-            };
+            lte: filters.endDate
 
         }
 
-        //----------------------------------------
-        // Lead Authorization + Organization
-        //----------------------------------------
+    };
 
-        const leadWhere = {
+}
 
-            organizationId,
+        const leadWhere =
+            AuthorizationService.leadFilter(user);
 
-            ...leadDateFilter,
-
-            ...AuthorizationService.leadFilter(user)
-
-        };
-
-        //----------------------------------------
-        // Opportunity Authorization + Organization
-        //----------------------------------------
-
-        const opportunityWhere = {
-
-            organizationId,
-
-            ...AuthorizationService.opportunityFilter(user)
-
-        };
+        const opportunityWhere =
+            AuthorizationService.opportunityFilter(user);
 
         //----------------------------------------
         // Total Leads
@@ -102,302 +89,260 @@ class DashboardService {
 
             });
 
-        //----------------------------------------
-        // Pipeline Value
-        //----------------------------------------
 
-        // const pipeline =
-        //     await prisma.opportunity.aggregate({
 
-        //         where: opportunityWhere,
+const today = new Date();
 
-        //         _sum: {
+today.setHours(0, 0, 0, 0);
 
-        //             dealValue: true
+const tomorrow = new Date(today);
 
-        //         }
+tomorrow.setDate(today.getDate() + 1);
 
-        //     });
+const todayActivities = await prisma.activity.count({
 
-        //----------------------------------------
-        // Today's Activities
-        //----------------------------------------
+    where: {
+          organizationId: user.organizationId,
+        date: {
 
-        const today = new Date();
+            gte: today,
 
-        today.setHours(
-            0,
-            0,
-            0,
-            0
-        );
+            lt: tomorrow
 
-        const tomorrow =
-            new Date(today);
-
-        tomorrow.setDate(
-            today.getDate() + 1
-        );
-
-        const todayActivities =
-            await prisma.activity.count({
-
-            where: {
-
-    ...AuthorizationService.activityFilter(
-        user
-    ),
-
-    date: {
-
-        gte: today,
-
-        lt: tomorrow
+        }
 
     }
 
-}
+});
 
-            });
+//----------------------------------------
+// Pending Activities
+//----------------------------------------
 
-        //----------------------------------------
-        // Pending Activities
-        //----------------------------------------
+const pendingActivities = await prisma.activity.count({
 
-        const pendingActivities =
-            await prisma.activity.count({
-
-           where: {
-
-    ...AuthorizationService.activityFilter(
-        user
-    ),
-
-    done: false
-
-}
-            });
-
-        //----------------------------------------
-        // Pipeline Stage Distribution
-        //----------------------------------------
-
-        const pipelineStages =
-            await prisma.opportunity.groupBy({
-
-                by: ["stage"],
-
-                where: opportunityWhere,
-
-                _count: {
-
-                    stage: true
-
-                }
-
-            });
-
-        const stageSummary = {};
-
-        pipelineStages.forEach(stage => {
-
-            stageSummary[stage.stage] =
-                stage._count.stage;
-
-        });
-
-        //----------------------------------------
-        // Lead Category Distribution
-        //----------------------------------------
-
-        const leadCategories =
-            await prisma.lead.groupBy({
-
-                by: ["category"],
-
-                where: leadWhere,
-
-                _count: {
-
-                    category: true
-
-                }
-
-            });
-
-        const categorySummary = {};
-
-        leadCategories.forEach(category => {
-
-            const key =
-
-                category.category &&
-                category.category.trim() !== ""
-
-                    ? category.category.trim()
-
-                    : "Uncategorized";
-
-            const normalized =
-
-                key
-                    .toLowerCase()
-                    .replace(
-                        /\b\w/g,
-                        c => c.toUpperCase()
-                    );
-
-            categorySummary[normalized] =
-
-                (categorySummary[normalized] || 0)
-
-                +
-
-                category._count.category;
-
-        });
-
-        //----------------------------------------
-        // Revenue Analytics
-        //----------------------------------------
-
-        const revenue =
-            await prisma.opportunity.aggregate({
-
-                where: opportunityWhere,
-
-                _sum: {
-
-                    dealValue: true
-
-                },
-
-                _avg: {
-
-                    dealValue: true
-
-                },
-
-                _max: {
-
-                    dealValue: true
-
-                },
-
-                _min: {
-
-                    dealValue: true
-
-                }
-
-            });
-
-        //----------------------------------------
-        // Won Deals
-        //----------------------------------------
-
-        const wonDeals =
-            await prisma.opportunity.count({
-
-                where: {
-
-                    ...opportunityWhere,
-
-                    stage: "Won"
-
-                }
-
-            });
-
-        //----------------------------------------
-        // Lost Deals
-        //----------------------------------------
-
-        const lostDeals =
-            await prisma.opportunity.count({
-
-                where: {
-
-                    ...opportunityWhere,
-
-                    stage: "Lost"
-
-                }
-
-            });
-
-        //----------------------------------------
-        // Win Rate
-        //----------------------------------------
-
-        const closedDeals =
-            wonDeals + lostDeals;
-
-        const winRate =
-
-            closedDeals === 0
-
-                ? 0
-
-                : Number(
-
-                    (
-                        wonDeals /
-                        closedDeals *
-                        100
-                    ).toFixed(2)
-
-                );
-
-        //----------------------------------------
-        // Final Dashboard Response
-        //----------------------------------------
-
-        return {
-
-            totalLeads,
-
-            totalOpportunities,
-
-            wonDeals,
-
-            lostDeals,
-
-            winRate,
-
-            pipelineValue:
-
-                revenue._sum.dealValue || 0,
-
-            averageDealSize:
-
-                Math.round(
-                    revenue._avg.dealValue || 0
-                ),
-
-            largestDeal:
-
-                revenue._max.dealValue || 0,
-
-            smallestDeal:
-
-                revenue._min.dealValue || 0,
-
-            todayActivities,
-
-            pendingActivities,
-
-            pipelineStages:
-                stageSummary,
-
-            leadCategories:
-                categorySummary
-
-        };
+    where: {
+         organizationId: user.organizationId,
+        done: false
 
     }
 
+});
+
+//----------------------------------------
+// Pipeline Stage Distribution
+//----------------------------------------
+
+const pipelineStages = await prisma.opportunity.groupBy({
+
+    by: ["stage"],
+
+    where: opportunityWhere,
+
+    _count: {
+
+        stage: true
+
+    }
+
+});
+
+const stageSummary = {};
+
+pipelineStages.forEach(stage => {
+
+    stageSummary[stage.stage] = stage._count.stage;
+
+});
+
+//----------------------------------------
+// Lead Category Distribution
+//----------------------------------------
+
+const leadCategories = await prisma.lead.groupBy({
+
+    by: ["category"],
+
+    where: leadWhere,
+
+    _count: {
+
+        category: true
+
+    }
+
+});
+
+const categorySummary = {};
+
+leadCategories.forEach(category => {
+
+    const key =
+
+        category.category &&
+        category.category.trim() !== ""
+
+            ? category.category.trim()
+
+            : "Uncategorized";
+
+    const normalized =
+
+        key
+            .toLowerCase()
+            .replace(/\b\w/g, c => c.toUpperCase());
+
+    categorySummary[normalized] =
+
+        (categorySummary[normalized] || 0)
+
+        +
+
+        category._count.category;
+
+});
+
+
+
+//----------------------------------------
+// Revenue Analytics
+//----------------------------------------
+
+const revenue = await prisma.opportunity.aggregate({
+
+    where: opportunityWhere,
+
+    _sum: {
+
+        dealValue: true
+
+    },
+
+    _avg: {
+
+        dealValue: true
+
+    },
+
+    _max: {
+
+        dealValue: true
+
+    },
+
+    _min: {
+
+        dealValue: true
+
+    }
+
+});
+
+const wonDeals =
+await prisma.opportunity.count({
+
+    where:{
+
+        ...opportunityWhere,
+
+        stage:"Won"
+
+    }
+
+});
+
+const lostDeals =
+await prisma.opportunity.count({
+
+    where:{
+
+        ...opportunityWhere,
+
+        stage:"Lost"
+
+    }
+
+});
+
+const closedDeals =
+
+wonDeals + lostDeals;
+
+const winRate =
+
+closedDeals === 0
+
+? 0
+
+: Number(
+
+(
+
+wonDeals / closedDeals
+
+*100
+
+).toFixed(2)
+
+);
+
+
+
+const dashboardData = {
+
+    totalLeads,
+
+    totalOpportunities,
+
+    wonDeals,
+
+    lostDeals,
+
+    winRate,
+
+    pipelineValue:
+        revenue._sum.dealValue || 0,
+
+    averageDealSize:
+        Math.round(
+            revenue._avg.dealValue || 0
+        ),
+
+    largestDeal:
+        revenue._max.dealValue || 0,
+
+    smallestDeal:
+        revenue._min.dealValue || 0,
+
+    todayActivities,
+
+    pendingActivities,
+
+    pipelineStages:
+        stageSummary,
+
+    leadCategories:
+        categorySummary
+};
+
+// ----------------------------------------
+// Store Dashboard in Redis
+// TTL = 5 minutes
+// ----------------------------------------
+
+await setCache(
+    cacheKey,
+    dashboardData,
+    300
+);
+
+console.log(
+    `Dashboard cached: ${cacheKey}`
+);
+
+return dashboardData;
+ }
+
 }
 
-module.exports =
-    new DashboardService();
+module.exports = new DashboardService();
