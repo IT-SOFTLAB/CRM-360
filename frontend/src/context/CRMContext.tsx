@@ -31,9 +31,6 @@ export interface CRMContextType {
   setAuthMode: React.Dispatch<React.SetStateAction<'login' | 'register' | 'setup'| 'forgotPassword' >>;
   authForm: any;
   setAuthForm: React.Dispatch<React.SetStateAction<any>>;
-  setupRequired: boolean;
-  setSetupRequired: React.Dispatch<React.SetStateAction<boolean>>;
-  handleSetupSubmit: (setupData: any) => Promise<boolean>;
   leads: any[];
   setLeads: React.Dispatch<React.SetStateAction<any[]>>;
   leadsPagination?: any;
@@ -561,9 +558,6 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
       setAuthMode: auth.setAuthMode,
       authForm: auth.authForm,
       setAuthForm: auth.setAuthForm,
-      setupRequired: auth.setupRequired,
-      setSetupRequired: auth.setSetupRequired,
-      handleSetupSubmit: (setupData) => auth.handleSetupSubmit(setupData, loadCRMData),
       leads: leadsCtx.leads,
       setLeads: leadsCtx.setLeads,
       leadsPagination: leadsCtx.pagination,
