@@ -73,6 +73,10 @@ textarea {
   color: var(--color-txt-primary) !important;
   border-color: var(--color-border-crm) !important;
 }
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
 
 input[type="text"]:focus,
 input[type="email"]:focus,
@@ -235,15 +239,7 @@ body {
 }
 
 .crm-input {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--color-border-crm);
-  border-radius: 12px;
-  background: var(--color-card);
-  color: var(--color-txt-primary);
-  font-size: 14px;
-  outline: none;
-  transition: all 0.2s ease;
+  @apply text-slate-800 dark:text-white bg-white dark:bg-slate-800;
 }
 
 .crm-input:focus {

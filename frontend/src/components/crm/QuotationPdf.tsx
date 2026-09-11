@@ -67,7 +67,7 @@ return (
 
 {/* Everything else goes here */}
    {/* Top Header Actions Bar (Image 2) */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border-crm px-6 py-4 bg-slate-50/50 shrink-0 gap-3">
+            <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border-crm px-6 py-4 bg-slate-50/50 dark:bg-slate-900 shrink-0 gap-3">
               <div>
                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Quotation</p>
                 <div className="flex items-center gap-3.5 mt-1">
@@ -90,22 +90,20 @@ return (
                 </div>
               </div>
 
-              {/* Middle Metadata */}
-              <div className="flex flex-wrap gap-4 text-xs text-txt-secondary md:mx-auto">
+              <div className="flex flex-wrap gap-4 text-xs text-txt-secondary  dark:text-white  md:mx-auto">
                 <div className="flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-slate-400" />
-                  <span>Quotation Date: <b>{formatQuotationDate(quotation.quotationDate)}</b></span>
+                  <Calendar className="w-4 h-4 text-slate-400 dark:text-white" />
+                  <span>Quotation Date: <b dark:text-white>{formatQuotationDate(quotation.quotationDate)}</b></span>
+                </div>
+                <div className="flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-700 pl-4">
+                  <Calendar className="w-4 h-4 text-slate-400 dark:border-slate" />
+                  <span>Valid Till: <b className="dark:text-white">{formatQuotationDate(quotation.expirationDate)}</b></span>
                 </div>
                 <div className="flex items-center gap-1.5 border-l border-slate-200 pl-4">
-                  <Calendar className="w-4 h-4 text-slate-400" />
-                  <span>Valid Till: <b>{formatQuotationDate(quotation.expirationDate)}</b></span>
-                </div>
-                <div className="flex items-center gap-1.5 border-l border-slate-200 pl-4">
-                  <span>Currency: <b>{quotation.currency || "INR"}</b></span>
+                  <span>Currency: <b className="dark:text-white">{quotation.currency || "INR"}</b></span>
                 </div>
               </div>
 
-              {/* Action Buttons */}
             
             </div>
 

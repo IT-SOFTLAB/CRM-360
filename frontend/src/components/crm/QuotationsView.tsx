@@ -41,7 +41,7 @@ export default function QuotationsView({
     const city = parts[1] || "";
     const state = parts[2] || "";
     const countryZip = parts[3] || "";
-    
+
     const countryParts = countryZip ? countryZip.split(" - ") : [];
     const country = countryParts[0] || "";
     const zip = countryParts[1] || "";
@@ -88,22 +88,22 @@ export default function QuotationsView({
   // Compile team member names dynamically
   const managedTeamMemberNames = useMemo(() => {
     if (!isManager) return [user?.name];
-    
+
     let myTeams = teams;
     if (userRole === 'ADMIN') {
       myTeams = teams.filter(t => t.leaderId === user?.id || t.leader?.email === user?.email);
     }
-    
+
     const names = new Set<string>();
     if (user?.name) names.add(user.name);
-    
+
     myTeams.forEach(t => {
       if (t.leader?.name) names.add(t.leader.name);
       (t.members || []).forEach((m: any) => {
         if (m.name) names.add(m.name);
       });
     });
-    
+
     return Array.from(names);
   }, [teams, user, userRole, isManager]);
 
@@ -326,7 +326,7 @@ export default function QuotationsView({
     setShippingState(sAddr.state || "");
     setShippingCountry(sAddr.country || "");
     setShippingZip(sAddr.zip || "");
-    
+
     setSameAsBilling(quote.billingAddressSnapshot === quote.shippingAddressSnapshot);
     setTaxType(quote.igst > 0 ? "interstate" : "intrastate");
     const taxable = (quote.subtotal || 0) - ((quote.subtotal || 0) * (quote.discountPercent || 0) / 100);
@@ -381,22 +381,22 @@ export default function QuotationsView({
     setShowQuoteModal(true);
   };
 
- const handleSend = async (quote: any) => {
-  try {
-    await api.post(`/quotations/${quote.id}/send`);
+  const handleSend = async (quote: any) => {
+    try {
+      await api.post(`/quotations/${quote.id}/send`);
 
-    alert("Quotation sent successfully!");
+      alert("Quotation sent successfully!");
 
-    onApproveReject(quote.id, "Sent");
-  } catch (err: any) {
-    console.error(err);
+      onApproveReject(quote.id, "Sent");
+    } catch (err: any) {
+      console.error(err);
 
-    alert(
-      err?.response?.data?.message ||
-      "Failed to send quotation."
-    );
-  }
-};
+      alert(
+        err?.response?.data?.message ||
+        "Failed to send quotation."
+      );
+    }
+  };
 
   const handlePrint = (quote: any) => {
     setSelectedQuote(quote);
@@ -461,186 +461,185 @@ export default function QuotationsView({
     <div className="space-y-6">
       <div className="space-y-6 print:hidden">
         {/* Manager Filter Header */}
-      {isManager && (
-        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-card border border-border-crm rounded-2xl p-2.5 shadow-xs text-xs gap-3">
-          <div className="flex items-center space-x-2.5">
-            <div className="bg-primary/10 p-2 rounded-xl text-primary border border-primary/20 shrink-0">
-              <ListFilter className="w-5 h-5" />
+        {isManager && (
+          <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center bg-card border border-border-crm rounded-2xl p-2.5 shadow-xs text-xs gap-3">
+            <div className="flex items-center space-x-2.5">
+              <div className="bg-primary/10 p-2 rounded-xl text-primary border border-primary/20 shrink-0">
+                <ListFilter className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Quotation Filters</h4>
+                <p className="text-[10px] text-txt-secondary mt-0.5">Filter quotations list by individual salesperson or team workload</p>
+              </div>
             </div>
-            <div>
-              <h4 className="font-bold text-xs uppercase tracking-wider text-txt-secondary">Quotation Filters</h4>
-              <p className="text-[10px] text-txt-secondary mt-0.5">Filter quotations list by individual salesperson or team workload</p>
+
+            <div className="flex flex-wrap gap-2 justify-end">
+              {[
+                { id: 'all', label: 'All Quotations' },
+                { id: 'my', label: 'My Quotations' },
+                { id: 'team', label: 'Team Quotations' }
+              ].map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => setActiveFilter(f.id as any)}
+                  className={`px-3.5 py-2 rounded-xl text-[11px] font-semibold border transition cursor-pointer shadow-xs flex-1 sm:flex-none text-center ${activeFilter === f.id
+                      ? 'bg-primary text-white border-primary/50'
+                      : 'bg-card text-txt-secondary border-border-crm hover:bg-slate-100 dark:hover:bg-slate-800'
+                    }`}
+                >
+                  {f.label}
+                </button>
+              ))}
             </div>
           </div>
+        )}
 
-          <div className="flex flex-wrap gap-2 justify-end">
-            {[
-              { id: 'all', label: 'All Quotations' },
-              { id: 'my', label: 'My Quotations' },
-              { id: 'team', label: 'Team Quotations' }
-            ].map(f => (
-              <button
-                key={f.id}
-                onClick={() => setActiveFilter(f.id as any)}
-                className={`px-3.5 py-2 rounded-xl text-[11px] font-semibold border transition cursor-pointer shadow-xs flex-1 sm:flex-none text-center ${
-                  activeFilter === f.id
-                    ? 'bg-primary text-white border-primary/50'
-                    : 'bg-card text-txt-secondary border-border-crm hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* {!isManager && (
+        {/* {!isManager && (
         <div className="bg-card border border-border-crm rounded-2xl p-4 flex items-center space-x-2 text-txt-secondary select-none shadow-xs">
           <span className="font-bold text-xs">Viewing Quotations Assigned To You ({filteredQuotations.length} quotes)</span>
         </div>
       )} */}
 
-      <div className="bg-card border border-border-crm rounded-2xl shadow-xs overflow-hidden text-xs">
-        {/* ===================== Quotations Table ===================== */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-bg-main border-b border-black text-xs font-bold text-txt-secondary uppercase tracking-wider select-none">
-                <th className="px-6 py-4 text-left text-txt-primary">Quotation No.</th>
-                <th className="px-6 py-4 text-left text-txt-primary">Client</th>
-                <th className="px-6 py-4 text-left text-txt-primary">Company</th>
-                <th className="px-6 py-4 text-left text-txt-primary">Quotation Date</th>
-                <th className="px-6 py-4 text-right text-txt-primary">Total</th>
-                <th className="px-6 py-4 text-center text-txt-primary">Status</th>
-                <th className="px-6 py-4 text-center text-txt-primary">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredQuotations.length > 0 ? (
-                filteredQuotations.map((quote: any) => (
-                  <tr
-                    key={quote.id}
-                    className="border-b border-border-crm hover:bg-slate-50 cursor-pointer"
-                    onClick={() => setSelectedQuote(quote)}
-                  >
-                    <td className="px-6 py-4 font-bold text-primary">{quote.quotationNumber || "-"}</td>
-                    <td className="px-6 py-4">{quote.customerNameSnapshot || "-"}</td>
-                    <td className="px-6 py-4">{quote.customerCompanyNameSnapshot || "-"}</td>
-                    <td className="px-6 py-4">{quote.quotationDate ? new Date(quote.quotationDate).toLocaleDateString() : "-"}</td>
-                    <td className="px-6 py-4 text-right font-bold">
-                      {getCurrencySymbol(quote.currency || "INR")}{Number(quote.total || 0).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span
-                        className={`px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider
+        <div className="bg-card border border-border-crm rounded-2xl shadow-xs overflow-hidden text-xs">
+          {/* ===================== Quotations Table ===================== */}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-bg-main border-b border-black text-xs font-bold text-txt-secondary uppercase tracking-wider select-none">
+                  <th className="px-6 py-4 text-left text-txt-primary">Quotation No.</th>
+                  <th className="px-6 py-4 text-left text-txt-primary">Client</th>
+                  <th className="px-6 py-4 text-left text-txt-primary">Company</th>
+                  <th className="px-6 py-4 text-left text-txt-primary">Quotation Date</th>
+                  <th className="px-6 py-4 text-right text-txt-primary">Total</th>
+                  <th className="px-6 py-4 text-center text-txt-primary">Status</th>
+                  <th className="px-6 py-4 text-center text-txt-primary">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredQuotations.length > 0 ? (
+                  filteredQuotations.map((quote: any) => (
+                    <tr
+                      key={quote.id}
+                      className="border-b border-border-crm hover:bg-slate-50 cursor-pointer"
+                      onClick={() => setSelectedQuote(quote)}
+                    >
+                      <td className="px-6 py-4 font-bold text-primary">{quote.quotationNumber || "-"}</td>
+                      <td className="px-6 py-4">{quote.customerNameSnapshot || "-"}</td>
+                      <td className="px-6 py-4">{quote.customerCompanyNameSnapshot || "-"}</td>
+                      <td className="px-6 py-4">{quote.quotationDate ? new Date(quote.quotationDate).toLocaleDateString() : "-"}</td>
+                      <td className="px-6 py-4 text-right font-bold">
+                        {getCurrencySymbol(quote.currency || "INR")}{Number(quote.total || 0).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={`px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider
                           ${quote.status === "Draft"
-                            ? "bg-gray-100 text-gray-700 border border-gray-200"
-                            : quote.status === "Sent"
-                              ? "bg-blue-100 text-blue-700 border border-blue-200"
-                              : quote.status === "Confirmed"
-                                ? "bg-green-100 text-green-700 border border-green-200"
-                                : "bg-red-100 text-red-700 border border-red-200"
-                          }`}
-                      >
-                        {quote.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex flex-wrap gap-1.5 justify-center">
-                        <button
-                          onClick={() => setSelectedQuote(quote)}
-                          className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer transition-colors duration-150"
+                              ? "bg-gray-100 text-gray-700 border border-gray-200"
+                              : quote.status === "Sent"
+                                ? "bg-blue-100 text-blue-700 border border-blue-200"
+                                : quote.status === "Confirmed"
+                                  ? "bg-green-100 text-green-700 border border-green-200"
+                                  : "bg-red-100 text-red-700 border border-red-200"
+                            }`}
                         >
-                          View
-                        </button>
-                        {quote.status === "Draft" && (
-                          <>
-                            <button
-                              onClick={() => handleEdit(quote)}
-                              className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/50 cursor-pointer transition-colors duration-150"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleSend(quote)}
-                              className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/50 cursor-pointer transition-colors duration-150"
-                            >
-                              Send
-                            </button>
+                          {quote.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex flex-wrap gap-1.5 justify-center">
+                          <button
+                            onClick={() => setSelectedQuote(quote)}
+                            className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer transition-colors duration-150"
+                          >
+                            View
+                          </button>
+                          {quote.status === "Draft" && (
+                            <>
+                              <button
+                                onClick={() => handleEdit(quote)}
+                                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200/50 cursor-pointer transition-colors duration-150"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleSend(quote)}
+                                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/50 cursor-pointer transition-colors duration-150"
+                              >
+                                Send
+                              </button>
+                              <button
+                                onClick={() => handlePrint(quote)}
+                                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/50 cursor-pointer transition-colors duration-150"
+                              >
+                                Print
+                              </button>
+                              <button
+                                onClick={() => handleDelete(quote.id)}
+                                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/50 cursor-pointer transition-colors duration-150"
+                              >
+                                Delete
+                              </button>
+                            </>
+                          )}
+                          {quote.status === "Sent" && (
+                            <>
+                              <button
+                                onClick={() => handleSend(quote)}
+                                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/50 cursor-pointer transition-colors duration-150"
+                              >
+                                Resend
+                              </button>
+                              <button
+                                onClick={() => handlePrint(quote)}
+                                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/50 cursor-pointer transition-colors duration-150"
+                              >
+                                Print
+                              </button>
+                              <button
+                                onClick={() => handleConfirm(quote.id)}
+                                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-green-50 hover:bg-green-100 text-green-700 border border-green-200/50 cursor-pointer transition-colors duration-150"
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => handleCancel(quote.id)}
+                                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/50 cursor-pointer transition-colors duration-150"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          )}
+                          {quote.status === "Confirmed" && (
                             <button
                               onClick={() => handlePrint(quote)}
                               className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/50 cursor-pointer transition-colors duration-150"
                             >
                               Print
                             </button>
-                            <button
-                              onClick={() => handleDelete(quote.id)}
-                              className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/50 cursor-pointer transition-colors duration-150"
-                            >
-                              Delete
-                            </button>
-                          </>
-                        )}
-                        {quote.status === "Sent" && (
-                          <>
-                            <button
-                              onClick={() => handleSend(quote)}
-                              className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200/50 cursor-pointer transition-colors duration-150"
-                            >
-                              Resend
-                            </button>
+                          )}
+                          {quote.status === "Cancelled" && (
                             <button
                               onClick={() => handlePrint(quote)}
                               className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/50 cursor-pointer transition-colors duration-150"
                             >
                               Print
                             </button>
-                            <button
-                              onClick={() => handleConfirm(quote.id)}
-                              className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-green-50 hover:bg-green-100 text-green-700 border border-green-200/50 cursor-pointer transition-colors duration-150"
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              onClick={() => handleCancel(quote.id)}
-                              className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200/50 cursor-pointer transition-colors duration-150"
-                            >
-                              Cancel
-                            </button>
-                          </>
-                        )}
-                        {quote.status === "Confirmed" && (
-                          <button
-                            onClick={() => handlePrint(quote)}
-                            className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/50 cursor-pointer transition-colors duration-150"
-                          >
-                            Print
-                          </button>
-                        )}
-                        {quote.status === "Cancelled" && (
-                          <button
-                            onClick={() => handlePrint(quote)}
-                            className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200/50 cursor-pointer transition-colors duration-150"
-                          >
-                            Print
-                          </button>
-                        )}
-                      </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="text-center py-12 text-slate-400 font-medium">
+                      No Quotations Found
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={7} className="text-center py-12 text-slate-400 font-medium">
-                    No Quotations Found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
       </div>
 
       {/* ===================== Quotation Details Modal (High-Fidelity) ===================== */}
@@ -663,13 +662,13 @@ export default function QuotationsView({
             }
           `}</style>
           <div className="bg-card rounded-2xl shadow-2xl w-[1300px] max-w-[98%] h-[95vh] flex flex-col text-txt-primary border border-border-crm overflow-hidden print:w-full print:max-w-full print:h-auto print:shadow-none print:border-none print:bg-white print:overflow-visible">
-            
+
             {/* Top Header Actions Bar (Image 2) */}
             <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-border-crm px-6 py-4 bg-slate-50/50 shrink-0 gap-3">
               <div>
-                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Quotation</p>
+                <p className="text-[10px] text-slate-400 dark:!text-white uppercase font-bold tracking-wider">Quotation</p>
                 <div className="flex items-center gap-3.5 mt-1">
-                  <h2 className="text-xl font-extrabold text-txt-primary tracking-tight">
+                  <h2 className="text-xl font-extrabold text-txt-primary dark:text-white tracking-tight">
                     {selectedQuote.quotationNumber}
                   </h2>
                   <span
@@ -689,17 +688,23 @@ export default function QuotationsView({
               </div>
 
               {/* Middle Metadata */}
-              <div className="flex flex-wrap gap-4 text-xs text-txt-secondary md:mx-auto">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-slate-400" />
-                  <span>Quotation Date: <b>{formatQuotationDate(selectedQuote.quotationDate)}</b></span>
+              <div className="flex flex-wrap gap-4 text-xs text-txt-secondary dark:!text-white md:mx-auto">
+                <div className="flex items-center gap-1.5 dark:!text-white">
+                  <Calendar className="w-4 h-4 text-slate-400 dark:!text-white" />
+                  <span className="dark:!text-white">
+                    Quotation Date: <b className="dark:!text-white">{formatQuotationDate(selectedQuote.quotationDate)}</b>
+                  </span>
                 </div>
-                <div className="flex items-center gap-1.5 border-l border-slate-200 pl-4">
-                  <Calendar className="w-4 h-4 text-slate-400" />
-                  <span>Valid Till: <b>{formatQuotationDate(selectedQuote.expirationDate)}</b></span>
+                <div className="flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-700 pl-4 dark:!text-white">
+                  <Calendar className="w-4 h-4 text-slate-400 dark:!text-white" />
+                  <span className="dark:!text-white">
+                    Valid Till: <b className="dark:!text-white">{formatQuotationDate(selectedQuote.expirationDate)}</b>
+                  </span>
                 </div>
-                <div className="flex items-center gap-1.5 border-l border-slate-200 pl-4">
-                  <span>Currency: <b>{selectedQuote.currency || "INR"}</b></span>
+                <div className="flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-700 pl-4 dark:!text-white">
+                  <span className="dark:!text-white">
+                    Currency: <b className="dark:!text-white">{selectedQuote.currency || "INR"}</b>
+                  </span>
                 </div>
               </div>
 
@@ -727,14 +732,14 @@ export default function QuotationsView({
                   onClick={() => setSelectedQuote(null)}
                   className="p-1 hover:bg-slate-200 rounded-lg cursor-pointer ml-1.5 transition"
                 >
-                  <X className="w-5 h-5 text-slate-400" />
+                  <X className="w-5 h-5 text-slate-400 dark:!text-white" />
                 </button>
               </div>
             </div>
 
             {/* High-Fidelity Invoice Body Grid (Image 1) */}
             <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs bg-slate-50/20 print:overflow-y-visible print:h-auto print:p-0 print:grid print:grid-cols-2 print:gap-3 lg:space-y-0">
-              
+
               {/* 1. Customer Information (Read-only Snapshot values) */}
               <div className="bg-card border border-border-crm rounded-2xl p-5 shadow-xs space-y-4 print:break-inside-avoid lg:col-span-1 print:col-span-1">
                 <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
@@ -1005,7 +1010,7 @@ export default function QuotationsView({
       {showQuoteModal && editingQuote && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-card border border-border-crm rounded-2xl shadow-2xl w-[1300px] max-w-[98%] h-[95vh] flex flex-col text-txt-primary">
-            
+
             {/* Header */}
             <div className="flex justify-between items-center border-b border-border-crm px-6 py-4 shrink-0">
               <div>
@@ -1025,10 +1030,10 @@ export default function QuotationsView({
 
             {/* Scrollable Form Body */}
             <form onSubmit={handleQuoteSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 text-xs bg-slate-50/50">
-              
+
               {/* Row 1: Cards */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
+
                 {/* 1. Customer Info */}
                 <div className="bg-card border border-border-crm rounded-2xl p-5 shadow-xs space-y-4">
                   <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
@@ -1252,7 +1257,7 @@ export default function QuotationsView({
 
               {/* Row 2: Dynamic Items & summary */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
+
                 {/* Products Table Card */}
                 <div className="lg:col-span-2 bg-card border border-border-crm rounded-2xl p-5 shadow-xs flex flex-col space-y-4">
                   <div className="flex justify-between items-center border-b border-slate-100 pb-3">

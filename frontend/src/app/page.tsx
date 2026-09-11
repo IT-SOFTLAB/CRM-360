@@ -11,7 +11,7 @@ export default function RootPage() {
   useEffect(() => {
     if (authReady) {
       if (user) {
-        router.replace('/dashboard');
+        router.replace('n');
       } else {
         router.replace('/login');
       }
