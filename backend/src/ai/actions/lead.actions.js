@@ -1,5 +1,16 @@
-const LeadService = require("../services/leadService");
-const UserResolverService = require("../services/userResolver.service");
+const LeadService =
+    require("../services/leadService");
+
+const UserResolverService =
+    require("../services/userResolver.service");
+
+const AuthorizationService =
+    require("../services/authorization.service");
+
+const { PrismaClient } =
+    require("@prisma/client");
+
+const prisma = new PrismaClient();
 
 //-------------------------------------
 // Bulk Assign
@@ -16,35 +27,67 @@ async function bulkAssign(parameters, req) {
     } = parameters;
 
 
+if (!assignee) {
 
+    return {
+
+        success: false,
+
+        message: "Assignee is required."
+
+    };
+
+}
 
 
 //-------------------------------------
 // Authorization
 //-------------------------------------
 
-const role = (req.user.role || "").toUpperCase();
+//-------------------------------------
+// Organization validation
+//-------------------------------------
 
-if (role === "USER") {
+if (!req?.user?.organizationId) {
 
     return {
 
         success: false,
 
-        message: "Access denied. Only Admin or Super Admin can bulk assign leads."
+        message: "Organization access is required."
 
     };
 
 }
 
-   const UserResolver =
-require("../services/userResolver.service");
+
+//-------------------------------------
+// Authorization
+//-------------------------------------
+
+if (!AuthorizationService.canBulkAssign(req.user)) {
+
+    return {
+
+        success: false,
+
+        message:
+            "Access denied. Only Admin or Super Admin can bulk assign leads."
+
+    };
+
+}
+
+
+//-------------------------------------
+// Resolve assignee
+//-------------------------------------
 
 const user =
-await UserResolver.resolve(
-    assignee
-);
-
+    await UserResolverService.resolve(
+        assignee,
+        req.user
+    );
     if (!user) {
 
         return {
@@ -120,6 +163,18 @@ async function assign(parameters, req) {
 
     const leadName = lead || contactName;
 
+    if (!req?.user?.organizationId) {
+
+    return {
+
+        success: false,
+
+        message: "Organization access is required."
+
+    };
+
+}
+
     if (!leadName) {
 
         return {
@@ -148,29 +203,30 @@ async function assign(parameters, req) {
     // Authorization
     //-------------------------------------
 
-    const role = (req.user.role || "").toUpperCase();
+   if (!AuthorizationService.canBulkAssign(req.user)) {
 
-    if (role === "USER") {
+    return {
 
-        return {
+        success: false,
 
-            success: false,
+        message:
+            "Access denied. Only Admin or Super Admin can assign leads."
 
-            message: "Access denied. Only Admin or Super Admin can assign leads."
+    };
 
-        };
-
-    }
+}
 
     //-------------------------------------
     // Find Assignee
     //-------------------------------------
 
-    const UserResolver =
-        require("../services/userResolver.service");
+    
 
-    const user =
-        await UserResolver.resolve(assignee);
+   const user =
+    await UserResolverService.resolve(
+        assignee,
+        req.user
+    );
 
     if (!user) {
 
@@ -191,22 +247,26 @@ async function assign(parameters, req) {
     const prisma =
         new (require("@prisma/client").PrismaClient)();
 
-    const existingLead =
-        await prisma.lead.findFirst({
+   const existingLead =
+    await prisma.lead.findFirst({
 
-            where: {
+        where: {
 
-                contactName: {
+            contactName: {
 
-                    equals: leadName,
+                equals: leadName,
 
-                    mode: "insensitive"
+                mode: "insensitive"
 
-                }
+            },
 
-            }
+            ...AuthorizationService.leadFilter(
+                req.user
+            )
 
-        });
+        }
+
+    });
 
     if (!existingLead) {
 
@@ -276,7 +336,7 @@ async function create(parameters, req) {
     assignee
   } = parameters;
 
-  const role = (req.user.role || '').toUpperCase();
+ // const role = (req.user.role || '').toUpperCase();
 
   //-------------------------------------
   // USER role -> always assign to self
@@ -284,10 +344,13 @@ async function create(parameters, req) {
 
   let finalUser = null;
 
-  if (role === 'USER') {
-    // USER role: always assign to self regardless of what planner says
+ if (!AuthorizationService.isAdminLike(req.user)) {
+
+    // Normal USER always assigns the lead to themselves
+
     finalUser = req.user;
-  } else {
+
+} else {
     //-----------------------------------
     // ADMIN / SUPER_ADMIN
     //-----------------------------------
@@ -310,16 +373,19 @@ async function create(parameters, req) {
     };
   }
 
-  const lead = await LeadService.createLead({
+const lead = await LeadService.createLead({
     contactName,
     company,
     email,
     phone,
     category,
     serviceType,
+
     assignedUser: finalUser.name,
-    assignedUserId: finalUser.id
-  });
+    assignedUserId: finalUser.id,
+
+    organizationId: req.user.organizationId
+});
 
   return {
     success: true,
@@ -334,6 +400,16 @@ async function create(parameters, req) {
 //------------------------------------------------------
 
 async function update(parameters, req) {
+
+
+    if (!req?.user?.organizationId) {
+
+        return {
+            success: false,
+            message: "Organization access is required."
+        };
+
+    }
 
     const {
 
@@ -399,41 +475,53 @@ async function deleteLead(parameters, req) {
         };
     }
 
-    const { PrismaClient } = require("@prisma/client");
-    const prisma = new PrismaClient();
+   
 
-    const lead = await prisma.lead.findFirst({
+  const lead =
+    await prisma.lead.findFirst({
+
         where: {
+
             contactName: {
+
                 equals: contactName,
+
                 mode: "insensitive"
-            }
+
+            },
+
+            ...AuthorizationService.leadFilter(
+                req.user
+            )
+
         }
+
     });
 
     if (!lead) {
         return {
             success: false,
-            message: `Lead '${contactName}' not found.`
+      message:
+    `Lead '${contactName}' not found or you do not have access.`
         };
     }
 
     // Authorization
-    const AuthorizationService = require("../services/authorization.service");
-    if (!AuthorizationService.isAdminLike(req.user)) {
-        if (lead.assignedUserId !== req.user.id) {
-            return {
-                success: false,
-                message: "Access denied. You do not own this lead."
-            };
-        }
-    }
+   
 
     // Delete associated opportunities first
-    await prisma.opportunity.deleteMany({
-        where: { leadId: lead.id }
-    }).catch(err => console.log("Associated opportunities deletion failed:", err.message));
+   await prisma.opportunity.deleteMany({
 
+    where: {
+
+        leadId: lead.id,
+
+        organizationId:
+            req.user.organizationId
+
+    }
+
+});
     await prisma.lead.delete({
         where: { id: lead.id }
     });

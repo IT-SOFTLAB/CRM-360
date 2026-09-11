@@ -1,4 +1,5 @@
-const DashboardService = require("../services/dashboard.service");
+const DashboardService =
+    require("../services/dashboard.service");
 
 module.exports = {
 
@@ -8,10 +9,29 @@ module.exports = {
 
     async summary(parameters, req) {
 
+        //----------------------------------------
+        // Organization validation
+        //----------------------------------------
+
+        if (!req?.user?.organizationId) {
+
+            return {
+
+                success: false,
+
+                message:
+                    "Organization access is required."
+
+            };
+
+        }
+
         const summary =
             await DashboardService.getSummary(
 
-                req.user
+                req.user,
+
+                parameters || {}
 
             );
 
@@ -19,7 +39,8 @@ module.exports = {
 
             success: true,
 
-            message: "Dashboard summary retrieved successfully.",
+            message:
+                "Dashboard summary retrieved successfully.",
 
             data: summary
 

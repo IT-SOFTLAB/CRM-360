@@ -1,4 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
+const AuthorizationService =
+    require("../services/authorization.service");
 
 const prisma = new PrismaClient();
 
@@ -12,13 +14,37 @@ async function search(parameters, req) {
         limit
     } = parameters;
 
-    const where = {};
+    //------------------------------------
+    // Organization validation
+    //------------------------------------
+
+    if (!req?.user?.organizationId) {
+
+        return {
+            success: false,
+            message: "Organization access is required."
+        };
+
+    }
+
+    //------------------------------------
+    // Authorization filter
+    //------------------------------------
+
+    const where = {
+        ...AuthorizationService.customerFilter(
+            req.user
+        )
+    };
 
     //------------------------------------
     // Deal value filters
     //------------------------------------
 
-    if (minDealValue !== null && minDealValue !== undefined) {
+    if (
+        minDealValue !== null &&
+        minDealValue !== undefined
+    ) {
 
         where.dealValue = {
             gte: Number(minDealValue)
@@ -26,28 +52,15 @@ async function search(parameters, req) {
 
     }
 
-    if (maxDealValue !== null && maxDealValue !== undefined) {
+    if (
+        maxDealValue !== null &&
+        maxDealValue !== undefined
+    ) {
 
         where.dealValue = {
             ...(where.dealValue || {}),
             lte: Number(maxDealValue)
         };
-
-    }
-
-    //------------------------------------
-    // User authorization
-    //------------------------------------
-
-    const role =
-        (req?.user?.role || "")
-            .toUpperCase()
-            .replace(/[\s_]+/g, "_");
-
-    if (role === "USER") {
-
-        where.assignedSalesperson =
-            req.user.name;
 
     }
 
@@ -71,28 +84,45 @@ async function search(parameters, req) {
     }
 
     //------------------------------------
-    // Query customers
+    // Query options
     //------------------------------------
 
-    let query = {
-
+    const query = {
         where,
-
         orderBy
-
     };
+
+    //------------------------------------
+    // Limit
+    //------------------------------------
 
     if (
         limit !== null &&
         limit !== undefined
     ) {
 
-        query.take = Number(limit);
+        const parsedLimit = Number(limit);
+
+        if (
+            Number.isFinite(parsedLimit) &&
+            parsedLimit > 0
+        ) {
+
+            query.take =
+                Math.floor(parsedLimit);
+
+        }
 
     }
 
+    //------------------------------------
+    // Query customers
+    //------------------------------------
+
     const customers =
-        await prisma.customer.findMany(query);
+        await prisma.customer.findMany(
+            query
+        );
 
     return {
 
@@ -110,7 +140,5 @@ async function search(parameters, req) {
 }
 
 module.exports = {
-
     search
-
 };
