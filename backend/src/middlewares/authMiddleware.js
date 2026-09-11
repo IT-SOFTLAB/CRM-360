@@ -37,31 +37,57 @@ const authenticateJWT = async (req, res, next) => {
       });
     }
 
-    // Verify JWT
+    // 3. Verify JWT
     const decoded = jwt.verify(token, JWT_SECRET);
 
-    // Organization ID from URL
+    // 4. Organization ID from URL
     const organizationId = req.params.organizationId;
 
-    /*
-      Find the logged-in user.
-
-      We first verify that the user exists.
-      Organization access is checked below.
-    */
-    const user = await prisma.user.findUnique({
+    // 5. First check normal User table
+    let user = await prisma.user.findUnique({
       where: {
         id: decoded.userId
       }
     });
 
+    // 6. If not found, check SuperAdmin table
+    if (!user) {
+      const superAdmin = await prisma.superAdmin.findUnique({
+        where: {
+          id: decoded.userId
+        }
+      });
+
+      if (superAdmin) {
+        // Check SuperAdmin status
+        if (superAdmin.status === "Inactive") {
+          return res.status(403).json({
+            message: "Your account is deactivated"
+          });
+        }
+
+        // Create req.user-compatible object
+        user = {
+          id: superAdmin.id,
+          name: superAdmin.name,
+          email: superAdmin.email,
+          role: "SUPER_ADMIN",
+          organizationId: superAdmin.organizationId,
+          status: superAdmin.status
+        };
+
+        console.log("✅ SuperAdmin authenticated:", superAdmin.email);
+      }
+    }
+
+    // 7. Neither User nor SuperAdmin exists
     if (!user) {
       return res.status(401).json({
         message: "User no longer exists"
       });
     }
 
-    // Verify organization access
+    // 8. Verify organization access
     if (
       organizationId &&
       user.organizationId !== organizationId
@@ -72,21 +98,27 @@ const authenticateJWT = async (req, res, next) => {
       });
     }
 
-    // Check account status
+    // 9. Check account status
     if (user.status === "Inactive") {
       return res.status(403).json({
         message: "Your account is deactivated"
       });
     }
 
+    // 10. Check if account is locked
     if (user.isLocked) {
       return res.status(403).json({
         message: "Your account is locked"
       });
     }
 
-    // Attach user to request
+    // 11. Attach authenticated user
     req.user = user;
+
+    console.log("✅ Authentication successful");
+    console.log("User:", user.email);
+    console.log("Role:", user.role);
+    console.log("Organization:", user.organizationId);
 
     next();
 

@@ -11,7 +11,9 @@ const {
 } = require("../services/graphService");
 const JWT_SECRET = process.env.JWT_SECRET || 'mysecretkey';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'myrefreshsecretkey';
-
+const {
+  checkLicenseAvailability,
+} = require("../services/licenseService");
 // 1. Check if first-run setup is required
 exports.setupStatus = async (req, res) => {
   try {
@@ -50,6 +52,21 @@ exports.setup = async (req, res) => {
         status: 'Active'
       }
     });
+
+   const inviter = req.user;
+
+    const organizationId = inviter.organizationId;
+
+const license = await checkLicenseAvailability(organizationId);
+
+if (!license.allowed) {
+  return res.status(403).json({
+    success: false,
+    message: license.message,
+  });
+}
+
+
 
     // Create default company settings
     await prisma.companySettings.create({
@@ -92,49 +109,174 @@ exports.setup = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
+
     if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password required' });
+      return res.status(400).json({
+        message: "Email and password required"
+      });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // First check normal CRM User
+    let user = await prisma.user.findUnique({
+      where: {
+        email: normalizedEmail
+      }
+    });
+
+    // If not found in User table, check SuperAdmin table
     if (!user) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      const superAdmin = await prisma.superAdmin.findUnique({
+        where: {
+          email: normalizedEmail
+        }
+      });
+
+      if (!superAdmin) {
+        return res.status(401).json({
+          message: "Invalid email or password"
+        });
+      }
+
+      // Check SuperAdmin password
+      const isMatch = await bcrypt.compare(
+        password,
+        superAdmin.password
+      );
+
+      if (!isMatch) {
+        return res.status(401).json({
+          message: "Invalid email or password"
+        });
+      }
+
+      // Check SuperAdmin status
+      if (superAdmin.status === "Inactive") {
+        return res.status(403).json({
+          message: "Your account is deactivated"
+        });
+      }
+
+      // Create access token for SuperAdmin
+      const accessToken = jwt.sign(
+        {
+          userId: superAdmin.id,
+          email: superAdmin.email,
+          role: "SUPER_ADMIN",
+          organizationId: superAdmin.organizationId
+        },
+        JWT_SECRET,
+        {
+          expiresIn: "15m"
+        }
+      );
+
+      // Create refresh token
+      const refreshToken = jwt.sign(
+        {
+          userId: superAdmin.id
+        },
+        JWT_REFRESH_SECRET,
+        {
+          expiresIn: "7d"
+        }
+      );
+
+      // Save refresh token
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 7);
+
+      // IMPORTANT:
+      // Your current refreshToken table expects a User ID.
+      // We will handle this separately if your schema does not
+      // allow SuperAdmin IDs here.
+
+      const isProduction = process.env.NODE_ENV === "production";
+
+      res.cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "None" : "Lax",
+        maxAge: 15 * 60 * 1000
+      });
+
+      res.cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? "None" : "Lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+
+      return res.json({
+        user: {
+          id: superAdmin.id,
+          name: superAdmin.name,
+          email: superAdmin.email,
+          role: "SUPER_ADMIN",
+          organizationId: superAdmin.organizationId,
+          status: superAdmin.status
+        },
+        accessToken,
+        token: accessToken,
+        refreshToken,
+        organizationId: superAdmin.organizationId
+      });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    // -----------------------------
+    // NORMAL CRM USER LOGIN
+    // -----------------------------
+
+    const isMatch = await bcrypt.compare(
+      password,
+      user.password
+    );
+
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({
+        message: "Invalid email or password"
+      });
     }
 
-    if (user.status === 'Inactive') {
-      return res.status(403).json({ message: 'Your account is deactivated' });
+    if (user.status === "Inactive") {
+      return res.status(403).json({
+        message: "Your account is deactivated"
+      });
     }
 
     if (user.isLocked) {
-      return res.status(403).json({ message: 'Your account is locked' });
+      return res.status(403).json({
+        message: "Your account is locked"
+      });
     }
 
-    
-   const accessToken = jwt.sign(
-  {
-    userId: user.id,
-    email: user.email,
-    role: user.role,
-    organizationId: user.organizationId
-  },
-  JWT_SECRET,
-  { expiresIn: '15m' }
-);
-
-    const refreshToken = jwt.sign(
-      { userId: user.id },
-      JWT_REFRESH_SECRET,
-      { expiresIn: '7d' }
+    const accessToken = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        organizationId: user.organizationId
+      },
+      JWT_SECRET,
+      {
+        expiresIn: "15m"
+      }
     );
 
-  
+    const refreshToken = jwt.sign(
+      {
+        userId: user.id
+      },
+      JWT_REFRESH_SECRET,
+      {
+        expiresIn: "7d"
+      }
+    );
+
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
+
     await prisma.refreshToken.create({
       data: {
         token: refreshToken,
@@ -143,33 +285,38 @@ exports.login = async (req, res) => {
       }
     });
 
-   
- const isProduction = process.env.NODE_ENV === "production";
+    const isProduction = process.env.NODE_ENV === "production";
 
-res.cookie("accessToken", accessToken, {
-  httpOnly: true,
-  secure: isProduction,
-  sameSite: isProduction ? "None" : "Lax",
-  maxAge: 15 * 60 * 1000,
-});
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "Lax",
+      maxAge: 15 * 60 * 1000
+    });
 
-res.cookie("refreshToken", refreshToken, {
-  httpOnly: true,
-  secure: isProduction,
-  sameSite: isProduction ? "None" : "Lax",
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-});
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "None" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
     const { password: _, ...userWithoutPassword } = user;
-    res.json({
+
+    return res.json({
       user: userWithoutPassword,
       accessToken,
       token: accessToken,
       refreshToken,
       organizationId: user.organizationId
     });
+
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ message: err.message });
+    console.error("Login error:", err);
+
+    return res.status(500).json({
+      message: err.message
+    });
   }
 };
 
@@ -561,54 +708,112 @@ if (newPassword.length < 8) {
 
 exports.inviteUser = async (req, res) => {
   try {
-    const { name, email, role, salesTeamId, password, adminId } = req.body;
-    const inviter = req.user;
+    const {
+      name,
+      email,
+      role,
+      salesTeamId,
+      password,
+      adminId
+    } = req.body;
 
-    if (!name || !email || !role || !password) {
-      return res.status(400).json({ message: 'Name, email, role, and password are required' });
+    const inviter = req.user;
+    const organizationId = inviter.organizationId;
+
+    if (!organizationId) {
+      return res.status(400).json({
+        success: false,
+        message: "Organization ID is missing"
+      });
     }
 
-    const inviterRole = (inviter.role || '').toUpperCase().replace(/[\s_]+/g, '_');
-    const targetRole = (role || '').toUpperCase().replace(/[\s_]+/g, '_');
+    if (!name || !email || !role || !password) {
+      return res.status(400).json({
+        message: "Name, email, role, and password are required"
+      });
+    }
 
-    if (inviterRole === 'ADMIN' && targetRole === 'ADMIN') {
-      return res.status(403).json({ message: 'Admins cannot create other Admin accounts' });
+    const inviterRole = (inviter.role || "")
+      .toUpperCase()
+      .replace(/[\s_]+/g, "_");
+
+    const targetRole = (role || "")
+      .toUpperCase()
+      .replace(/[\s_]+/g, "_");
+
+    if (inviterRole === "ADMIN" && targetRole === "ADMIN") {
+      return res.status(403).json({
+        message: "Admins cannot create other Admin accounts"
+      });
     }
 
     // Determine assigned adminId
     let assignedAdminId = null;
-    if (inviterRole === 'ADMIN') {
+
+    if (inviterRole === "ADMIN") {
       assignedAdminId = inviter.id;
-    } else if (inviterRole === 'SUPER_ADMIN') {
+    } else if (inviterRole === "SUPER_ADMIN") {
       assignedAdminId = adminId || null;
     }
 
     const normalizedEmail = email.toLowerCase().trim();
 
+    // Check duplicate name inside same organization
     const existingName = await prisma.user.findFirst({
       where: {
-        name: { equals: name.trim(), mode: 'insensitive' }
+        organizationId,
+        name: {
+          equals: name.trim(),
+          mode: "insensitive"
+        }
       }
     });
+
     if (existingName) {
-      return res.status(400).json({ message: 'User with this name already exists' });
+      return res.status(400).json({
+        message: "User with this name already exists"
+      });
     }
 
-    const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    // Check duplicate email
+    const existing = await prisma.user.findUnique({
+      where: {
+        email: normalizedEmail
+      }
+    });
+
     if (existing) {
-      return res.status(400).json({ message: 'User with this email already exists' });
+      return res.status(400).json({
+        message: "User with this email already exists"
+      });
     }
 
+    // CHECK LICENSE
+    const license = await checkLicenseAvailability(organizationId);
+
+    if (!license.allowed) {
+      return res.status(403).json({
+        success: false,
+        message: license.message,
+        licenseCount: license.licenseCount,
+        usedLicenses: license.usedLicenses,
+        availableLicenses: license.availableLicenses
+      });
+    }
+
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create user
     const newUser = await prisma.user.create({
       data: {
         name,
         email: normalizedEmail,
         role,
+        organizationId,
         salesTeamId: salesTeamId || null,
-        password: hashedPassword, 
-        status: 'Active',
+        password: hashedPassword,
+        status: "Active",
         invitationToken: null,
         invitationExpires: null,
         adminId: assignedAdminId
@@ -616,12 +821,29 @@ exports.inviteUser = async (req, res) => {
     });
 
     res.status(201).json({
-      message: 'User created successfully',
-      user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role }
+      success: true,
+      message: "User created successfully",
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        organizationId: newUser.organizationId
+      },
+      license: {
+        licenseCount: license.licenseCount,
+        usedLicenses: license.usedLicenses + 1,
+        availableLicenses: license.availableLicenses - 1
+      }
     });
+
   } catch (err) {
-    console.error('Create user error:', err);
-    res.status(500).json({ message: err.message });
+    console.error("Create user error:", err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
 
