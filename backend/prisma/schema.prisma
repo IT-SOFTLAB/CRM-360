@@ -42,6 +42,22 @@ model User {
   @@index([organizationId])
 }
 
+model SuperAdmin {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  email          String   @unique
+  password       String
+  License_count   Int
+  startDate      DateTime
+  endDate        DateTime
+  status         String   @default("Active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
 model Lead {
   id              String   @id @default(cuid())
   email           String?

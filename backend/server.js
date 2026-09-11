@@ -17,7 +17,9 @@ let activeCategories = [...categories];
 let activeServices = ['Service Based', 'Product Based', 'Retainer Based', 'Consulting'];
 const leadRoutes = require("./src/routes/leadRoutes.js");
 const activityRoutes = require("./src/routes/activityRoutes.js");
+
 const authRoutes=require("./src/routes/authRoutes.js");
+const superAdminRoutes = require("./src/routes/superAdminRoutes.js");
 console.log(require.resolve("./src/routes/authRoutes.js"));
 const emailRoutes=require("./src/routes/emailRoutes.js");
 const opportunityRoutes=require("./src/routes/opportunityRoutes.js");
@@ -127,6 +129,7 @@ orgRouter.use("/:organizationId/dashboard", dashboardRoutes);
 app.use("/api/org", orgRouter);
 app.use("/api/auth", authRoutes);
 app.use("/auth", authRoutes);
+app.use("/api/integration", superAdminRoutes);
 app.use("/api/bootstrap", bootstrapRoutes);
 
 app.use(
