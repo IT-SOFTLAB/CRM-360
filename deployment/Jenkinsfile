@@ -1,0 +1,1370 @@
+environment {
+
+    // AWS
+    AWS_REGION = 'ap-south-1'
+
+    AWS_ACCESS_KEY_ID     = credentials('aws-access-key-id')
+    AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+
+    // Project
+    PROJECT_NAME = 'crm-360'
+
+    // CodeBuild
+    CODEBUILD_PROJECT_NAME = 'crm-360-build'
+
+    // ECR
+    FRONTEND_ECR_REPOSITORY = 'crm-360-frontend'
+    BACKEND_ECR_REPOSITORY  = 'crm-360-backend'
+
+    // ECS
+    ECS_CLUSTER = 'itsoftlab360-cluster'
+    ECS_FRONTEND_SERVICE = 'crm-360-frontend'
+    ECS_BACKEND_SERVICE  = 'crm-360-backend'
+
+    // Application Health Checks
+
+    FRONTEND_HEALTH_URL = '/'
+    BACKEND_HEALTH_URL  = '/health'
+
+    // GitHub
+    GITHUB_PAT = credentials('github-pat')
+
+    BACKEND_PRODUCTION_ENV_S3_KEY
+    FRONTEND_PRODUCTION_ENV_S3_KEY
+    BACKEND_STAGING_ENV_S3_KEY
+    FRONTEND_STAGING_ENV_S3_KEY
+}
+
+stages {
+        stage('Validate Git Tag') {
+            steps {
+                script {
+                    // Use tag(s) pointing at HEAD to avoid picking an unrelated latest tag
+                    env.TAG_NAME = sh(script: 'git tag --points-at HEAD | sort -V | tail -n 1 || echo ""', returnStdout: true).trim()
+
+                    if (!env.TAG_NAME) {
+                        error '❌ No tag detected! Deployment only triggers on tag creation.'
+                    }
+                    echo "📌 Detected Tag: ${env.TAG_NAME}"
+
+                    // Extract branch from which the tag originated.
+                    env.BRANCH = sh(script: "git branch -r --contains ${env.TAG_NAME} | grep -Eo 'origin/(main|staging)' | head -n 1 | cut -d '/' -f2 || echo ''", returnStdout: true).trim()
+                    if (!env.BRANCH) {
+                        error "❌ Invalid tag! Tags must be from 'main', 'staging' branches."
+                    }
+
+                    if (env.BRANCH == 'main' && env.TAG_NAME ==~ /^v\d+\.\d+\.\d+$/) {
+                        env.ENVIRONMENT = 'production'
+                    } else if (env.BRANCH == 'staging' && env.TAG_NAME ==~ /^v\d+\.\d+\.\d+-staging$/) {
+                        env.ENVIRONMENT = 'staging'
+                    } else {
+                        error "❌ Invalid tag format for branch '${env.BRANCH}'."
+                    }
+                    echo "🌍 Deployment Environment: ${env.ENVIRONMENT}"
+                }
+            }
+        }
+
+        stage('Create Docker Tags') {
+            steps {
+                script {
+                    env.BACKEND_TAG = "backend-${env.ENVIRONMENT}-${env.TAG_NAME}"
+                    env.FRONTEND_TAG = "frontend-${env.ENVIRONMENT}-${env.TAG_NAME}"
+                    echo "🛠️ Backend Tag: ${env.BACKEND_TAG}"
+                    echo "🛠️ Frontend Tag: ${env.FRONTEND_TAG}"
+                }
+            }
+        }
+
+       stage('Determine secret key file') {
+            steps {
+                script {
+                    // -------------------------------------------------
+                    // Make sure environment was determined correctly
+                    // -------------------------------------------------
+                    if (!env.ENVIRONMENT) {
+                        error """
+                        ❌ Secret key determination failed.
+
+                        ENVIRONMENT is not available.
+
+                        The 'Validate Git Tag' stage must complete
+                        successfully before this stage.
+                        """
+                    }
+
+                    if (env.ENVIRONMENT == 'production') {
+
+                        env.BACKEND_SECRET_KEY = "${env.BACKEND_PRODUCTION_ENV_S3_KEY}.env"
+
+                        env.FRONTEND_SECRET_KEY = "${env.FRONTEND_PRODUCTION_ENV_S3_KEY}.env"
+                    }
+
+                    else if (env.ENVIRONMENT == 'staging') {
+
+                        env.BACKEND_SECRET_KEY = "${env.BACKEND_STAGING_ENV_S3_KEY}.env"
+
+                        env.FRONTEND_SECRET_KEY = "${env.FRONTEND_STAGING_ENV_S3_KEY}.env"
+                    }
+
+                    else {
+                        error "❌ Unknown deployment environment: ${env.ENVIRONMENT}"
+                    }
+
+                    echo "🔐 Backend env file: ${env.BACKEND_SECRET_KEY}"
+                    echo "🔐 Frontend env file: ${env.FRONTEND_SECRET_KEY}"
+                }
+            }
+        }
+
+        stage('Validate AWS Account') {
+            steps {
+                script {
+
+                    if (!env.ENVIRONMENT) {
+                        error "❌ Deployment environment is not set."
+                    }
+
+                    def expectedAccountId
+
+                    if (env.ENVIRONMENT == 'staging') {
+                        expectedAccountId = env.STAGING_AWS_ACCOUNT_ID
+                    }
+                    else if (env.ENVIRONMENT == 'production') {
+                        expectedAccountId = env.PRODUCTION_AWS_ACCOUNT_ID
+                    }
+                    else {
+                        error "❌ Unsupported environment: ${env.ENVIRONMENT}"
+                    }
+
+                    // Get the AWS account associated with the credentials
+                    def actualAccountId = sh(
+                        script: '''
+                            aws sts get-caller-identity \
+                            --query Account \
+                            --output text
+                        ''',
+                        returnStdout: true
+                    ).trim()
+
+                    if (!actualAccountId) {
+                        error "❌ Unable to determine AWS account."
+                    }
+
+                    echo "============================================"
+                    echo "AWS Account Validation"
+                    echo "============================================"
+                    echo "Environment      : ${env.ENVIRONMENT}"
+                    echo "Expected Account : ${expectedAccountId}"
+                    echo "Current Account  : ${actualAccountId}"
+                    echo "============================================"
+
+                    if (actualAccountId != expectedAccountId) {
+                        error """
+                        ❌ AWS ACCOUNT VALIDATION FAILED!
+
+                        Environment      : ${env.ENVIRONMENT}
+                        Expected Account : ${expectedAccountId}
+                        Current Account  : ${actualAccountId}
+
+                        Deployment stopped to prevent deployment
+                        to the wrong AWS account.
+                        """
+                    }
+
+                    env.AWS_ACCOUNT_ID = actualAccountId
+
+                    echo "✅ AWS account validation successful."
+                    echo "✅ Deployment is targeting the correct ${env.ENVIRONMENT} account."
+                }
+            }
+        }
+
+        stage('Check and Trigger AWS CodeBuild') {
+            steps {
+                script {
+                    echo "🚀 Checking if Backend and Frontend images exist in ECR..."
+                    def backendExists = sh(script: """
+                        aws ecr describe-images \
+                        --repository-name ${BACKEND_ECR_REPOSITORY} \
+                        --image-ids imageTag=${env.BACKEND_TAG} \
+                        --region ${AWS_REGION} > /dev/null 2>&1
+                    """, returnStatus: true) == 0
+
+                    def frontendExists = sh(script: """
+                        aws ecr describe-images \
+                        --repository-name ${FRONTEND_ECR_REPOSITORY} \
+                        --image-ids imageTag=${env.FRONTEND_TAG} \
+                        --region ${AWS_REGION} > /dev/null 2>&1
+                    """, returnStatus: true) == 0
+
+                    echo "============================================"
+                    echo "AWS CodeBuild Validation & Trigger"
+                    echo "============================================"
+                    echo "Project     : ${env.PROJECT_NAME}"
+                    echo "Environment : ${env.ENVIRONMENT}"
+                    echo "AWS Region  : ${env.AWS_REGION}"
+                    echo "CodeBuild   : ${env.CODEBUILD_PROJECT_NAME}"
+                    echo "============================================"
+
+                    // -------------------------------------------------
+                    // Check whether CodeBuild project exists
+                    // -------------------------------------------------
+                    def codeBuildStatus = sh(
+                        script: """
+                            aws codebuild batch-get-projects \
+                                --names "${env.CODEBUILD_PROJECT_NAME}" \
+                                --region "${env.AWS_REGION}" \
+                                --query 'projects[0].name' \
+                                --output text
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    if (!codeBuildStatus || codeBuildStatus == 'None' || codeBuildStatus == 'null') {
+
+                        error """
+                        ❌ AWS CodeBuild project not found.
+
+                        Project     : ${env.CODEBUILD_PROJECT_NAME}
+                        Environment : ${env.ENVIRONMENT}
+                        AWS Region : ${env.AWS_REGION}
+                        AWS Account : ${env.AWS_ACCOUNT_ID}
+                        """
+                    }
+
+                    echo "✅ CodeBuild project exists: ${codeBuildStatus}"
+
+                    // -------------------------------------------------
+                    // Trigger CodeBuild
+                    // -------------------------------------------------
+                    echo "🚀 Triggering AWS CodeBuild..."
+
+                    def buildId = sh(
+                        script: """
+                            aws codebuild start-build \
+                                --project-name "${env.CODEBUILD_PROJECT_NAME}" \
+                                --region "${env.AWS_REGION}" \
+                                --environment-variables-override \
+                                    name=ENVIRONMENT,value=${env.ENVIRONMENT},type=PLAINTEXT \
+                                    name=PROJECT_NAME,value=${env.PROJECT_NAME},type=PLAINTEXT \
+                                    name=GIT_TAG,value=${env.TAG_NAME},type=PLAINTEXT \
+                                    name=BACKEND_TAG,value=${env.BACKEND_TAG},type=PLAINTEXT \
+                                    name=FRONTEND_TAG,value=${env.FRONTEND_TAG},type=PLAINTEXT \
+                                    name=BACKEND_SECRET_KEY,value=${env.BACKEND_SECRET_KEY},type=PLAINTEXT \
+                                    name=FRONTEND_SECRET_KEY,value=${env.FRONTEND_SECRET_KEY},type=PLAINTEXT \
+                                --query 'build.id' \
+                                --output text
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    if (!buildId || buildId == 'None' || buildId == 'null') {
+
+                        error "❌ Failed to start AWS CodeBuild."
+                    }
+
+                    // -------------------------------------------------
+                    // Store CodeBuild ID for next stage
+                    // -------------------------------------------------
+
+                     if (backendExists && frontendExists) {
+                        env.CODEBUILD_BUILD_ID = 'SKIPPED'
+                        echo '✅ Backend and Frontend images already exist in ECR.'
+                    }else{
+                        env.CODEBUILD_BUILD_ID = buildId
+
+                    }
+                    echo "============================================"
+                    echo "CodeBuild Started Successfully"
+                    echo "============================================"
+                    echo "Build ID    : ${env.CODEBUILD_BUILD_ID}"
+                    echo "Environment : ${env.ENVIRONMENT}"
+                    echo "============================================"
+                }
+            }
+        }
+
+        stage('Wait for AWS CodeBuild Completion') {
+            when {
+                expression { env.CODEBUILD_BUILD_ID && env.CODEBUILD_BUILD_ID != 'SKIPPED' }
+            }
+            steps {
+                script {
+                    echo '⏳ Waiting for AWS CodeBuild to complete...'
+
+                    def buildStatus = ''
+
+                    while (true) {
+                        buildStatus = sh(
+                            script: """
+                                aws codebuild batch-get-builds \
+                                --ids ${env.CODEBUILD_BUILD_ID} \
+                                --region ${AWS_REGION} \
+                                --query 'builds[0].buildStatus' \
+                                --output text
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        echo "Build status: ${buildStatus}"
+
+                        if (['SUCCEEDED', 'FAILED', 'STOPPED', 'FAULT', 'TIMED_OUT'].contains(buildStatus)) {
+                            break
+                        }
+
+                        sleep 10
+                    }
+
+                    if (buildStatus == 'SUCCEEDED') {
+                        echo '✅ AWS CodeBuild completed successfully.'
+                    } else {
+                        error "❌ AWS CodeBuild failed with status: ${buildStatus}"
+                    }
+                }
+            }
+        }
+
+        stage('Prepare ECS Task Definitions') {
+
+            steps {
+
+                script {
+
+                    echo "============================================"
+                    echo "Preparing CRM ECS Task Definitions"
+                    echo "============================================"
+                    echo "Project       : ${env.PROJECT_NAME}"
+                    echo "Environment   : ${env.ENVIRONMENT}"
+                    echo "ECS Cluster   : ${env.ECS_CLUSTER}"
+                    echo "Frontend      : ${env.ECS_FRONTEND_SERVICE}"
+                    echo "Backend       : ${env.ECS_BACKEND_SERVICE}"
+                    echo "AWS Account   : ${env.AWS_ACCOUNT_ID}"
+                    echo "AWS Region    : ${env.AWS_REGION}"
+                    echo "============================================"
+
+                    // -------------------------------------------------
+                    // Create complete ECR image URIs
+                    // -------------------------------------------------
+
+                    env.FRONTEND_IMAGE_URI = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.FRONTEND_ECR_REPOSITORY}:${env.FRONTEND_TAG}"
+
+                    env.BACKEND_IMAGE_URI = "${env.AWS_ACCOUNT_ID}.dkr.ecr.${env.AWS_REGION}.amazonaws.com/${env.BACKEND_ECR_REPOSITORY}:${env.BACKEND_TAG}"
+
+                    echo "Frontend Image : ${env.FRONTEND_IMAGE_URI}"
+                    echo "Backend Image  : ${env.BACKEND_IMAGE_URI}"
+
+
+                    // =================================================
+                    // FRONTEND
+                    // =================================================
+
+                    echo ""
+                    echo "🔹 Getting current Frontend task definition..."
+
+
+                    def frontendTaskDefinition = sh(
+                        script: """
+                            aws ecs describe-services \
+                                --cluster "${env.ECS_CLUSTER}" \
+                                --services "${env.ECS_FRONTEND_SERVICE}" \
+                                --region "${env.AWS_REGION}" \
+                                --query 'services[0].taskDefinition' \
+                                --output text
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+
+                    if (!frontendTaskDefinition || frontendTaskDefinition == 'None' || frontendTaskDefinition == 'null') {
+
+                        error """
+                        ❌ Frontend ECS service/task definition not found.
+
+                        Cluster : ${env.ECS_CLUSTER}
+                        Service : ${env.ECS_FRONTEND_SERVICE}
+                        """
+                    }
+
+
+                    echo "✅ Frontend Task Definition:"
+                    echo "${frontendTaskDefinition}"
+
+
+                    // -------------------------------------------------
+                    // Download current frontend task definition
+                    // -------------------------------------------------
+
+                    sh """
+                        aws ecs describe-task-definition \
+                            --task-definition "${frontendTaskDefinition}" \
+                            --region "${env.AWS_REGION}" \
+                            --query 'taskDefinition' \
+                            --output json > frontend-task-definition.json
+                    """
+
+
+                    // -------------------------------------------------
+                    // Find CRM frontend container
+                    // -------------------------------------------------
+
+                    def frontendContainerCount = sh(
+                        script: """
+                            jq --arg REPO "${env.FRONTEND_ECR_REPOSITORY}" '
+                                [
+                                    .containerDefinitions[]
+                                    | select(.image | contains(\$REPO))
+                                ] | length
+                            ' frontend-task-definition.json
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+
+                    if (frontendContainerCount != '1') {
+
+                        error """
+                        ❌ Could not uniquely identify the Frontend container.
+
+                        Repository : ${env.FRONTEND_ECR_REPOSITORY}
+                        Matching containers : ${frontendContainerCount}
+
+                        Expected exactly ONE matching container.
+                        """
+                    }
+
+
+                    env.FRONTEND_CONTAINER_NAME = sh(
+                        script: """
+                            jq -r --arg REPO "${env.FRONTEND_ECR_REPOSITORY}" '
+                                .containerDefinitions[]
+                                | select(.image | contains(\$REPO))
+                                | .name
+                            ' frontend-task-definition.json
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+
+                    echo "✅ Frontend container identified:"
+                    echo "${env.FRONTEND_CONTAINER_NAME}"
+
+
+                    // -------------------------------------------------
+                    // Remove AWS generated fields
+                    // -------------------------------------------------
+
+                    sh """
+                        jq 'del(
+                            .taskDefinitionArn,
+                            .revision,
+                            .status,
+                            .requiresAttributes,
+                            .compatibilities,
+                            .registeredAt,
+                            .registeredBy
+                        )' \
+                        frontend-task-definition.json \
+                        > frontend-task-definition-new.json
+                    """
+
+
+                    // -------------------------------------------------
+                    // Update ONLY CRM frontend container image
+                    // -------------------------------------------------
+
+                    sh """
+                        jq \
+                            --arg CONTAINER "${env.FRONTEND_CONTAINER_NAME}" \
+                            --arg IMAGE "${env.FRONTEND_IMAGE_URI}" '
+
+                            .containerDefinitions =
+                            [
+                                .containerDefinitions[] |
+                                if .name == \$CONTAINER
+                                then .image = \$IMAGE
+                                else .
+                                end
+                            ]
+
+                        ' frontend-task-definition-new.json \
+                        > frontend-task-definition-final.json
+                    """
+
+
+                    // -------------------------------------------------
+                    // Register new frontend task definition
+                    // -------------------------------------------------
+
+                    env.FRONTEND_TASK_DEFINITION_ARN = sh(
+                        script: """
+                            aws ecs register-task-definition \
+                                --cli-input-json file://frontend-task-definition-final.json \
+                                --region "${env.AWS_REGION}" \
+                                --query 'taskDefinition.taskDefinitionArn' \
+                                --output text
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+
+                    if (!env.FRONTEND_TASK_DEFINITION_ARN) {
+                        error "❌ Failed to register Frontend task definition."
+                    }
+
+
+                    echo "✅ New Frontend Task Definition:"
+                    echo "${env.FRONTEND_TASK_DEFINITION_ARN}"
+
+
+                    // =================================================
+                    // BACKEND
+                    // =================================================
+
+                    echo ""
+                    echo "🔹 Getting current Backend task definition..."
+
+
+                    def backendTaskDefinition = sh(
+                        script: """
+                            aws ecs describe-services \
+                                --cluster "${env.ECS_CLUSTER}" \
+                                --services "${env.ECS_BACKEND_SERVICE}" \
+                                --region "${env.AWS_REGION}" \
+                                --query 'services[0].taskDefinition' \
+                                --output text
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+
+                    if (!backendTaskDefinition || backendTaskDefinition == 'None' || backendTaskDefinition == 'null') {
+
+                        error """
+                        ❌ Backend ECS service/task definition not found.
+
+                        Cluster : ${env.ECS_CLUSTER}
+                        Service : ${env.ECS_BACKEND_SERVICE}
+                        """
+                    }
+
+
+                    echo "✅ Backend Task Definition:"
+                    echo "${backendTaskDefinition}"
+
+
+                    // -------------------------------------------------
+                    // Download current backend task definition
+                    // -------------------------------------------------
+
+                    sh """
+                        aws ecs describe-task-definition \
+                            --task-definition "${backendTaskDefinition}" \
+                            --region "${env.AWS_REGION}" \
+                            --query 'taskDefinition' \
+                            --output json > backend-task-definition.json
+                    """
+
+
+                    // -------------------------------------------------
+                    // Find CRM backend container
+                    // -------------------------------------------------
+
+                    def backendContainerCount = sh(
+                        script: """
+                            jq --arg REPO "${env.BACKEND_ECR_REPOSITORY}" '
+                                [
+                                    .containerDefinitions[]
+                                    | select(.image | contains(\$REPO))
+                                ] | length
+                            ' backend-task-definition.json
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+
+                    if (backendContainerCount != '1') {
+
+                        error """
+                        ❌ Could not uniquely identify the Backend container.
+
+                        Repository : ${env.BACKEND_ECR_REPOSITORY}
+                        Matching containers : ${backendContainerCount}
+
+                        Expected exactly ONE matching container.
+                        """
+                    }
+
+
+                    env.BACKEND_CONTAINER_NAME = sh(
+                        script: """
+                            jq -r --arg REPO "${env.BACKEND_ECR_REPOSITORY}" '
+                                .containerDefinitions[]
+                                | select(.image | contains(\$REPO))
+                                | .name
+                            ' backend-task-definition.json
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+
+                    echo "✅ Backend container identified:"
+                    echo "${env.BACKEND_CONTAINER_NAME}"
+
+
+                    // -------------------------------------------------
+                    // Remove AWS generated fields
+                    // -------------------------------------------------
+
+                    sh """
+                        jq 'del(
+                            .taskDefinitionArn,
+                            .revision,
+                            .status,
+                            .requiresAttributes,
+                            .compatibilities,
+                            .registeredAt,
+                            .registeredBy
+                        )' \
+                        backend-task-definition.json \
+                        > backend-task-definition-new.json
+                    """
+
+
+                    // -------------------------------------------------
+                    // Update ONLY CRM backend container image
+                    // -------------------------------------------------
+
+                    sh """
+                        jq \
+                            --arg CONTAINER "${env.BACKEND_CONTAINER_NAME}" \
+                            --arg IMAGE "${env.BACKEND_IMAGE_URI}" '
+
+                            .containerDefinitions =
+                            [
+                                .containerDefinitions[] |
+                                if .name == \$CONTAINER
+                                then .image = \$IMAGE
+                                else .
+                                end
+                            ]
+
+                        ' backend-task-definition-new.json \
+                        > backend-task-definition-final.json
+                    """
+
+
+                    // -------------------------------------------------
+                    // Register new backend task definition
+                    // -------------------------------------------------
+
+                    env.BACKEND_TASK_DEFINITION_ARN = sh(
+                        script: """
+                            aws ecs register-task-definition \
+                                --cli-input-json file://backend-task-definition-final.json \
+                                --region "${env.AWS_REGION}" \
+                                --query 'taskDefinition.taskDefinitionArn' \
+                                --output text
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+
+                    if (!env.BACKEND_TASK_DEFINITION_ARN) {
+                        error "❌ Failed to register CRM Backend task definition."
+                    }
+
+
+                    echo "✅ New Backend Task Definition:"
+                    echo "${env.BACKEND_TASK_DEFINITION_ARN}"
+
+
+                    // =================================================
+                    // FINAL OUTPUT
+                    // =================================================
+
+                    echo ""
+                    echo "============================================"
+                    echo "✅ ECS TASK DEFINITIONS PREPARED"
+                    echo "============================================"
+
+                    echo "Frontend Container : ${env.FRONTEND_CONTAINER_NAME}"
+                    echo "Frontend Image     : ${env.FRONTEND_IMAGE_URI}"
+                    echo "Frontend Task      : ${env.FRONTEND_TASK_DEFINITION_ARN}"
+
+                    echo ""
+
+                    echo "Backend Container  : ${env.BACKEND_CONTAINER_NAME}"
+                    echo "Backend Image      : ${env.BACKEND_IMAGE_URI}"
+                    echo "Backend Task       : ${env.BACKEND_TASK_DEFINITION_ARN}"
+
+                    echo "============================================"
+                }
+            }
+        }
+
+        stage('Deploy Services to ECS') {
+
+            steps {
+
+                script {
+
+                    echo "============================================"
+                    echo "Deploying CRM-360 Services to ECS"
+                    echo "============================================"
+                    echo "Project       : ${env.PROJECT_NAME}"
+                    echo "Environment   : ${env.ENVIRONMENT}"
+                    echo "ECS Cluster   : ${env.ECS_CLUSTER}"
+                    echo "AWS Account   : ${env.AWS_ACCOUNT_ID}"
+                    echo "AWS Region    : ${env.AWS_REGION}"
+                    echo "============================================"
+
+                    // =================================================
+                    // FRONTEND
+                    // =================================================
+
+                    echo ""
+                    echo "🔹 Updating Frontend ECS service..."
+
+                    sh """
+                        aws ecs update-service \
+                            --cluster "${env.ECS_CLUSTER}" \
+                            --service "${env.ECS_FRONTEND_SERVICE}" \
+                            --task-definition "${env.FRONTEND_TASK_DEFINITION_ARN}" \
+                            --region "${env.AWS_REGION}"
+                    """
+
+                    echo "✅ Frontend service updated."
+
+                    // =================================================
+                    // BACKEND
+                    // =================================================
+
+                    echo ""
+                    echo "🔹 Updating Backend ECS service..."
+
+                    sh """
+                        aws ecs update-service \
+                            --cluster "${env.ECS_CLUSTER}" \
+                            --service "${env.ECS_BACKEND_SERVICE}" \
+                            --task-definition "${env.BACKEND_TASK_DEFINITION_ARN}" \
+                            --region "${env.AWS_REGION}"
+                    """
+
+                    echo "✅ Backend service updated."
+
+                    echo ""
+                    echo "============================================"
+                    echo "✅ ECS SERVICES UPDATED"
+                    echo "============================================"
+                    echo "Frontend Service : ${env.ECS_FRONTEND_SERVICE}"
+                    echo "Frontend Task    : ${env.FRONTEND_TASK_DEFINITION_ARN}"
+                    echo ""
+                    echo "Backend Service  : ${env.ECS_BACKEND_SERVICE}"
+                    echo "Backend Task     : ${env.BACKEND_TASK_DEFINITION_ARN}"
+                    echo "============================================"
+                }
+            }
+        }
+
+        stage('Wait for ECS Deployment') {
+
+            steps {
+
+                script {
+
+                    echo "============================================"
+                    echo "Waiting for CRM-360 ECS Deployment"
+                    echo "============================================"
+                    echo "Project       : ${env.PROJECT_NAME}"
+                    echo "Environment   : ${env.ENVIRONMENT}"
+                    echo "ECS Cluster   : ${env.ECS_CLUSTER}"
+                    echo "Frontend      : ${env.ECS_FRONTEND_SERVICE}"
+                    echo "Backend       : ${env.ECS_BACKEND_SERVICE}"
+                    echo "AWS Account   : ${env.AWS_ACCOUNT_ID}"
+                    echo "AWS Region    : ${env.AWS_REGION}"
+                    echo "============================================"
+
+                    // =================================================
+                    // WAIT FOR FRONTEND + BACKEND
+                    // =================================================
+
+                    echo ""
+                    echo "⏳ Waiting for Frontend and Backend services to become stable..."
+
+                    try {
+
+                        sh """
+                            aws ecs wait services-stable \
+                                --cluster "${env.ECS_CLUSTER}" \
+                                --services \
+                                    "${env.ECS_FRONTEND_SERVICE}" \
+                                    "${env.ECS_BACKEND_SERVICE}" \
+                                --region "${env.AWS_REGION}"
+                        """
+
+                    } catch (Exception e) {
+
+                        error """
+                        ❌ ECS deployment failed or did not become stable.
+
+                        Cluster  : ${env.ECS_CLUSTER}
+                        Frontend : ${env.ECS_FRONTEND_SERVICE}
+                        Backend  : ${env.ECS_BACKEND_SERVICE}
+
+                        Please check ECS service events and running tasks.
+                        """
+                    }
+
+                    echo ""
+                    echo "============================================"
+                    echo "✅ ECS DEPLOYMENT COMPLETED"
+                    echo "============================================"
+
+                    // =================================================
+                    // VERIFY FRONTEND
+                    // =================================================
+
+                    echo ""
+                    echo "🔹 Verifying Frontend service..."
+
+                    sh """
+                        aws ecs describe-services \
+                            --cluster "${env.ECS_CLUSTER}" \
+                            --services "${env.ECS_FRONTEND_SERVICE}" \
+                            --region "${env.AWS_REGION}" \
+                            --query 'services[0].{
+                                Service:serviceName,
+                                Status:status,
+                                Desired:desiredCount,
+                                Running:runningCount,
+                                Pending:pendingCount,
+                                TaskDefinition:taskDefinition
+                            }' \
+                            --output table
+                    """
+
+                    // =================================================
+                    // VERIFY BACKEND
+                    // =================================================
+
+                    echo ""
+                    echo "🔹 Verifying Backend service..."
+
+                    sh """
+                        aws ecs describe-services \
+                            --cluster "${env.ECS_CLUSTER}" \
+                            --services "${env.ECS_BACKEND_SERVICE}" \
+                            --region "${env.AWS_REGION}" \
+                            --query 'services[0].{
+                                Service:serviceName,
+                                Status:status,
+                                Desired:desiredCount,
+                                Running:runningCount,
+                                Pending:pendingCount,
+                                TaskDefinition:taskDefinition
+                            }' \
+                            --output table
+                    """
+
+                    echo ""
+                    echo "============================================"
+                    echo "✅ ECS DEPLOYMENT VERIFIED"
+                    echo "============================================"
+                }
+            }
+        }
+
+        stage('Verify ECS Deployment') {
+
+            steps {
+
+                script {
+
+                    echo "============================================"
+                    echo "Verifying ECS Deployment"
+                    echo "============================================"
+                    echo "Project       : ${env.PROJECT_NAME}"
+                    echo "Environment   : ${env.ENVIRONMENT}"
+                    echo "ECS Cluster   : ${env.ECS_CLUSTER}"
+                    echo "AWS Account   : ${env.AWS_ACCOUNT_ID}"
+                    echo "AWS Region    : ${env.AWS_REGION}"
+                    echo "============================================"
+
+                    // =================================================
+                    // FRONTEND VERIFICATION
+                    // =================================================
+
+                    echo ""
+                    echo "🔹 Verifying Frontend ECS service..."
+
+                    def frontendServiceTaskDefinition = sh(
+                        script: """
+                            aws ecs describe-services \
+                                --cluster "${env.ECS_CLUSTER}" \
+                                --services "${env.ECS_FRONTEND_SERVICE}" \
+                                --region "${env.AWS_REGION}" \
+                                --query 'services[0].taskDefinition' \
+                                --output text
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Expected Frontend Task Definition:"
+                    echo "${env.FRONTEND_TASK_DEFINITION_ARN}"
+
+                    echo "Running Frontend Task Definition:"
+                    echo "${frontendServiceTaskDefinition}"
+
+                    if (frontendServiceTaskDefinition != env.FRONTEND_TASK_DEFINITION_ARN) {
+
+                        error """
+                        ❌ Frontend deployment verification failed.
+
+                        Expected:
+                        ${env.FRONTEND_TASK_DEFINITION_ARN}
+
+                        Currently running:
+                        ${frontendServiceTaskDefinition}
+                        """
+                    }
+
+                    echo "✅ Frontend is using the expected task definition."
+
+                    // =================================================
+                    // BACKEND VERIFICATION
+                    // =================================================
+
+                    echo ""
+                    echo "🔹 Verifying Backend ECS service..."
+
+                    def backendServiceTaskDefinition = sh(
+                        script: """
+                            aws ecs describe-services \
+                                --cluster "${env.ECS_CLUSTER}" \
+                                --services "${env.ECS_BACKEND_SERVICE}" \
+                                --region "${env.AWS_REGION}" \
+                                --query 'services[0].taskDefinition' \
+                                --output text
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Expected Backend Task Definition:"
+                    echo "${env.BACKEND_TASK_DEFINITION_ARN}"
+
+                    echo "Running Backend Task Definition:"
+                    echo "${backendServiceTaskDefinition}"
+
+                    if (backendServiceTaskDefinition != env.BACKEND_TASK_DEFINITION_ARN) {
+
+                        error """
+                        ❌ Backend deployment verification failed.
+
+                        Expected:
+                        ${env.BACKEND_TASK_DEFINITION_ARN}
+
+                        Currently running:
+                        ${backendServiceTaskDefinition}
+                        """
+                    }
+
+                    echo "✅ Backend is using the expected task definition."
+
+                    // =================================================
+                    // VERIFY RUNNING / DESIRED COUNTS
+                    // =================================================
+
+                    echo ""
+                    echo "🔹 Verifying ECS service task counts..."
+
+                    def frontendCounts = sh(
+                        script: """
+                            aws ecs describe-services \
+                                --cluster "${env.ECS_CLUSTER}" \
+                                --services "${env.ECS_FRONTEND_SERVICE}" \
+                                --region "${env.AWS_REGION}" \
+                                --query 'services[0].[desiredCount,runningCount,pendingCount]' \
+                                --output text
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    def backendCounts = sh(
+                        script: """
+                            aws ecs describe-services \
+                                --cluster "${env.ECS_CLUSTER}" \
+                                --services "${env.ECS_BACKEND_SERVICE}" \
+                                --region "${env.AWS_REGION}" \
+                                --query 'services[0].[desiredCount,runningCount,pendingCount]' \
+                                --output text
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Frontend [Desired Running Pending] : ${frontendCounts}"
+                    echo "Backend  [Desired Running Pending] : ${backendCounts}"
+
+                    // =================================================
+                    // VALIDATE FRONTEND COUNTS
+                    // =================================================
+
+                    def frontendCountValues = frontendCounts.split("\\s+")
+
+                    if (frontendCountValues.size() < 3) {
+
+                        error "❌ Unable to determine Frontend ECS task counts."
+                    }
+
+                    def frontendDesired = frontendCountValues[0].toInteger()
+                    def frontendRunning = frontendCountValues[1].toInteger()
+                    def frontendPending = frontendCountValues[2].toInteger()
+
+                    if (frontendRunning != frontendDesired || frontendPending != 0) {
+
+                        error """
+                        ❌ Frontend ECS task count verification failed.
+
+                        Desired : ${frontendDesired}
+                        Running : ${frontendRunning}
+                        Pending : ${frontendPending}
+                        """
+                    }
+
+                    echo "✅ Frontend task count is healthy."
+
+                    // =================================================
+                    // VALIDATE BACKEND COUNTS
+                    // =================================================
+
+                    def backendCountValues = backendCounts.split("\\s+")
+
+                    if (backendCountValues.size() < 3) {
+
+                        error "❌ Unable to determine Backend ECS task counts."
+                    }
+
+                    def backendDesired = backendCountValues[0].toInteger()
+                    def backendRunning = backendCountValues[1].toInteger()
+                    def backendPending = backendCountValues[2].toInteger()
+
+                    if (backendRunning != backendDesired || backendPending != 0) {
+
+                        error """
+                        ❌ Backend ECS task count verification failed.
+
+                        Desired : ${backendDesired}
+                        Running : ${backendRunning}
+                        Pending : ${backendPending}
+                        """
+                    }
+
+                    echo "✅ Backend task count is healthy."
+
+                    // =================================================
+                    // FINAL RESULT
+                    // =================================================
+
+                    echo ""
+                    echo "============================================"
+                    echo "✅ CRM-360 ECS DEPLOYMENT VERIFIED"
+                    echo "============================================"
+
+                    echo "Frontend:"
+                    echo "  Service       : ${env.ECS_FRONTEND_SERVICE}"
+                    echo "  Task Definition: ${env.FRONTEND_TASK_DEFINITION_ARN}"
+                    echo "  Desired        : ${frontendDesired}"
+                    echo "  Running        : ${frontendRunning}"
+                    echo "  Pending        : ${frontendPending}"
+
+                    echo ""
+
+                    echo "Backend:"
+                    echo "  Service        : ${env.ECS_BACKEND_SERVICE}"
+                    echo "  Task Definition: ${env.BACKEND_TASK_DEFINITION_ARN}"
+                    echo "  Desired         : ${backendDesired}"
+                    echo "  Running         : ${backendRunning}"
+                    echo "  Pending         : ${backendPending}"
+
+                    echo ""
+                    echo "🎉 CRM-360 deployment completed successfully."
+                    echo "============================================"
+                }
+            }
+        }
+
+        stage('ECS Container Health Check') {
+
+            steps {
+
+                script {
+
+                    echo "============================================"
+                    echo "ECS Container Health Check"
+                    echo "============================================"
+                    echo "Project       : ${env.PROJECT_NAME}"
+                    echo "Environment   : ${env.ENVIRONMENT}"
+                    echo "ECS Cluster   : ${env.ECS_CLUSTER}"
+                    echo "AWS Account   : ${env.AWS_ACCOUNT_ID}"
+                    echo "AWS Region    : ${env.AWS_REGION}"
+                    echo "============================================"
+
+
+                    int maxAttempts = 12
+                    int retrySeconds = 10
+
+
+                    // =================================================
+                    // FRONTEND CONTAINER HEALTH
+                    // =================================================
+
+                    echo ""
+                    echo "🔹 Checking Frontend ECS container health..."
+
+                    boolean frontendHealthy = false
+
+                    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+
+                        echo "Frontend health check attempt ${attempt}/${maxAttempts}"
+
+                        def frontendHealth = sh(
+                            script: """
+                                TASKS=\$(aws ecs list-tasks \
+                                    --cluster "${env.ECS_CLUSTER}" \
+                                    --service-name "${env.ECS_FRONTEND_SERVICE}" \
+                                    --desired-status RUNNING \
+                                    --region "${env.AWS_REGION}" \
+                                    --query 'taskArns' \
+                                    --output text)
+
+                                if [ -z "\$TASKS" ]; then
+                                    echo "NO_TASK"
+                                    exit 0
+                                fi
+
+                                aws ecs describe-tasks \
+                                    --cluster "${env.ECS_CLUSTER}" \
+                                    --tasks \$TASKS \
+                                    --region "${env.AWS_REGION}" \
+                                    --query 'tasks[].containers[].healthStatus' \
+                                    --output text
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        echo "Frontend container health: ${frontendHealth}"
+
+                        if (frontendHealth && !frontendHealth.contains('UNKNOWN')
+                            && !frontendHealth.contains('UNHEALTHY')
+                            && !frontendHealth.contains('NO_TASK')
+                            && frontendHealth.split().every { it == 'HEALTHY' }) {
+
+                            frontendHealthy = true
+
+                            echo "✅ Frontend container is HEALTHY."
+
+                            break
+                        }
+
+                        if (frontendHealth.contains('UNHEALTHY')) {
+
+                            error """
+                            ❌ CRM Frontend container is UNHEALTHY.
+
+                            ECS Cluster : ${env.ECS_CLUSTER}
+                            ECS Service : ${env.ECS_FRONTEND_SERVICE}
+                            Health      : ${frontendHealth}
+                            """
+                        }
+
+                        if (attempt < maxAttempts) {
+
+                            echo "⏳ Frontend container is not healthy yet."
+
+                            sleep retrySeconds
+                        }
+                    }
+
+
+                    if (!frontendHealthy) {
+
+                        error """
+                        ❌ Frontend container health check failed.
+
+                        Service : ${env.ECS_FRONTEND_SERVICE}
+
+                        ECS did not report HEALTHY container status
+                        within the expected time.
+                        """
+                    }
+
+
+                    // =================================================
+                    // BACKEND CONTAINER HEALTH
+                    // =================================================
+
+                    echo ""
+                    echo "🔹 Checking Backend ECS container health..."
+
+                    boolean backendHealthy = false
+
+                    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+
+                        echo "Backend health check attempt ${attempt}/${maxAttempts}"
+
+                        def backendHealth = sh(
+                            script: """
+                                TASKS=\$(aws ecs list-tasks \
+                                    --cluster "${env.ECS_CLUSTER}" \
+                                    --service-name "${env.ECS_BACKEND_SERVICE}" \
+                                    --desired-status RUNNING \
+                                    --region "${env.AWS_REGION}" \
+                                    --query 'taskArns' \
+                                    --output text)
+
+                                if [ -z "\$TASKS" ]; then
+                                    echo "NO_TASK"
+                                    exit 0
+                                fi
+
+                                aws ecs describe-tasks \
+                                    --cluster "${env.ECS_CLUSTER}" \
+                                    --tasks \$TASKS \
+                                    --region "${env.AWS_REGION}" \
+                                    --query 'tasks[].containers[].healthStatus' \
+                                    --output text
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        echo "Backend container health: ${backendHealth}"
+
+                        if (backendHealth && !backendHealth.contains('UNKNOWN')
+                            && !backendHealth.contains('UNHEALTHY')
+                            && !backendHealth.contains('NO_TASK')
+                            && backendHealth.split().every { it == 'HEALTHY' }) {
+
+                            backendHealthy = true
+
+                            echo "✅ Backend container is HEALTHY."
+
+                            break
+                        }
+
+                        if (backendHealth.contains('UNHEALTHY')) {
+
+                            error """
+                            ❌ CRM Backend container is UNHEALTHY.
+
+                            ECS Cluster : ${env.ECS_CLUSTER}
+                            ECS Service : ${env.ECS_BACKEND_SERVICE}
+                            Health      : ${backendHealth}
+                            """
+                        }
+
+                        if (attempt < maxAttempts) {
+
+                            echo "⏳ Backend container is not healthy yet."
+
+                            sleep retrySeconds
+                        }
+                    }
+
+
+                    if (!backendHealthy) {
+
+                        error """
+                        ❌ Backend container health check failed.
+
+                        Service : ${env.ECS_BACKEND_SERVICE}
+
+                        ECS did not report HEALTHY container status
+                        within the expected time.
+                        """
+                    }
+
+
+                    // =================================================
+                    // FINAL RESULT
+                    // =================================================
+
+                    echo ""
+
+                    echo "============================================"
+                    echo "✅ ECS CONTAINER HEALTH CHECK PASSED"
+                    echo "============================================"
+
+                    echo "Frontend : HEALTHY"
+                    echo "Backend  : HEALTHY"
+
+                    echo ""
+                    echo "ECS Cluster : ${env.ECS_CLUSTER}"
+                    echo "Environment : ${env.ENVIRONMENT}"
+
+                    echo ""
+                    echo "🎉 CRM-360 containers are healthy."
+                    echo "============================================"
+                }
+            }
+        }
+
+        stage('Notify & Finish') {
+
+            steps {
+
+                script {
+
+                    echo ""
+                    echo "=================================================="
+                    echo "             DEPLOYMENT COMPLETE"
+                    echo "=================================================="
+
+                    echo ""
+                    echo "Project              : ${env.PROJECT_NAME}"
+                    echo "Environment          : ${env.ENVIRONMENT}"
+                    echo "AWS Account          : ${env.AWS_ACCOUNT_ID}"
+                    echo "AWS Region           : ${env.AWS_REGION}"
+                    echo "ECS Cluster          : ${env.ECS_CLUSTER}"
+
+                    echo ""
+                    echo "--------------------------------------------------"
+                    echo "ECS SERVICES"
+                    echo "--------------------------------------------------"
+
+                    echo "Frontend Service     : ${env.ECS_FRONTEND_SERVICE}"
+                    echo "Frontend Task        : ${env.FRONTEND_TASK_DEFINITION_ARN}"
+                    echo ""
+                    echo "Backend Service      : ${env.ECS_BACKEND_SERVICE}"
+                    echo "Backend Task         : ${env.BACKEND_TASK_DEFINITION_ARN}"
+
+                    echo ""
+                    echo "--------------------------------------------------"
+                    echo "DOCKER IMAGES"
+                    echo "--------------------------------------------------"
+
+                    echo "Frontend Image Tag   : ${env.FRONTEND_TAG}"
+                    echo "Backend Image Tag    : ${env.BACKEND_TAG}"
+
+                    echo ""
+                    echo "--------------------------------------------------"
+                    echo "DEPLOYMENT STATUS"
+                    echo "--------------------------------------------------"
+
+                    echo "CodeBuild            : COMPLETED"
+                    echo "ECS Deployment       : STABLE"
+                    echo "Service Verification : PASSED"
+                    echo "Container Health     : PASSED"
+
+                    echo ""
+                    echo "=================================================="
+                    echo "       ✅ DEPLOYMENT SUCCESSFUL"
+                    echo "=================================================="
+
+                    echo ""
+                    echo "CRM-360 ${env.ENVIRONMENT} deployment completed successfully."
+                    echo "The application is now running on the shared ECS cluster."
+
+                }
+            }
+        }
+}
