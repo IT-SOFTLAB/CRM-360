@@ -48,12 +48,12 @@ model SuperAdmin {
   name           String
   email          String   @unique
   password       String
-  License_count   Int
   startDate      DateTime
   endDate        DateTime
   status         String   @default("Active")
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+  License_count  Int
 
   @@index([organizationId])
 }
@@ -262,6 +262,8 @@ model QuotationItem {
   tax         Float
   discount    Float
   subtotal    Float
+  productId   String?
+  Product     Product?  @relation(fields: [productId], references: [id])
   quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 }
 
@@ -390,5 +392,19 @@ model OutlookIntegration {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
+  @@index([organizationId])
+}
+
+model Product {
+  id             String          @id
+  name           String
+  price          Float
+  organizationId String          @default("orgA")
+  status         String          @default("Active")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime
+  QuotationItem  QuotationItem[]
+
+  @@unique([organizationId, name])
   @@index([organizationId])
 }

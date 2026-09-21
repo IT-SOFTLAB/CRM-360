@@ -29,18 +29,19 @@ const checkLicenseAvailability = async (organizationId) => {
     }
   });
 
+  const usedLicenses = activeUserCount + (superAdmin.status === "Active" ? 1 : 0);
   const licenseCount = superAdmin.License_count;
 
-  return {
-    allowed: activeUserCount < licenseCount,
+    return {
+    allowed: usedLicenses < licenseCount,
     licenseCount,
-    usedLicenses: activeUserCount,
+    usedLicenses: usedLicenses,
     availableLicenses: Math.max(
-      licenseCount - activeUserCount,
+      licenseCount - usedLicenses,
       0
     ),
     message:
-      activeUserCount >= licenseCount
+      usedLicenses >= licenseCount
         ? "License limit reached for this organization"
         : null
   };

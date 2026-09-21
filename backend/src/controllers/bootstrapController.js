@@ -54,49 +54,86 @@ exports.getBootstrapData = async (req, res) => {
   try {
     const user = req.user;
     const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
+    const orgId = user.organizationId;
 
     // Trigger activity reminders generation
     await checkAndCreateActivityReminders(user.id, user.name);
 
-    // 1. Where clauses based on role
-    let leadWhere = {};
-    let oppWhere = {};
-    let customerWhere = {};
-    let activityWhere = {};
-    let quoteWhere = {};
-    let referralWhere = {};
-    let rewardWhere = {};
+    // 1. Where clauses based on role & organization
+    let leadWhere = orgId ? { organizationId: orgId } : {};
+    let oppWhere = orgId ? { organizationId: orgId } : {};
+    let customerWhere = orgId ? { organizationId: orgId } : {};
+    let activityWhere = orgId ? { organizationId: orgId } : {};
+    let quoteWhere = orgId ? { organizationId: orgId } : {};
+    let referralWhere = orgId ? { organizationId: orgId } : {};
+    let rewardWhere = orgId ? { referral: { organizationId: orgId } } : {};
 
     if (userRole === 'USER') {
-      leadWhere = {
-        OR: [
-          { assignedUserId: user.id },
-          { assignedUser: user.name }
-        ]
-      };
-      oppWhere = {
-        OR: [
-          { assignedSalespersonId: user.id },
-          { assignedSalesperson: user.name }
-        ]
-      };
-      customerWhere = { assignedSalesperson: user.name };
-      activityWhere = { salesperson: user.name };
-      quoteWhere = { salesperson: user.name };
-      referralWhere = {
-        OR: [
-          { createdById: user.id },
-          { createdBy: user.name }
-        ]
-      };
-      rewardWhere = {
-        referral: {
+      if (orgId) {
+        leadWhere = {
+          organizationId: orgId,
+          OR: [
+            { assignedUserId: user.id },
+            { assignedUser: user.name }
+          ]
+        };
+        oppWhere = {
+          organizationId: orgId,
+          OR: [
+            { assignedSalespersonId: user.id },
+            { assignedSalesperson: user.name }
+          ]
+        };
+        customerWhere = { organizationId: orgId, assignedSalesperson: user.name };
+        activityWhere = { organizationId: orgId, salesperson: user.name };
+        quoteWhere = { organizationId: orgId, salesperson: user.name };
+        referralWhere = {
+          organizationId: orgId,
           OR: [
             { createdById: user.id },
             { createdBy: user.name }
           ]
-        }
-      };
+        };
+        rewardWhere = {
+          referral: {
+            organizationId: orgId,
+            OR: [
+              { createdById: user.id },
+              { createdBy: user.name }
+            ]
+          }
+        };
+      } else {
+        leadWhere = {
+          OR: [
+            { assignedUserId: user.id },
+            { assignedUser: user.name }
+          ]
+        };
+        oppWhere = {
+          OR: [
+            { assignedSalespersonId: user.id },
+            { assignedSalesperson: user.name }
+          ]
+        };
+        customerWhere = { assignedSalesperson: user.name };
+        activityWhere = { salesperson: user.name };
+        quoteWhere = { salesperson: user.name };
+        referralWhere = {
+          OR: [
+            { createdById: user.id },
+            { createdBy: user.name }
+          ]
+        };
+        rewardWhere = {
+          referral: {
+            OR: [
+              { createdById: user.id },
+              { createdBy: user.name }
+            ]
+          }
+        };
+      }
     }
 
     // 2. Fetch everything concurrently
@@ -184,18 +221,36 @@ exports.getBootstrapData = async (req, res) => {
       }),
       // referral pipeline stages from Prisma
       prisma.referralPipeline.findMany({
+        where: orgId ? { organizationId: orgId } : {},
         orderBy: { sequence: "asc" },
         include: {
           _count: { select: { referrals: true } }
         }
       }),
-      (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN')
-        ? prisma.user.findMany({
-            include: {
-              salesTeam: { select: { id: true, name: true } },
-              admin: { select: { id: true, name: true } }
-            },
-            orderBy: { createdAt: 'desc' }
+           (userRole === 'SUPER_ADMIN' || userRole === 'ADMIN')
+        ? Promise.all([
+            prisma.user.findMany({
+              where: orgId ? { organizationId: orgId } : {},
+              include: {
+                salesTeam: { select: { id: true, name: true } },
+                admin: { select: { id: true, name: true } }
+              },
+              orderBy: { createdAt: 'desc' }
+            }),
+            prisma.superAdmin.findFirst({
+              where: orgId ? { organizationId: orgId } : {}
+            })
+          ]).then(([users, sa]) => {
+            const list = [...users];
+            if (sa) {
+              const { password, ...saClean } = sa;
+              list.unshift({
+                ...saClean,
+                role: "SUPER_ADMIN",
+                admin: null
+              });
+            }
+            return list;
           })
         : Promise.resolve(null),
       // notifications
@@ -209,6 +264,7 @@ exports.getBootstrapData = async (req, res) => {
       }),
       // standard pipelines stages
       prisma.pipelineStage.findMany({
+        where: orgId ? { organizationId: orgId } : {},
         orderBy: { order: 'asc' }
       })
     ]);
@@ -304,22 +360,19 @@ exports.getBootstrapData = async (req, res) => {
       });
     }
 
-    // 7. Get standard pipelines stages
+      // 7. Get standard pipelines stages
     let pipelines = pipelineStagesDb;
-    if (pipelines.length === 0) {
+    if (pipelines.length === 0 && orgId) {
       const defaultStages = [
-        { name: 'New', order: 1 },
-        { name: 'Possible Response Received', order: 2 },
-        { name: 'Discussion', order: 3 },
-        { name: 'Proposal Preparation', order: 4 },
-        { name: 'Negotiation', order: 5 },
-        { name: 'Won', order: 6 },
-        { name: 'Lost', order: 7 }
+        { name: 'New', order: 1, organizationId: orgId },
+        { name: 'Won', order: 2, organizationId: orgId },
+        { name: 'Lost', order: 3, organizationId: orgId }
       ];
       await prisma.pipelineStage.createMany({
         data: defaultStages
       });
       pipelines = await prisma.pipelineStage.findMany({
+        where: { organizationId: orgId },
         orderBy: { order: 'asc' }
       });
     }

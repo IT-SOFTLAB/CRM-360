@@ -186,12 +186,27 @@ async function logActivity(db, user, action, module, details, organizationId = '
 
 
 
-// Pipelines Config (Sales Stages CRUD)
-app.get('/api/pipelines', async (req, res) => {
+orgRouter.get('/pipelines', async (req, res) => {
   try {
-    const stages = await prisma.pipelineStage.findMany({
+    let stages = await prisma.pipelineStage.findMany({
+      where: { organizationId: req.organizationId },
       orderBy: { order: 'asc' }
     });
+
+    // Auto-seed 3 default stages if none exist for this organization
+    if (stages.length === 0) {
+      const defaultStages = [
+        { name: 'New', order: 1, organizationId: req.organizationId },
+        { name: 'Won', order: 2, organizationId: req.organizationId },
+        { name: 'Lost', order: 3, organizationId: req.organizationId }
+      ];
+      await prisma.pipelineStage.createMany({ data: defaultStages });
+      stages = await prisma.pipelineStage.findMany({
+        where: { organizationId: req.organizationId },
+        orderBy: { order: 'asc' }
+      });
+    }
+
     res.json(stages);
   } catch (err) {
     res.status(500).json({ message: err.message });

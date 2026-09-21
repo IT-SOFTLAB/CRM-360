@@ -62,17 +62,18 @@ exports.createSuperAdmin = async (req, res) => {
     // 4. Normalize email
     const normalizedEmail = email.toLowerCase().trim();
 
-    // 5. Check if Super Admin email already exists
+        // 5. Check if Super Admin email already exists in either table
     const existingSuperAdmin = await prisma.superAdmin.findUnique({
-      where: {
-        email: normalizedEmail,
-      },
+      where: { email: normalizedEmail }
+    });
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail }
     });
 
-    if (existingSuperAdmin) {
+    if (existingSuperAdmin || existingUser) {
       return res.status(409).json({
         success: false,
-        message: "Super Admin with this email already exists",
+        message: "User/Super Admin with this email already exists"
       });
     }
 
@@ -91,6 +92,28 @@ exports.createSuperAdmin = async (req, res) => {
         endDate: parsedEndDate,
         status: "Active",
       },
+    });
+        // Auto-create 3 default sales pipeline stages for this new organization
+    const defaultStages = [
+      { name: 'New', order: 1, organizationId: organizationId.trim() },
+      { name: 'Won', order: 2, organizationId: organizationId.trim() },
+      { name: 'Lost', order: 3, organizationId: organizationId.trim() }
+    ];
+
+    await prisma.pipelineStage.createMany({
+      data: defaultStages
+    });
+    
+    await prisma.user.create({
+      data: {
+        id: superAdmin.id, // Use the same ID for seamless mapping
+        name: name.trim(),
+        email: normalizedEmail,
+        password: hashedPassword,
+        role: "SUPER_ADMIN",
+        organizationId: organizationId.trim(),
+        status: "Active"
+      }
     });
 
     // 8. Never return password

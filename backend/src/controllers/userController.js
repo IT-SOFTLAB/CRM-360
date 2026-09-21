@@ -8,18 +8,30 @@ exports.getAllUsers = async (req, res) => {
     const users = await prisma.user.findMany({
       where: { organizationId: req.organizationId },
       include: {
-        admin: {
-          select: { id: true, name: true }
-        }
+        admin: { select: { id: true, name: true } }
       },
       orderBy: { name: 'asc' }
     });
 
-    // Strip passwords
+    // Fetch the SuperAdmin for this organization
+    const superAdmin = await prisma.superAdmin.findFirst({
+      where: { organizationId: req.organizationId }
+    });
+
     const cleanUsers = users.map(u => {
       const { password, ...userWithoutPassword } = u;
       return userWithoutPassword;
     });
+
+    
+    if (superAdmin) {
+      const { password, ...saClean } = superAdmin;
+      cleanUsers.unshift({
+        ...saClean,
+        role: "SUPER_ADMIN",
+        admin: null
+      });
+    }
 
     res.json(cleanUsers);
   } catch (err) {
