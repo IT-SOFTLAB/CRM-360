@@ -1,25 +1,6 @@
 import api from './api';
 
 export const authService = {
-  checkSetupStatus: async () => {
-    try {
-      const res = await api.get('/auth/setup-status');
-      return res.data; // e.g. { setupRequired: true/false }
-    } catch (err) {
-      console.warn('API error checking setup status', err);
-      return { setupRequired: false };
-    }
-  },
-
-  setup: async (setupData: any) => {
-    try {
-      const res = await api.post('/auth/setup', setupData);
-      return res.data;
-    } catch (err) {
-      console.error('API error during organization setup', err);
-      return null;
-    }
-  },
 
   login: async (credentials: any) => {
     try {

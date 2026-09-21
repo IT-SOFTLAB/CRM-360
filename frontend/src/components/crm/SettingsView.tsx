@@ -455,10 +455,10 @@ useEffect(() => {
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 cursor-pointer"
             >
               {showClientSecret ? (
-                <EyeOff className="w-4 h-4" />
-              ) : (
                 <Eye className="w-4 h-4" />
-              )}
+              ):(
+                <EyeOff className="w-4 h-4" />
+              ) }
             </button>
 
           </div>
@@ -1025,7 +1025,7 @@ useEffect(() => {
                   onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650 focus:outline-none cursor-pointer"
                 >
-                  {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showCurrentPassword ?  <Eye className="w-4 h-4" />:<EyeOff className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -1043,7 +1043,7 @@ useEffect(() => {
                   onClick={() => setShowNewPassword(!showNewPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650 focus:outline-none cursor-pointer"
                 >
-                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showCurrentPassword ?  <Eye className="w-4 h-4" />:<EyeOff className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -1061,7 +1061,7 @@ useEffect(() => {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-650 focus:outline-none cursor-pointer"
                 >
-                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showCurrentPassword ?  <Eye className="w-4 h-4" />:<EyeOff className="w-4 h-4" />}
                 </button>
               </div>
             </div>

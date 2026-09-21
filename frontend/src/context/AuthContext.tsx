@@ -21,9 +21,6 @@ export interface AuthContextType {
   handleAuthSubmit: (e: React.FormEvent, onSuccess?: () => void) => Promise<void>;
   handleLogout: () => void;
   selectQuickAccount: (email: string) => void;
-  setupRequired: boolean;
-  setSetupRequired: React.Dispatch<React.SetStateAction<boolean>>;
-  handleSetupSubmit: (setupData: any, onSuccess?: () => void) => Promise<boolean>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,7 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register' |"forgotPassword"| 'setup'>('login');
   const [authForm, setAuthForm] = useState<AuthForm>(DEFAULT_AUTH_FORM);
-  const [setupRequired, setSetupRequired] = useState(false);
+
   const toastCtx = useContext(ToastContext);
 
   useEffect(() => {
@@ -42,19 +39,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const initialize = async () => {
       // Che setup status
-      try {
-        const res = await authService.checkSetupStatus();
-        if (res && res.setupRequired) {
-          setSetupRequired(true);
-          setAuthMode('setup');
-          setAuthReady(true);
-          return;
-        } else {
-          setSetupRequired(false);
-        }
-      } catch {
-        setSetupRequired(false);
-      }
 
       // Restore user from localStorage
       const savedUser = localStorage.getItem('crm_user');
@@ -133,22 +117,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const handleSetupSubmit = async (setupData: any, onSuccess?: () => void) => {
-    if (!toastCtx) return false;
-    const res = await authService.setup(setupData);
-    if (res && res.user) {
-      setUser(res.user);
-      localStorage.setItem('crm_user', JSON.stringify(res.user));
-      setSetupRequired(false);
-      setAuthMode('login');
-      toastCtx.addToast('success', 'CRM Organization & Super Admin created successfully!');
-      if (onSuccess) onSuccess();
-      return true;
-    } else {
-      toastCtx.addToast('error', 'Failed to complete initial setup');
-      return false;
-    }
-  };
+
 
   const handleLogout = async () => {
     setUser(null);
@@ -184,17 +153,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       handleAuthSubmit,
       handleLogout,
       selectQuickAccount,
-      setupRequired,
-      setSetupRequired,
-      handleSetupSubmit
     }}>
       {children}
-      {/* style first-time overlay indicator */}
-      {setupRequired && mounted && (
-        <div className="fixed bottom-4 right-4 bg-yellow-500 text-black px-4 py-2 rounded-lg shadow-lg text-xs font-semibold z-50">
-          ⚙️ First-Run Setup Mode Active
-        </div>
-      )}
     </AuthContext.Provider>
   );
 };

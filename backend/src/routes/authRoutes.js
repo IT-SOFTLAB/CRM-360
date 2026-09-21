@@ -4,10 +4,6 @@ const auth = require('../controllers/authController');
 const authenticateJWT = require('../middlewares/authMiddleware');
 const { requireAdminOrSuperAdmin } = require('../middlewares/roleMiddleware');
 
-// Setup checks
-router.get('/setup-status', auth.setupStatus);
-router.post('/setup', auth.setup);
-
 // Standard auth endpoints
 router.post('/login', auth.login);
 
