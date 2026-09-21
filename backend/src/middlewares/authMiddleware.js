@@ -44,11 +44,20 @@ const authenticateJWT = async (req, res, next) => {
     const organizationId = req.params.organizationId;
 
     // 5. First check normal User table
-    let user = await prisma.user.findUnique({
-      where: {
-        id: decoded.userId
-      }
-    });
+   let user = await prisma.user.findUnique({ where: { id: decoded.userId } });
+if (!user) {
+  const superAdmin = await prisma.superAdmin.findUnique({ where: { id: decoded.userId } });
+  if (superAdmin && superAdmin.status !== 'Inactive') {
+    user = {
+      id: superAdmin.id,
+      name: superAdmin.name,
+      email: superAdmin.email,
+      role: 'SUPER_ADMIN',
+      organizationId: superAdmin.organizationId,
+      status: superAdmin.status
+    };
+  }
+}
 
     // 6. If not found, check SuperAdmin table
     if (!user) {

@@ -4,9 +4,9 @@ const { getCache, setCache, deletePatternCache } = require('../config/redisCache
 
 const invalidateLeadCache = async (organizationId) => {
   if (!organizationId) return;
-  // Invalidate all leads list queries for this organization
   await deletePatternCache(`crm:leads:${organizationId}:*`);
-  // Invalidate dashboard metrics as lead count/categories changed
+  await deletePatternCache(`crm:opportunities:${organizationId}:*`);
+  await deletePatternCache(`crm:bootstrap:${organizationId}:*`);
   await deletePatternCache(`crm:dashboard:${organizationId}:*`);
 };
 

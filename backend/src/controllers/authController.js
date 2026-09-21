@@ -6,8 +6,8 @@ require("isomorphic-fetch");
 const { sendMail } = require("../services/mailService");
 const prisma = require("../config/prisma");
 const {
-    getAuthUrl,
-    getTokenFromCode
+  getAuthUrl,
+  getTokenFromCode
 } = require("../services/graphService");
 const JWT_SECRET = process.env.JWT_SECRET || 'mysecretkey';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'myrefreshsecretkey';
@@ -94,14 +94,6 @@ exports.login = async (req, res) => {
       );
 
       // Save refresh token
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7);
-
-      // IMPORTANT:
-      // Your current refreshToken table expects a User ID.
-      // We will handle this separately if your schema does not
-      // allow SuperAdmin IDs here.
-
       const isProduction = process.env.NODE_ENV === "production";
 
       res.cookie("accessToken", accessToken, {
@@ -242,39 +234,79 @@ exports.refresh = async (req, res) => {
       return res.status(401).json({ message: 'Refresh token required' });
     }
 
-   
-    const dbToken = await prisma.refreshToken.findUnique({ where: { token } });
-    if (!dbToken) {
-     
-      const decoded = jwt.decode(token);
-      if (decoded && decoded.userId) {
-        await prisma.refreshToken.deleteMany({ where: { userId: decoded.userId } });
+    // 1. Decode refresh token to check user ID
+    const decoded = jwt.verify(token, JWT_REFRESH_SECRET);
+
+    // 2. Check if token belongs to SuperAdmin
+    const superAdmin = await prisma.superAdmin.findUnique({ where: { id: decoded.userId } });
+
+    if (superAdmin) {
+      if (superAdmin.status === 'Inactive') {
+        return res.status(403).json({ message: 'Account deactivated' });
       }
-      return res.status(403).json({ message: 'Invalid or reused refresh token' });
+
+      const nextAccessToken = jwt.sign(
+        {
+          userId: superAdmin.id,
+          email: superAdmin.email,
+          role: 'SUPER_ADMIN',
+          organizationId: superAdmin.organizationId
+        },
+        JWT_SECRET,
+        { expiresIn: '15m' }
+      );
+
+      const nextRefreshToken = jwt.sign(
+        { userId: superAdmin.id },
+        JWT_REFRESH_SECRET,
+        { expiresIn: '7d' }
+      );
+
+      const isProduction = process.env.NODE_ENV === 'production';
+      res.cookie('accessToken', nextAccessToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'None' : 'lax',
+        maxAge: 15 * 60 * 1000
+      });
+
+      res.cookie('refreshToken', nextRefreshToken, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: isProduction ? 'None' : 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
+
+      return res.json({
+        accessToken: nextAccessToken,
+        token: nextAccessToken,
+        refreshToken: nextRefreshToken
+      });
     }
 
-
-    const decoded = jwt.verify(token, JWT_REFRESH_SECRET);
+    // 3. Otherwise, check normal User in DB
+    const dbToken = await prisma.refreshToken.findUnique({ where: { token } });
+    if (!dbToken) {
+      return res.status(403).json({ message: 'Invalid or reused refresh token' });
+    }
 
     const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
     if (!user || user.status === 'Inactive' || user.isLocked) {
       return res.status(401).json({ message: 'User unauthorized' });
     }
 
-   
     await prisma.refreshToken.delete({ where: { id: dbToken.id } });
 
- 
-   const nextAccessToken = jwt.sign(
-  {
-    userId: user.id,
-    email: user.email,
-    role: user.role,
-    organizationId: user.organizationId
-  },
-  JWT_SECRET,
-  { expiresIn: '15m' }
-);
+    const nextAccessToken = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        organizationId: user.organizationId
+      },
+      JWT_SECRET,
+      { expiresIn: '15m' }
+    );
 
     const nextRefreshToken = jwt.sign(
       { userId: user.id },
@@ -307,13 +339,14 @@ exports.refresh = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
-    res.json({
+    return res.json({
       accessToken: nextAccessToken,
+      token: nextAccessToken,
       refreshToken: nextRefreshToken
     });
   } catch (err) {
-    console.error('Refresh token error:', err);
-    return res.status(401).json({ message: 'Invalid refresh token' });
+    console.error('Refresh error:', err);
+    return res.status(401).json({ message: 'Invalid or expired refresh token' });
   }
 };
 
@@ -356,7 +389,7 @@ exports.logout = async (req, res) => {
     console.error('Logout error:', err);
     res.status(500).json({ message: 'Logout failed' });
   }
- 
+
 };
 
 
@@ -381,7 +414,7 @@ exports.changePassword = async (req, res) => {
       data: { password: hashedNewPassword }
     });
 
-    
+
     await prisma.refreshToken.deleteMany({ where: { userId } });
 
     res.json({ message: 'Password updated successfully. Please log in again.' });
@@ -534,23 +567,23 @@ exports.verifyOtp = async (req, res) => {
 
 exports.resetPassword = async (req, res) => {
   try {
-const { email, otp, newPassword } = req.body;
+    const { email, otp, newPassword } = req.body;
 
-if (!newPassword) {
-  return res.status(400).json({
-    success: false,
-    message: "New password is required",
-  });
-}
+    if (!newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password is required",
+      });
+    }
 
-if (newPassword.length < 8) {
-  return res.status(400).json({
-    success: false,
-    message: "Password must be at least 8 characters long.",
-  });
-}
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters long.",
+      });
+    }
 
-   if (!email || !otp || !newPassword) {
+    if (!email || !otp || !newPassword) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
