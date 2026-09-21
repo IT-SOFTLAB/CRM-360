@@ -19,8 +19,6 @@ setAuthMode: (
   setAuthForm: (form: any) => void;
   onSubmit: (e: React.FormEvent) => void;
   addToast: (type: 'success' | 'error' | 'info', msg: string) => void;
-  setupRequired?: boolean;
-  onSetupSubmit?: (setupData: any) => Promise<boolean>;
 }
 
 
@@ -31,9 +29,7 @@ export default function LoginView({
   authForm,
   setAuthForm,
   onSubmit,
-  addToast,
-  setupRequired,
-  onSetupSubmit
+  addToast
 }: LoginViewProps) {
 
   const [currentImage, setCurrentImage] = useState(0);
@@ -45,85 +41,18 @@ useEffect(() => {
 
     return () => clearInterval(interval);
 }, []);
-  // Local state for setup form
-  const [setupData, setSetupData] = useState({
-    companyName: '',
-    companyEmail: '',
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
-
   const [showPassword, setShowPassword] = useState(false);
-  const [showSetupPassword, setShowSetupPassword] = useState(false);
-  const [showSetupConfirmPassword, setShowSetupConfirmPassword] = useState(false);
- const [otpInputs, setOtpInputs] = useState(["", "", "", "", "", ""]);
+  const [otpInputs, setOtpInputs] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-const [forgotStep, setForgotStep] = useState(1);
+  const [forgotStep, setForgotStep] = useState(1);
 
-const [forgotData, setForgotData] = useState({
-  email: "",
-  otp: "",
-  newPassword: "",
-  confirmPassword: "",
-});
-  const handleLocalSetupSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    // Field validations
-    if (!setupData.companyName.trim()) {
-      setError('Company Name is required.');
-      return;
-    }
-    if (!setupData.companyEmail.trim()) {
-      setError('Company Email is required.');
-      return;
-    }
-    if (!setupData.name.trim()) {
-      setError('Super Admin Name is required.');
-      return;
-    }
-    if (!setupData.email.trim()) {
-      setError('Super Admin Email is required.');
-      return;
-    }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(setupData.email) || !emailRegex.test(setupData.companyEmail)) {
-      setError('Please enter a valid email address.');
-      return;
-    }
-    if (setupData.password.length < 6) {
-      setError('Password must be at least 6 characters long.');
-      return;
-    }
-    if (setupData.password !== setupData.confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      if (onSetupSubmit) {
-        const ok = await onSetupSubmit({
-          companyName: setupData.companyName,
-          companyEmail: setupData.companyEmail,
-          name: setupData.name,
-          email: setupData.email,
-          password: setupData.password
-        });
-        if (!ok) {
-          setError('Setup execution failed. Please verify database connection.');
-        }
-      }
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Initial setup failed.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [forgotData, setForgotData] = useState({
+    email: "",
+    otp: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
 
   const handleLocalLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -272,8 +201,6 @@ const handleResetPassword = async () => {
     addToast('info', `Credential filled for ${email}`);
   };
 
-  const isSetup = authMode === 'setup' || setupRequired;
-
   // Shared input classes — flat boxed style with room for a leading icon
   const fieldClass =
     "w-full bg-slate-100 dark:bg-slate-800 border border-transparent rounded-xl pl-11 pr-4 py-3.5 text-sm text-txt-primary placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all duration-200";
@@ -291,60 +218,40 @@ const handleResetPassword = async () => {
         {/* LEFT: form panel */}
         <div className="relative flex flex-col p-6 sm:p-8 md:p-10 overflow-hidden">
 
-  
           <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-indigo-500/[0.06] blur-3xl" />
           <div className="pointer-events-none absolute top-1/2 -left-16 w-56 h-56 rounded-full bg-blue-500/[0.05] blur-3xl" />
           <div className="pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600" />
 
           <div className="flex items-center justify-between gap-3 mb-6 relative">
-         <div className="flex items-center gap-4">
-
-    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 shadow-lg shadow-indigo-600/30 flex items-center justify-center ring-1 ring-white/20">
-
-        <span className="text-white font-black text-2xl tracking-tight">
-            C
-        </span>
-
-    </div>
-
-    <div>
-
-        <h2 className="text-3xl font-black text-slate-900 dark:text-gray-300 tracking-tight">
-            CRM 360
-        </h2>
-
-        <p className="text-sm text-slate-500 dark:text-gray-400 font-medium">
-            Sales Intelligence Platform
-        </p>
-
-    </div>
-
-</div>
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-700 shadow-lg shadow-indigo-600/30 flex items-center justify-center ring-1 ring-white/20">
+                <span className="text-white font-black text-2xl tracking-tight">C</span>
+              </div>
+              <div>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-gray-300 tracking-tight">
+                  CRM 360
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-gray-400 font-medium">
+                  Sales Intelligence Platform
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* form content is vertically centered so the panel reads balanced, not top-heavy */}
           <div className="flex-1 flex flex-col justify-center relative">
 
-          {/* Header tabs - only show if first-run setup is NOT active */}
-          {!isSetup ? (
-            authMode !== 'forgotPassword' && (
-              <div className="mb-6">
-              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight dark:text-gray-300 ">
-Welcome Back
-</h1>
-
-<p className="text-sm text-slate-500 dark:text-gray-800  mt-2 leading-relaxed">
-Sign in to continue managing your leads,
-sales pipeline and customer relationships.
-</p>
-              </div>
-            )
-          ) : (
+          {/* Header tabs */}
+          {authMode !== 'forgotPassword' && (
             <div className="mb-6">
-              <span className="inline-flex items-center gap-1.5 text-xs font-extrabold tracking-wide text-amber-600 bg-amber-500/10 ring-1 ring-amber-500/20 rounded-full px-3 py-1.5 dark:text-gray-300 ">
-                ⚙️ DATABASE INITIAL SETUP
-              </span>
-              <p className="text-txt-secondary text-xs mt-2">Enterprise Organization &amp; Super Admin Setup</p>
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight leading-tight dark:text-gray-300 ">
+                Welcome Back
+              </h1>
+
+              <p className="text-sm text-slate-500 dark:text-gray-800  mt-2 leading-relaxed">
+                Sign in to continue managing your leads,
+                sales pipeline and customer relationships.
+              </p>
             </div>
           )}
 
@@ -355,130 +262,7 @@ sales pipeline and customer relationships.
             </div>
           )}
 
-          {isSetup ? (
-            /* First time setup registration form */
-            <form onSubmit={handleLocalSetupSubmit} className="space-y-4">
-              <div className="relative">
-                <Building2 className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text" required
-                  className={fieldClass}
-                  placeholder="Company name"
-                  value={setupData.companyName}
-                  onChange={e => {
-                    setError('');
-                    setSetupData({ ...setupData, companyName: e.target.value });
-                  }}
-                />
-              </div>
-
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="email" required
-                  className={fieldClass}
-                  placeholder="Company email"
-                  value={setupData.companyEmail}
-                  onChange={e => {
-                    setError('');
-                    setSetupData({ ...setupData, companyEmail: e.target.value });
-                  }}
-                />
-              </div>
-
-              <div className="pt-2 flex items-center gap-3">
-                <span className="text-xs font-bold text-txt-secondary tracking-wide">SUPER ADMIN CREDENTIALS</span>
-                <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-              </div>
-
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="text" required
-                  className={fieldClass}
-                  placeholder="Super admin name"
-                  value={setupData.name}
-                  onChange={e => {
-                    setError('');
-                    setSetupData({ ...setupData, name: e.target.value });
-                  }}
-                />
-              </div>
-
-              <div className="relative">
-                <Mail className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                <input
-                  type="email" required
-                  className={fieldClass}
-                  placeholder="Super admin email"
-                  value={setupData.email}
-                  onChange={e => {
-                    setError('');
-                    setSetupData({ ...setupData, email: e.target.value });
-                  }}
-                />
-              </div>
-
-              <div>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type={showSetupPassword ? "text" : "password"} required
-                    className={`${fieldClass} pr-10`}
-                    placeholder="Password"
-                    value={setupData.password}
-                    onChange={e => {
-                      setError('');
-                      setSetupData({ ...setupData, password: e.target.value });
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSetupPassword(!showSetupPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
-                  >
-                    {showSetupPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                  <input
-                    type={showSetupConfirmPassword ? "text" : "password"} required
-                    className={`${fieldClass} pr-10`}
-                    placeholder="Confirm password"
-                    value={setupData.confirmPassword}
-                    onChange={e => {
-                      setError('');
-                      setSetupData({ ...setupData, confirmPassword: e.target.value });
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowSetupConfirmPassword(!showSetupConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none cursor-pointer"
-                  >
-                    {showSetupConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl py-3.5 text-sm font-bold transition-all mt-4 cursor-pointer shadow-lg shadow-indigo-600/25 hover:shadow-xl hover:shadow-indigo-600/30 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {loading ? 'Initializing organization...' : (
-                  <>
-                    Initialize CRM Organization
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
-            </form>
-          ) : authMode === "forgotPassword" ? (
+          {authMode === "forgotPassword" ? (
             <form
               onSubmit={(e) => {
                 e.preventDefault();

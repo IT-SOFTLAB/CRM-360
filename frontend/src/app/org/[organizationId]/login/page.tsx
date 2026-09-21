@@ -14,8 +14,7 @@ export default function OrganizationLoginPage() {
       setAuthForm={crm.setAuthForm}
       onSubmit={crm.handleAuthSubmit}
       addToast={crm.addToast}
-      setupRequired={crm.setupRequired}
-      onSetupSubmit={crm.handleSetupSubmit}
+    
     />
   );
 }
