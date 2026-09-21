@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Check, X, Trash2, Plus, Pencil, Eye, EyeOff } from 'lucide-react';
 import { authService } from '@/services/auth.service';
 import ThemeToggle from '@/components/crm/ThemeToggle';
 import { outlookIntegrationService } from '@/services/outlookIntegration.service';
+import { productService } from '@/services/product.service';
 interface SettingsViewProps {
   companyBranding: any;
   setCompanyBranding: (branding: any) => void;
@@ -46,7 +47,12 @@ export default function SettingsView({
   const [showInvitePassword, setShowInvitePassword] = useState(false);
 
 const [showClientSecret, setShowClientSecret] = useState(false);
+const [products, setProducts] = useState<any[]>([]);
+const [productName, setProductName] = useState('');
+const [productPrice, setProductPrice] = useState('');
+const [productLoading, setProductLoading] = useState(false);
 
+const [editingProduct, setEditingProduct] = useState<any | null>(null);
 
   const handleChangePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -302,6 +308,23 @@ const handleSaveOutlookIntegration = async (
   }
 };
 
+const loadProducts = async () => {
+  try {
+    const response = await productService.getAllProducts();
+    setProducts(response);
+  } catch (error) {
+    console.error("Failed to load products:", error);
+    addToast("error", "Failed to load products");
+  }
+};
+
+useEffect(() => {
+  if (userRole === "SUPER_ADMIN") {
+    loadProducts();
+  }
+}, [userRole]);
+
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs text-txt-primary">
       
@@ -481,6 +504,8 @@ const handleSaveOutlookIntegration = async (
           />
         </div>
 
+
+
         <button
           type="submit"
           disabled={outlookSaving}
@@ -498,6 +523,247 @@ const handleSaveOutlookIntegration = async (
 
   </div>
 )}
+
+{/* Product Master */}
+{userRole === 'SUPER_ADMIN' && (
+  <div className="bg-white-300 border border-slate-700/60 rounded-2xl p-5 space-y-4">
+
+    <div className="flex justify-between items-center">
+      <div>
+        <h4 className="font-bold text-xs uppercase tracking-wider text-slate-600">
+          Product Master
+        </h4>
+
+        <p className="text-[11px] text-slate-500 mt-1">
+          Manage products and their prices.
+        </p>
+      </div>
+
+      {/* <button
+        type="button"
+        onClick={() => {
+          setEditingProduct(null);
+          setProductName('');
+          setProductPrice('');
+        }}
+        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-3 py-1.5 text-[10px] font-semibold flex items-center gap-1"
+      >
+        <Plus className="w-3 h-3" />
+        Add Product
+      </button> */}
+    </div>
+
+    {/* Add / Edit Product */}
+    <form
+      onSubmit={async (e) => {
+        e.preventDefault();
+
+        if (!productName.trim()) {
+          addToast("error", "Product name is required");
+          return;
+        }
+
+        const price = Number(productPrice);
+
+        if (!Number.isFinite(price) || price < 0) {
+          addToast("error", "Enter a valid price");
+          return;
+        }
+
+        try {
+          setProductLoading(true);
+
+          if (editingProduct) {
+  await productService.updateProduct(
+    editingProduct.id,
+    {
+      name: productName.trim(),
+      price,
+    }
+  );
+
+  addToast("success", "Product updated successfully");
+} else {
+  await productService.createProduct({
+    name: productName.trim(),
+    price,
+  });
+
+  addToast("success", "Product created successfully");
+}
+
+          setProductName('');
+          setProductPrice('');
+          setEditingProduct(null);
+
+          await loadProducts();
+
+        } catch (error: any) {
+          addToast(
+            "error",
+            error?.response?.data?.message || "Failed to save product"
+          );
+        } finally {
+          setProductLoading(false);
+        }
+      }}
+      className="flex gap-2"
+    >
+      <input
+        type="text"
+        placeholder="Product name"
+        value={productName}
+        onChange={(e) => setProductName(e.target.value)}
+        className="flex-1 border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-xs text-txt-primary"
+      />
+
+      <input
+        type="number"
+        min="0"
+        placeholder="Price"
+        value={productPrice}
+        onChange={(e) => setProductPrice(e.target.value)}
+        className="w-32 border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-xs text-txt-primary"
+      />
+
+      <button
+        type="submit"
+        disabled={productLoading}
+        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-50"
+      >
+        {productLoading
+          ? "Saving..."
+          : editingProduct
+            ? "Update"
+            : "Add"}
+      </button>
+    </form>
+
+    {/* Product List */}
+    <div className="space-y-2 mt-4">
+      {products.length === 0 ? (
+        <p className="text-xs text-slate-500">
+          No products found.
+        </p>
+      ) : (
+        products.map((product) => (
+          <div
+            key={product.id}
+            className="flex items-center justify-between border border-border-crm rounded-xl px-3 py-2"
+          >
+            <div>
+              <p className="text-xs font-semibold text-txt-primary">
+                {product.name}
+              </p>
+
+              <p className="text-[11px] text-slate-500">
+                ₹{product.price}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+
+              <span
+                className={`text-[10px] font-semibold ${
+                  product.status === "Active"
+                    ? "text-emerald-600"
+                    : "text-slate-500"
+                }`}
+              >
+                {product.status}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingProduct(product);
+                  setProductName(product.name);
+                  setProductPrice(String(product.price));
+                }}
+                className="text-blue-500 hover:text-blue-700 p-1"
+                title="Edit Product"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const nextStatus =
+                      product.status === "Active"
+                        ? "Inactive"
+                        : "Active";
+
+                  await productService.changeProductStatus(
+  product.id,
+  nextStatus
+);
+                    addToast(
+                      "success",
+                      `Product ${nextStatus.toLowerCase()} successfully`
+                    );
+
+                    await loadProducts();
+                  } catch (error: any) {
+                    addToast(
+                      "error",
+                      error?.response?.data?.message ||
+                        "Failed to change product status"
+                    );
+                  }
+                }}
+                className="text-amber-500 hover:text-amber-700 p-1"
+                title="Change Status"
+              >
+                {product.status === "Active" ? (
+                  <EyeOff className="w-3.5 h-3.5" />
+                ) : (
+                  <Eye className="w-3.5 h-3.5" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!window.confirm(
+                    `Delete ${product.name}?`
+                  )) {
+                    return;
+                  }
+
+                  try {
+                    await productService.deleteProduct(product.id);
+
+                    addToast(
+                      "success",
+                      "Product deleted successfully"
+                    );
+
+                    await loadProducts();
+                  } catch (error: any) {
+                    addToast(
+                      "error",
+                      error?.response?.data?.message ||
+                        "Failed to delete product"
+                    );
+                  }
+                }}
+                className="text-rose-500 hover:text-rose-700 p-1"
+                title="Delete Product"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+
+  </div>
+)}
+
 
         {/* Project Categories */}
         {(userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') && (
