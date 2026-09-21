@@ -46,6 +46,34 @@ exports.createQuotation = async (req, res) => {
       internalNotes
     } = req.body;
 
+const quotationItems = await Promise.all(
+  (items || []).map(async (item) => {
+
+    const product = await prisma.product.findFirst({
+      where: {
+        id: item.productId,
+        organizationId: req.organizationId,
+        status: "Active"
+      }
+    });
+
+    if (!product) {
+      throw new Error("Product not found or inactive");
+    }
+
+    return {
+      productId: product.id,
+      product: product.name,
+      description: item.description || "",
+      quantity: Number(item.quantity || 1),
+      unitPrice: product.price,
+      tax: Number(item.tax || 0),
+      discount: Number(item.discount || 0),
+      subtotal: Number(item.subtotal || 0)
+    };
+  })
+);
+
     const quotation = await prisma.quotation.create({
       data: {
         quotationNumber,
@@ -79,15 +107,9 @@ exports.createQuotation = async (req, res) => {
         internalNotes,
         organizationId: req.organizationId,
         items: {
-          create: (items || []).map(item => ({
-            product: item.product,
-            description: item.description,
-            quantity: Number(item.quantity || item.qty || 1),
-            unitPrice: Number(item.unitPrice || item.price || 0),
-            tax: Number(item.tax || 0),
-            discount: Number(item.discount || 0),
-            subtotal: Number(item.subtotal || 0)
-          }))
+           items: {
+      create: quotationItems
+    }
         }
       },
       include: {

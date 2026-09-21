@@ -27,6 +27,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const customerRoutes = require("./src/routes/customerRoutes.js");
 const quotationRoutes = require("./src/routes/quotationRoutes");
+const productRoutes = require("./src/routes/productRoutes");
 const salesTeamRoutes = require("./src/routes/salesTeamRoutes.js");
 const userRoutes = require("./src/routes/userRoutes.js");
 const outlookIntegrationRoutes = require(
@@ -120,6 +121,7 @@ orgRouter.use(
 orgRouter.use("/:organizationId/referrals", referralRoutes);
 orgRouter.use("/:organizationId/emails", emailRoutes);
 orgRouter.use("/:organizationId/quotations", quotationRoutes);
+orgRouter.use("/:organizationId/products", productRoutes);
 orgRouter.use("/:organizationId/referral-pipeline", pipelineRoutes);
 orgRouter.use("/:organizationId/notifications", notificationRoutes);
 orgRouter.use("/:organizationId/calendar", calendarRoutes);
