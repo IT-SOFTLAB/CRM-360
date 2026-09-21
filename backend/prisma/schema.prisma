@@ -263,7 +263,7 @@ model QuotationItem {
   discount    Float
   subtotal    Float
   productId   String?
-  Product     Product?  @relation(fields: [productId], references: [id])
+  productRef  Product?  @relation(fields: [productId], references: [id])
   quotation   Quotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
 }
 
@@ -396,14 +396,14 @@ model OutlookIntegration {
 }
 
 model Product {
-  id             String          @id
+  id             String          @id @default(cuid())
   name           String
   price          Float
   organizationId String          @default("orgA")
   status         String          @default("Active")
   createdAt      DateTime        @default(now())
-  updatedAt      DateTime
-  QuotationItem  QuotationItem[]
+  updatedAt      DateTime        @updatedAt
+  quotationItems QuotationItem[]
 
   @@unique([organizationId, name])
   @@index([organizationId])
