@@ -280,6 +280,16 @@ async function assign(parameters, req) {
 
     }
 
+const { deletePatternCache } = require("../../config/redisCache");
+
+const invalidateLeadCache = async (organizationId) => {
+  if (!organizationId) return;
+  await deletePatternCache(`crm:leads:${organizationId}:*`);
+  await deletePatternCache(`crm:opportunities:${organizationId}:*`);
+  await deletePatternCache(`crm:bootstrap:${organizationId}:*`);
+  await deletePatternCache(`crm:dashboard:${organizationId}:*`);
+};
+
     //-------------------------------------
     // Update Lead
     //-------------------------------------
@@ -302,6 +312,54 @@ async function assign(parameters, req) {
             }
 
         });
+
+    // Update opportunity
+    const oppRes = await prisma.opportunity.updateMany({
+        where: {
+            leadId: existingLead.id,
+            organizationId: req.user.organizationId
+        },
+        data: {
+            assignedSalesperson: user.name,
+            assignedSalespersonId: user.id
+        }
+    });
+
+    if (oppRes.count === 0) {
+        await prisma.opportunity.create({
+            data: {
+                organizationId: req.user.organizationId,
+                leadId: existingLead.id,
+                customerName: updatedLead.contactName,
+                company: updatedLead.company,
+                email: updatedLead.email,
+                phone: updatedLead.phone,
+                dealValue: updatedLead.dealValue || 0,
+                stage: updatedLead.status || 'New',
+                assignedSalesperson: user.name,
+                assignedSalespersonId: user.id,
+                createdAt: updatedLead.createdAt
+            }
+        }).catch(err => console.error("AI assign missing opp create error:", err.message));
+    }
+
+    // Update customers
+    const opps = await prisma.opportunity.findMany({
+        where: { leadId: existingLead.id, organizationId: req.user.organizationId },
+        select: { id: true }
+    });
+    const oppIds = opps.map(o => o.id);
+    if (oppIds.length > 0) {
+        await prisma.customer.updateMany({
+            where: { opportunityId: { in: oppIds }, organizationId: req.user.organizationId },
+            data: {
+                assignedSalesperson: user.name,
+                assignedSalespersonId: user.id
+            }
+        });
+    }
+
+    await invalidateLeadCache(req.user.organizationId);
 
     //-------------------------------------
     // Result
@@ -526,7 +584,13 @@ async function deleteLead(parameters, req) {
         where: { id: lead.id }
     });
 
-
+    const { deletePatternCache } = require("../../config/redisCache");
+    if (req?.user?.organizationId) {
+        await deletePatternCache(`crm:leads:${req.user.organizationId}:*`);
+        await deletePatternCache(`crm:opportunities:${req.user.organizationId}:*`);
+        await deletePatternCache(`crm:bootstrap:${req.user.organizationId}:*`);
+        await deletePatternCache(`crm:dashboard:${req.user.organizationId}:*`);
+    }
 
     return {
         success: true,

@@ -68,7 +68,6 @@ class AuthorizationService {
   //------------------------------------
 
   leadFilter(user) {
-
     const orgFilter = this.organizationFilter(user);
 
     // ADMIN / SUPER_ADMIN
@@ -76,19 +75,21 @@ class AuthorizationService {
       return orgFilter;
     }
 
-    // USER -> same organization + own records
+    // USER -> same organization + own records (by ID or Name)
     return {
       ...orgFilter,
-      assignedUserId: user.id
+      OR: [
+        { assignedUserId: user.id },
+        { assignedUser: user.name }
+      ]
     };
-}
+  }
 
   //------------------------------------
   // Opportunity Filter
   //------------------------------------
 
   opportunityFilter(user) {
-
     const orgFilter = this.organizationFilter(user);
 
     // ADMIN / SUPER_ADMIN
@@ -96,10 +97,13 @@ class AuthorizationService {
       return orgFilter;
     }
 
-    // USER -> same organization + own records
+    // USER -> same organization + own records (by ID or Name)
     return {
       ...orgFilter,
-      assignedSalespersonId: user.id
+      OR: [
+        { assignedSalespersonId: user.id },
+        { assignedSalesperson: user.name }
+      ]
     };
   }
 
@@ -108,7 +112,6 @@ class AuthorizationService {
   //------------------------------------
 
   customerFilter(user) {
-
     const orgFilter = this.organizationFilter(user);
 
     if (this.isAdminLike(user)) {
@@ -117,9 +120,12 @@ class AuthorizationService {
 
     return {
       ...orgFilter,
-      assignedSalespersonId: user.id
+      OR: [
+        { assignedSalespersonId: user.id },
+        { assignedSalesperson: user.name }
+      ]
     };
-}
+  }
 
 
   //------------------------------------

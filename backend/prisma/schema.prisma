@@ -373,11 +373,12 @@ model SavedFilter {
 
 model PipelineStage {
   id             String   @id @default(cuid())
-  name           String   @unique
+  name           String
   order          Int
   createdAt      DateTime @default(now())
   organizationId String   @default("orgA")
 
+  @@unique([organizationId, name])
   @@index([organizationId])
 }
 

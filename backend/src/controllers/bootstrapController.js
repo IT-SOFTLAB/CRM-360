@@ -283,6 +283,7 @@ exports.getBootstrapData = async (req, res) => {
       await Promise.all(missingOpps.map(l => 
         prisma.opportunity.create({
           data: {
+            organizationId: l.organizationId || orgId || 'orgA',
             leadId: l.id,
             customerName: l.contactName || l.name,
             company: l.company || '',

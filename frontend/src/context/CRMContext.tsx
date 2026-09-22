@@ -410,11 +410,11 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
     if (leadData.assignedUserId !== undefined) oppUpdate.assignedSalespersonId = leadData.assignedUserId;
 
     if (Object.keys(oppUpdate).length > 0) {
-      const opps = oppCtx.opportunities.filter(o => o.leadId === leadId);
+      const opps = oppCtx.opportunities.filter(o => o.leadId === leadId || o.id === leadId || (leadData.email && o.email === leadData.email));
       const oppIds = opps.map(o => o.id);
 
       oppCtx.setOpportunities((prev: any[]) => prev.map(o =>
-        o.leadId === leadId ? { ...o, ...oppUpdate } : o
+        (o.leadId === leadId || o.id === leadId || (leadData.email && o.email === leadData.email)) ? { ...o, ...oppUpdate } : o
       ));
 
       if (oppIds.length > 0 && (leadData.assignedUser !== undefined || leadData.assignedUserId !== undefined)) {
@@ -436,7 +436,7 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
 
   const handleDeleteLeadFromViewWithOppSync = async (leadId: string) => {
     // 1. Optimistically delete opportunity
-    oppCtx.setOpportunities((prev: any[]) => prev.filter(o => o.leadId !== leadId));
+    oppCtx.setOpportunities((prev: any[]) => prev.filter(o => o.leadId !== leadId && o.id !== leadId));
 
     // 2. Call core handler
     await leadsCtx.handleDeleteLeadFromView(leadId);
@@ -447,11 +447,11 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
 
   const handleBulkAssignLeadsWithOppSync = async (leadIds: string[], assignedUserId: string, assignedUser: string) => {
     // 1. Optimistically update opportunities & customers
-    const opps = oppCtx.opportunities.filter(o => o.leadId && leadIds.includes(o.leadId));
+    const opps = oppCtx.opportunities.filter(o => (o.leadId && leadIds.includes(o.leadId)) || leadIds.includes(o.id));
     const oppIds = opps.map(o => o.id);
 
     oppCtx.setOpportunities((prev: any[]) => prev.map(o =>
-      o.leadId && leadIds.includes(o.leadId)
+      (o.leadId && leadIds.includes(o.leadId)) || leadIds.includes(o.id)
         ? { ...o, assignedSalespersonId: assignedUserId, assignedSalesperson: assignedUser }
         : o
     ));

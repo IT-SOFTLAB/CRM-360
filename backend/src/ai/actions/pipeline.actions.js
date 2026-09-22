@@ -1,6 +1,15 @@
 const { PrismaClient } = require("@prisma/client");
+const { deletePatternCache } = require("../../config/redisCache");
 
 const prisma = new PrismaClient();
+
+const invalidateLeadCache = async (organizationId) => {
+  if (!organizationId) return;
+  await deletePatternCache(`crm:leads:${organizationId}:*`);
+  await deletePatternCache(`crm:opportunities:${organizationId}:*`);
+  await deletePatternCache(`crm:bootstrap:${organizationId}:*`);
+  await deletePatternCache(`crm:dashboard:${organizationId}:*`);
+};
 
 module.exports = {
 
@@ -56,6 +65,19 @@ module.exports = {
             }
 
         });
+
+        // Update opportunity stage as well
+        await prisma.opportunity.updateMany({
+            where: {
+                leadId: existingLead.id,
+                organizationId: existingLead.organizationId
+            },
+            data: {
+                stage: stage
+            }
+        });
+
+        await invalidateLeadCache(existingLead.organizationId);
 
         return {
 

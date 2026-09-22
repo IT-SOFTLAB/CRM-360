@@ -248,7 +248,7 @@ Output
 
 User
 
-Move Rahul to Proposal stage
+Move/Shift Rahul to Proposal stage
 
 Output
 

@@ -210,43 +210,60 @@ const updateLead = async (req, res) => {
     });
     if (!currentLead) return res.status(404).json({ message: "Lead not found" });
 
+    let finalAssignedUser = req.body.assignedUser;
+    let finalAssignedUserId = req.body.assignedUserId;
+
+    // Resolve user if either assignedUserId or assignedUser is missing
+    if (finalAssignedUserId && !finalAssignedUser) {
+      const u = await prisma.user.findUnique({ where: { id: finalAssignedUserId } });
+      if (u) finalAssignedUser = u.name;
+    } else if (finalAssignedUser && !finalAssignedUserId) {
+      const u = await prisma.user.findFirst({
+        where: {
+          name: { equals: finalAssignedUser, mode: 'insensitive' },
+          organizationId: req.organizationId
+        }
+      });
+      if (u) finalAssignedUserId = u.id;
+    }
+
     const lead = await prisma.lead.update({
       where: {
-    id: id
-  },
+        id: id
+      },
       data: {
-    contactName: req.body.contactName,
-    company: req.body.company,
-    source: req.body.source,
-    email: req.body.email,
-    phone: req.body.phone,
-    linkedinId: req.body.linkedinId,
-    category: req.body.category,
-    serviceType: req.body.serviceType,
-    assignedUser: req.body.assignedUser,
-    assignedUserId: req.body.assignedUserId,
-    status: req.body.status
-  }
+        contactName: req.body.contactName,
+        company: req.body.company,
+        source: req.body.source,
+        email: req.body.email,
+        phone: req.body.phone,
+        linkedinId: req.body.linkedinId,
+        category: req.body.category,
+        serviceType: req.body.serviceType,
+        assignedUser: finalAssignedUser !== undefined ? finalAssignedUser : currentLead.assignedUser,
+        assignedUserId: finalAssignedUserId !== undefined ? finalAssignedUserId : currentLead.assignedUserId,
+        status: req.body.status
+      }
     });
 
     // Send single lead assignment email if assignee changed and is not null
     const assignedUserIdChanged = 
-      req.body.assignedUserId !== undefined && 
-      req.body.assignedUserId !== currentLead?.assignedUserId;
+      lead.assignedUserId !== currentLead?.assignedUserId && 
+      lead.assignedUserId;
 
-    if (assignedUserIdChanged && req.body.assignedUserId) {
+    if (assignedUserIdChanged) {
       const { sendLeadAssignmentEmail } = require('../services/leadEmailService');
       const leadInfoForEmail = [{
         contactName: lead.contactName,
         company: lead.company,
         email: lead.email
       }];
-      sendLeadAssignmentEmail(req, req.body.assignedUserId, leadInfoForEmail).catch(err => {
+      sendLeadAssignmentEmail(req, lead.assignedUserId, leadInfoForEmail).catch(err => {
         console.error("Error sending single lead assign email:", err);
       });
     }
 
-    // Also update associated opportunity and customer if salesperson changes
+    // Also update associated opportunity and customer if key fields or salesperson change
     const oppUpdateData = {};
     if (req.body.contactName !== undefined) oppUpdateData.customerName = req.body.contactName;
     if (req.body.company !== undefined) oppUpdateData.company = req.body.company;
@@ -257,17 +274,58 @@ const updateLead = async (req, res) => {
       oppUpdateData.dealValue = req.body.dealValue ? Number(req.body.dealValue) : 0;
     }
     if (req.body.status !== undefined) oppUpdateData.stage = req.body.status;
-    if (req.body.assignedUser !== undefined) oppUpdateData.assignedSalesperson = req.body.assignedUser;
-    if (req.body.assignedUserId !== undefined) oppUpdateData.assignedSalespersonId = req.body.assignedUserId;
+    if (req.body.assignedUser !== undefined || req.body.assignedUserId !== undefined || finalAssignedUser || finalAssignedUserId) {
+      oppUpdateData.assignedSalesperson = lead.assignedUser;
+      oppUpdateData.assignedSalespersonId = lead.assignedUserId;
+    }
 
     if (Object.keys(oppUpdateData).length > 0) {
-      await prisma.opportunity.updateMany({
+      const oppRes = await prisma.opportunity.updateMany({
         where: { leadId: id, organizationId: req.organizationId },
         data: oppUpdateData
       });
+
+      // If no existing opportunity matched leadId, find or create one to maintain pipeline sync
+      if (oppRes.count === 0) {
+        const existingOpp = await prisma.opportunity.findFirst({
+          where: {
+            organizationId: req.organizationId,
+            OR: [
+              { leadId: id },
+              lead.email ? { email: lead.email } : undefined
+            ].filter(Boolean)
+          }
+        });
+
+        if (existingOpp) {
+          await prisma.opportunity.update({
+            where: { id: existingOpp.id },
+            data: {
+              leadId: id,
+              ...oppUpdateData
+            }
+          });
+        } else {
+          await prisma.opportunity.create({
+            data: {
+              organizationId: req.organizationId,
+              leadId: id,
+              customerName: lead.contactName,
+              company: lead.company,
+              email: lead.email,
+              phone: lead.phone,
+              dealValue: lead.dealValue || 0,
+              stage: lead.status || 'New',
+              assignedSalesperson: lead.assignedUser,
+              assignedSalespersonId: lead.assignedUserId,
+              createdAt: lead.createdAt
+            }
+          });
+        }
+      }
     }
 
-    if (req.body.assignedUser !== undefined || req.body.assignedUserId !== undefined) {
+    if (req.body.assignedUser !== undefined || req.body.assignedUserId !== undefined || finalAssignedUser || finalAssignedUserId) {
       const opps = await prisma.opportunity.findMany({
         where: { leadId: id, organizationId: req.organizationId },
         select: { id: true }
@@ -277,18 +335,15 @@ const updateLead = async (req, res) => {
         await prisma.customer.updateMany({
           where: { opportunityId: { in: oppIds }, organizationId: req.organizationId },
           data: {
-            assignedSalesperson: req.body.assignedUser,
-            assignedSalespersonId: req.body.assignedUserId
+            assignedSalesperson: lead.assignedUser,
+            assignedSalespersonId: lead.assignedUserId
           }
         });
       }
     }
 
-
-  await invalidateLeadCache(req.organizationId);
-res.status(200).json(lead);
-    
-
+    await invalidateLeadCache(req.organizationId);
+    res.status(200).json(lead);
   } catch (error) {
     console.log(error);
     res.status(500).json({
@@ -494,24 +549,44 @@ await invalidateLeadCache(req.organizationId);
 
 const bulkAssignLeads = async (req, res) => {
   try {
-    const { ids, assignedUser, assignedUserId } = req.body;
+    let { ids, assignedUser, assignedUserId } = req.body;
 
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ success: false, message: 'No leads selected' });
     }
 
+    // Resolve user if missing assignedUser or assignedUserId
+    if (assignedUserId && !assignedUser) {
+      const u = await prisma.user.findUnique({ where: { id: assignedUserId } });
+      if (u) assignedUser = u.name;
+    } else if (assignedUser && !assignedUserId) {
+      const u = await prisma.user.findFirst({
+        where: {
+          name: { equals: assignedUser, mode: 'insensitive' },
+          organizationId: req.organizationId
+        }
+      });
+      if (u) assignedUserId = u.id;
+    }
+
     // Fetch leads details for email notification
-  const leadsForEmail = await prisma.lead.findMany({
-  where: {
-    id: { in: ids },
-    organizationId: req.organizationId
-  },
-  select: {
-    contactName: true,
-    company: true,
-    email: true
-  }
-});
+    const leadsForEmail = await prisma.lead.findMany({
+      where: {
+        id: { in: ids },
+        organizationId: req.organizationId
+      },
+      select: {
+        id: true,
+        contactName: true,
+        company: true,
+        email: true,
+        phone: true,
+        status: true,
+        dealValue: true,
+        createdAt: true
+      }
+    });
+
     // 1. Update in PostgreSQL
     const updated = await prisma.lead.updateMany({
       where: {
@@ -536,6 +611,34 @@ const bulkAssignLeads = async (req, res) => {
       }
     });
 
+    // 3. Ensure any leads in `ids` missing an opportunity get one created
+    const existingOpps = await prisma.opportunity.findMany({
+      where: { leadId: { in: ids }, organizationId: req.organizationId },
+      select: { leadId: true }
+    });
+    const existingOppLeadIds = new Set(existingOpps.map(o => o.leadId));
+    const missingLeads = leadsForEmail.filter(l => !existingOppLeadIds.has(l.id));
+
+    if (missingLeads.length > 0) {
+      await Promise.all(missingLeads.map(l =>
+        prisma.opportunity.create({
+          data: {
+            organizationId: req.organizationId,
+            leadId: l.id,
+            customerName: l.contactName,
+            company: l.company,
+            email: l.email,
+            phone: l.phone,
+            dealValue: l.dealValue || 0,
+            stage: l.status || 'New',
+            assignedSalesperson: assignedUser,
+            assignedSalespersonId: assignedUserId,
+            createdAt: l.createdAt
+          }
+        }).catch(err => console.error("Create missing opp during bulk assign error:", err.message))
+      ));
+    }
+
     // Update associated customers in PostgreSQL
     const opps = await prisma.opportunity.findMany({
       where: { leadId: { in: ids }, organizationId: req.organizationId },
@@ -552,8 +655,6 @@ const bulkAssignLeads = async (req, res) => {
       });
     }
 
-
-
     // Send email notification
     if (assignedUserId) {
       const { sendLeadAssignmentEmail } = require('../services/leadEmailService');
@@ -562,7 +663,7 @@ const bulkAssignLeads = async (req, res) => {
       });
     }
    
-await invalidateLeadCache(req.organizationId);
+    await invalidateLeadCache(req.organizationId);
     res.status(200).json({ success: true, message: `Successfully assigned ${ids.length} leads`, updatedCount: updated.count });
   } catch (error) {
     console.error('Bulk assign leads error:', error);
