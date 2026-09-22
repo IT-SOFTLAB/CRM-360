@@ -74,58 +74,69 @@ const quotationItems = await Promise.all(
   })
 );
 
-    const quotation = await prisma.quotation.create({
-      data: {
-        quotationNumber,
-        opportunityId,
-        customerId,
-        customerNameSnapshot,
-        customerCompanyNameSnapshot,
-        customerEmailSnapshot,
-        customerPhoneSnapshot,
-        salesperson,
-        quotationDate: new Date(quotationDate),
-        expirationDate: new Date(expirationDate),
-        paymentTerms,
-        currency,
-        notes,
-        subtotal: Number(subtotal || 0),
-        tax: Number(tax || 0),
-        total: Number(total || 0),
-        status: "Draft",
-        customerGstinSnapshot,
-        billingAddressSnapshot,
-        shippingAddressSnapshot,
-        discountPercent: Number(discountPercent || 0),
-        cgst: Number(cgst || 0),
-        sgst: Number(sgst || 0),
-        igst: Number(igst || 0),
-        shippingCharge: Number(shippingCharge || 0),
-        otherCharges: Number(otherCharges || 0),
-        roundOff: Number(roundOff || 0),
-        termsConditions,
-        internalNotes,
-        organizationId: req.organizationId,
-        items: {
-           items: {
+   const quotation = await prisma.quotation.create({
+  data: {
+    quotationNumber,
+    opportunityId,
+    customerId,
+    customerNameSnapshot,
+    customerCompanyNameSnapshot,
+    customerEmailSnapshot,
+    customerPhoneSnapshot,
+    salesperson,
+    quotationDate: new Date(quotationDate),
+    expirationDate: new Date(expirationDate),
+    paymentTerms,
+    currency,
+    notes,
+
+    subtotal: Number(subtotal || 0),
+    tax: Number(tax || 0),
+    total: Number(total || 0),
+
+    status: "Draft",
+
+    customerGstinSnapshot,
+    billingAddressSnapshot,
+    shippingAddressSnapshot,
+
+    discountPercent: Number(discountPercent || 0),
+
+    cgst: Number(cgst || 0),
+    sgst: Number(sgst || 0),
+    igst: Number(igst || 0),
+
+    shippingCharge: Number(shippingCharge || 0),
+    otherCharges: Number(otherCharges || 0),
+    roundOff: Number(roundOff || 0),
+
+    termsConditions,
+    internalNotes,
+
+    organizationId: req.organizationId,
+
+    items: {
       create: quotationItems
     }
-        }
-      },
-      include: {
-        items: true
-      }
-    });
+  },
+
+  include: {
+    items: true
+  }
+});
 
     await invalidateQuotationCache(req.organizationId);
     res.status(201).json(quotation);
   } catch (err) {
-    console.error("Create Quotation Error:", err);
-    res.status(500).json({
-      message: "Failed to create quotation",
-      error: err.message
-    });
-  }
+  console.error("Create Quotation Error:", err);
+
+  res.status(500).json({
+    message: "Failed to create quotation",
+    error: err.message,
+    code: err.code || null,
+    meta: err.meta || null
+  });
+}
 };
 
 

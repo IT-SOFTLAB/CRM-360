@@ -10,15 +10,19 @@ export const quotationService = {
       return null;
     }
   },
-  createQuotation: async (quoteForm: any) => {
-    try {
-      const res = await api.post('/quotations', quoteForm);
-      return res.data;
-    } catch (err) {
-      console.warn('API error creating quotation, fallback to offline', err);
-      return null;
-    }
-  },
+createQuotation: async (quoteForm: any) => {
+  try {
+    const res = await api.post('/quotations', quoteForm);
+    return res.data;
+  } catch (err: any) {
+    console.error(
+      'API error creating quotation:',
+      err?.response?.data || err
+    );
+
+    throw err;
+  }
+},
   updateQuotation: async (quoteId: string, quoteData: any) => {
     try {
       const res = await api.put(`/quotations/${quoteId}`, quoteData);

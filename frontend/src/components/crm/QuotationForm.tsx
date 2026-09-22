@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { X, Plus, Trash2, User, MapPin, Calendar, Percent, FileText } from "lucide-react";
 import { quotationService } from "../../services/quotation.service";
-
+ import { productService } from "../../services/product.service";
 interface Props {
   opportunity: any;
   onClose: () => void;
 }
-
+ 
 export default function QuotationForm({ opportunity, onClose }: Props) {
   // Dynamic line items state
+  const [products, setProducts] = useState<any[]>([]);
+const [loadingProducts, setLoadingProducts] = useState(false);
   const [items, setItems] = useState<any[]>([
     {
+      productId: "",
       product: "",
       description: "",
       quantity: 1,
@@ -20,7 +23,7 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
       subtotal: 0
     }
   ]);
-
+ 
   // Form states
   const [form, setForm] = useState({
     customerName: opportunity?.customerName || "",
@@ -37,14 +40,14 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
     termsConditions: "• Quotation valid for 15 days from the date of issue.\n• GST will be charged as per applicable rates.\n• Payment terms: 100% advance.\n• Delivery within 5-7 business days after payment.\n• This is a system generated quotation.",
     internalNotes: ""
   });
-
+ 
   // Billing address sub-states
   const [billingStreet, setBillingStreet] = useState("");
   const [billingCity, setBillingCity] = useState("");
   const [billingState, setBillingState] = useState("");
   const [billingCountry, setBillingCountry] = useState("");
   const [billingZip, setBillingZip] = useState("");
-
+ 
   // Shipping address sub-states
   const [sameAsBilling, setSameAsBilling] = useState(true);
   const [shippingStreet, setShippingStreet] = useState("22 MG Road");
@@ -52,16 +55,39 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
   const [shippingState, setShippingState] = useState("Madhya Pradesh");
   const [shippingCountry, setShippingCountry] = useState("India");
   const [shippingZip, setShippingZip] = useState("452001");
-
+ 
   // Pricing summary states
   const [globalDiscountPercent, setGlobalDiscountPercent] = useState(10);
   const [shippingCharge, setShippingCharge] = useState(500);
   const [otherCharges, setOtherCharges] = useState(250);
-
+ 
   // Manual GST percentage states
   const [manualCgstPercent, setManualCgstPercent] = useState<string>("9");
   const [manualSgstPercent, setManualSgstPercent] = useState<string>("9");
   const [manualIgstPercent, setManualIgstPercent] = useState<string>("0");
+ 
+useEffect(() => {
+  const fetchProducts = async () => {
+    try {
+      setLoadingProducts(true);
+
+      const data = await productService.getAllProducts();
+
+      // Only Active products should appear
+      const activeProducts = data.filter(
+        (product) => product.status === "Active"
+      );
+
+      setProducts(activeProducts);
+    } catch (error) {
+      console.error("Error loading products:", error);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  fetchProducts();
+}, []);
 
   // Sync shipping address fields if checkbox is active
   useEffect(() => {
@@ -73,12 +99,12 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
       setShippingZip(billingZip);
     }
   }, [sameAsBilling, billingStreet, billingCity, billingState, billingCountry, billingZip]);
-
+ 
   // Auto-calculate default tax percentages when items change
   useEffect(() => {
     let cgstVal = 0;
     let sgstVal = 0;
-
+ 
     items.forEach(item => {
       const lineTaxable = (Number(item.quantity) * Number(item.unitPrice) * (1 - Number(item.discount) / 100)) * (1 - Number(globalDiscountPercent) / 100);
       const taxRate = Number(item.tax) || 0;
@@ -86,14 +112,14 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
       cgstVal += lineTaxable * (taxRate / 2 / 100);
       sgstVal += lineTaxable * (taxRate / 2 / 100);
     });
-
+ 
     const calculatedTaxable = items.reduce((sum, item) => {
       const qty = Number(item.quantity) || 0;
       const price = Number(item.unitPrice) || 0;
       const disc = Number(item.discount) || 0;
       return sum + (qty * price * (1 - disc / 100));
     }, 0) * (1 - Number(globalDiscountPercent) / 100);
-
+ 
     if (calculatedTaxable > 0) {
       setManualCgstPercent(((cgstVal / calculatedTaxable) * 100).toFixed(2));
       setManualSgstPercent(((sgstVal / calculatedTaxable) * 100).toFixed(2));
@@ -103,23 +129,24 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
     }
     setManualIgstPercent("0.00");
   }, [items, globalDiscountPercent]);
-
+ 
   // Add Product row
   const addProductRow = () => {
-    setItems([
-      ...items,
-      {
-        product: "",
-        description: "",
-        quantity: 1,
-        unitPrice: 0,
-        tax: 18,
-        discount: 0,
-        subtotal: 0
-      }
-    ]);
-  };
-
+  setItems([
+    ...items,
+    {
+      productId: "",
+      product: "",
+      description: "",
+      quantity: 1,
+      unitPrice: 0,
+      tax: 18,
+      discount: 0,
+      subtotal: 0
+    }
+  ]);
+};
+ 
   // Remove Product row
   const removeProductRow = (index: number) => {
     if (items.length <= 1) return;
@@ -127,20 +154,52 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
     copy.splice(index, 1);
     setItems(copy);
   };
-
+ 
   // Update item input values
   const updateItemField = (index: number, field: string, value: any) => {
     const copy = [...items];
     copy[index][field] = value;
-
+ 
     // Recalculate line subtotal (taxable amount before global discount)
     const qty = Number(copy[index].quantity) || 0;
     const price = Number(copy[index].unitPrice) || 0;
     const disc = Number(copy[index].discount) || 0;
     copy[index].subtotal = qty * price * (1 - disc / 100);
-
+ 
     setItems(copy);
   };
+ 
+const handleProductChange = (index: number, productId: string) => {
+  const selectedProduct = products.find(
+    (product: any) => String(product.id) === String(productId)
+  );
+
+  const copy = [...items];
+
+  if (!selectedProduct) {
+    copy[index].product = "";
+    copy[index].unitPrice = 0;
+    copy[index].productId = "";
+    copy[index].subtotal = 0;
+
+    setItems(copy);
+    return;
+  }
+
+  copy[index].productId = selectedProduct.id;
+  copy[index].product = selectedProduct.name;
+  copy[index].unitPrice = Number(selectedProduct.price) || 0;
+
+  const qty = Number(copy[index].quantity) || 0;
+  const discount = Number(copy[index].discount) || 0;
+
+  copy[index].subtotal =
+    qty *
+    Number(selectedProduct.price || 0) *
+    (1 - discount / 100);
+
+  setItems(copy);
+};
 
   const subtotal = items.reduce((sum, item) => {
     const qty = Number(item.quantity) || 0;
@@ -148,44 +207,44 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
     const disc = Number(item.discount) || 0;
     return sum + (qty * price * (1 - disc / 100));
   }, 0);
-
+ 
   const discountAmount = subtotal * (Number(globalDiscountPercent) / 100);
   const taxableAmount = subtotal - discountAmount;
-
+ 
   // Calculate tax amounts based on manually entered percentages
   const cgstPercent = Number(manualCgstPercent) || 0;
   const sgstPercent = Number(manualSgstPercent) || 0;
   const igstPercent = Number(manualIgstPercent) || 0;
-
+ 
   const cgst = Number((taxableAmount * (cgstPercent / 100)).toFixed(2));
   const sgst = Number((taxableAmount * (sgstPercent / 100)).toFixed(2));
   const igst = Number((taxableAmount * (igstPercent / 100)).toFixed(2));
   const taxAmount = Number((cgst + sgst + igst).toFixed(2));
-
+ 
   const rawGrandTotal = taxableAmount + taxAmount + Number(shippingCharge || 0) + Number(otherCharges || 0);
   const roundedGrandTotal = Math.round(rawGrandTotal);
   const roundOffVal = Number((roundedGrandTotal - rawGrandTotal).toFixed(2));
   const grandTotal = roundedGrandTotal;
-
+ 
   const getCurrencySymbol = () => {
     if (form.currency === "USD") return "$";
     if (form.currency === "EUR") return "€";
     return "₹";
   };
-
+ 
   // Save Quotation Draft
   const saveQuotation = async () => {
     if (!form.customerName || !form.companyName) {
       alert("Customer Name and Company Name are required.");
       return;
     }
-
+ 
     try {
       const billingAddressStr = `${billingStreet}, ${billingCity}, ${billingState}, ${billingCountry} - ${billingZip}`;
       const shippingAddressStr = sameAsBilling
         ? billingAddressStr
         : `${shippingStreet}, ${shippingCity}, ${shippingState}, ${shippingCountry} - ${shippingZip}`;
-
+ 
       const quotation = {
         quotationNumber: "QT-" + new Date().getFullYear() + "-" + String(Math.floor(10000 + Math.random() * 90000)),
         opportunityId: opportunity.id,
@@ -202,15 +261,16 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
         subtotal,
         tax: taxAmount,
         total: grandTotal,
-        items: items.map(item => ({
-          product: item.product || "(No Product Name)",
-          description: item.description || "",
-          quantity: Number(item.quantity || 1),
-          unitPrice: Number(item.unitPrice || 0),
-          tax: Number(item.tax || 0),
-          discount: Number(item.discount || 0),
-          subtotal: Number(item.subtotal || 0)
-        })),
+    items: items.map(item => ({
+  productId: item.productId || null,
+  product: item.product || "(No Product Name)",
+  description: item.description || "",
+  quantity: Number(item.quantity || 1),
+  unitPrice: Number(item.unitPrice || 0),
+  tax: Number(item.tax || 0),
+  discount: Number(item.discount || 0),
+  subtotal: Number(item.subtotal || 0)
+})),
         customerGstinSnapshot: "",
         billingAddressSnapshot: billingAddressStr,
         shippingAddressSnapshot: shippingAddressStr,
@@ -224,16 +284,21 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
         termsConditions: form.termsConditions,
         internalNotes: form.internalNotes
       };
+ 
+   const savedQuotation = await quotationService.createQuotation(quotation);
 
-      await quotationService.createQuotation(quotation);
-      alert("Quotation Saved Successfully as Draft");
-      onClose();
+if (!savedQuotation) {
+  throw new Error("Quotation was not saved");
+}
+
+alert("Quotation Saved Successfully as Draft");
+onClose();
     } catch (err: any) {
       console.error("Save Quotation Error:", err);
       alert("Unable to Save Quotation: " + (err.response?.data?.message || err.message));
     }
   };
-
+ 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
       <div className="bg-card rounded-2xl shadow-2xl w-[1300px] max-w-[98%] h-[95vh] flex flex-col text-txt-primary">
@@ -252,7 +317,7 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
             </button>
           </div>
         </div>
-
+ 
         {/* Scrollable Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs bg-slate-50/50">
           {/* Row 1: Cards */}
@@ -265,7 +330,7 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                 </div>
                 <h3 className="font-extrabold text-sm text-txt-primary">Customer Information</h3>
               </div>
-
+ 
               <div className="space-y-3">
                 <div>
                   <label className="block text-slate-400 font-semibold mb-1 uppercase text-[9px] tracking-wider">Customer Name</label>
@@ -304,7 +369,7 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                 </div>
               </div>
             </div>
-
+ 
             {/* Card 2: Addresses */}
             <div className="bg-card border border-border-crm rounded-2xl p-5 shadow-xs space-y-4">
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -324,7 +389,7 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                   <span>Same Shipping</span>
                 </label>
               </div>
-
+ 
               <div className="grid grid-cols-2 gap-4">
                 {/* Billing Address */}
                 <div className="space-y-2">
@@ -362,7 +427,7 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                     />
                   </div>
                 </div>
-
+ 
                 {/* Shipping Address */}
                 <div className="space-y-2">
                   <h4 className="font-bold text-[10px] text-indigo-600 uppercase tracking-wider mb-2">Shipping Address</h4>
@@ -406,7 +471,7 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                 </div>
               </div>
             </div>
-
+ 
             {/* Card 3: Quotation Details */}
             <div className="bg-card border border-border-crm rounded-2xl p-5 shadow-xs space-y-4">
               <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
@@ -415,7 +480,7 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                 </div>
                 <h3 className="font-extrabold text-sm text-txt-primary">Quotation Details</h3>
               </div>
-
+ 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-slate-400 font-semibold mb-1 uppercase text-[9px] tracking-wider">Quotation Number</label>
@@ -551,7 +616,7 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
               </div>
             </div>
           </div>
-
+ 
           {/* Row 2: Items + Summary split */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Products Table Card (colSpan 2) */}
@@ -572,7 +637,7 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                   Add Product / Service
                 </button>
               </div>
-
+ 
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -592,15 +657,24 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                     {items.map((item, index) => (
                       <tr key={index} className="hover:bg-slate-50/50">
                         <td className="px-3 py-2 text-center text-slate-400 font-medium">{index + 1}</td>
-                        <td className="px-2 py-2">
-                          <input
-                            required
-                            placeholder="Product name..."
-                            value={item.product}
-                            onChange={(e) => updateItemField(index, "product", e.target.value)}
-                            className="w-full border rounded-lg px-2.5 py-1 focus:outline-none focus:border-indigo-400"
-                          />
-                        </td>
+                       <td className="px-2 py-2">
+  <select
+    required
+    value={item.productId || ""}
+    onChange={(e) => handleProductChange(index, e.target.value)}
+    className="w-full border rounded-lg px-2.5 py-1 bg-white focus:outline-none focus:border-indigo-400"
+  >
+    <option value="">
+      {loadingProducts ? "Loading products..." : "Select Product"}
+    </option>
+
+    {products.map((product: any) => (
+      <option key={product.id} value={product.id}>
+        {product.name}
+      </option>
+    ))}
+  </select>
+</td>
                         <td className="px-2 py-2">
                           <input
                             placeholder="Optional desc..."
@@ -620,17 +694,17 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                             className="w-full border rounded-lg px-1.5 py-1 text-center focus:outline-none focus:border-indigo-400"
                           />
                         </td>
-                        <td className="px-2 py-2">
-                          <input
-                            type="number"
-                            required
-                            min="0"
-                            step="any"
-                            value={item.unitPrice}
-                            onChange={(e) => updateItemField(index, "unitPrice", Number(e.target.value))}
-                            className="w-full border rounded-lg px-1.5 py-1 text-center focus:outline-none focus:border-indigo-400"
-                          />
-                        </td>
+                      <td className="px-2 py-2">
+  <input
+    type="number"
+    required
+    min="0"
+    step="any"
+    value={item.unitPrice}
+    readOnly
+    className="w-full border rounded-lg px-1.5 py-1 text-center bg-slate-50 text-slate-600 cursor-not-allowed"
+  />
+</td>
                         <td className="px-2 py-2">
                           <input
                             type="number"
@@ -690,7 +764,7 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                 </table>
               </div>
             </div>
-
+ 
             {/* Pricing Summary Card */}
             <div className="bg-card border border-border-crm rounded-2xl p-5 shadow-xs flex flex-col space-y-4">
               <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
@@ -699,13 +773,13 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                 </div>
                 <h3 className="font-extrabold text-sm text-txt-primary">Pricing Summary</h3>
               </div>
-
+ 
               <div className="space-y-2.5 text-xs text-txt-secondary">
                 <div className="flex justify-between items-center">
                   <span>Subtotal</span>
                   <span className="font-bold text-txt-primary">{getCurrencySymbol()}{subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-
+ 
                 <div className="flex justify-between items-center gap-3">
                   <span>Discount (%)</span>
                   <div className="flex items-center gap-1.5 w-24">
@@ -719,17 +793,17 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                     />
                   </div>
                 </div>
-
+ 
                 <div className="flex justify-between items-center text-rose-600 font-semibold border-b border-dashed border-slate-100 pb-2">
                   <span>Discount Amt ({globalDiscountPercent}%)</span>
                   <span>-{getCurrencySymbol()}{discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-
+ 
                 <div className="flex justify-between items-center font-bold text-txt-primary">
                   <span>Taxable Amount</span>
                   <span>{getCurrencySymbol()}{taxableAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-
+ 
                 {(cgst > 0 || sgst > 0 || igst === 0) && (
                   <>
                     <div className="flex justify-between items-center">
@@ -748,12 +822,12 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                     <span>{getCurrencySymbol()}{igst.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </div>
                 )}
-
+ 
                 <div className="flex justify-between items-center">
                   <span>Tax Amount</span>
                   <span className="font-semibold text-txt-primary">{getCurrencySymbol()}{taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
-
+ 
                 <div className="flex justify-between items-center gap-3">
                   <span>Shipping Charge</span>
                   <input
@@ -764,7 +838,7 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                     onChange={(e) => setShippingCharge(Number(e.target.value))}
                   />
                 </div>
-
+ 
                 <div className="flex justify-between items-center gap-3 border-b border-slate-100 pb-2">
                   <span>Other Charges</span>
                   <input
@@ -775,12 +849,12 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
                     onChange={(e) => setOtherCharges(Number(e.target.value))}
                   />
                 </div>
-
+ 
                 <div className="flex justify-between items-center text-slate-500 border-b border-slate-150 pb-2">
                   <span>Round Off</span>
                   <span className="font-semibold">{roundOffVal > 0 ? "+" : ""}{getCurrencySymbol()}{roundOffVal.toFixed(2)}</span>
                 </div>
-
+ 
                 <div className="flex justify-between items-center text-sm font-extrabold text-indigo-700 bg-indigo-50/70 rounded-xl p-3 border border-indigo-100/50">
                   <span className="uppercase tracking-wider">Grand Total</span>
                   <span>{getCurrencySymbol()}{grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
@@ -788,7 +862,7 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
               </div>
             </div>
           </div>
-
+ 
           {/* Row 3: Bottom Notes Blocks */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-card border border-border-crm rounded-2xl p-5 shadow-xs space-y-2">
@@ -812,7 +886,7 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
             </div>
           </div>
         </div>
-
+ 
         {/* Footer */}
         <div className="border-t border-border-crm px-6 py-4 flex justify-end gap-3 shrink-0">
           <button

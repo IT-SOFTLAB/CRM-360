@@ -326,10 +326,10 @@ useEffect(() => {
 
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs text-txt-primary">
+   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs text-txt-primary min-w-0">
       
       {/* Column 1: Config Branding & Categories */}
-      <div className="space-y-6">
+  <div className="space-y-6 min-w-0">
         
         {/* Branding Configuration */}
         {userRole === 'SUPER_ADMIN' && (
@@ -526,7 +526,7 @@ useEffect(() => {
 
 {/* Product Master */}
 {userRole === 'SUPER_ADMIN' && (
-  <div className="bg-white-300 border border-slate-700/60 rounded-2xl p-5 space-y-4">
+ <div className="w-full min-w-0 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-2xl p-5 space-y-4 overflow-hidden">
 
     <div className="flex justify-between items-center">
       <div>
@@ -554,90 +554,94 @@ useEffect(() => {
     </div>
 
     {/* Add / Edit Product */}
-    <form
-      onSubmit={async (e) => {
-        e.preventDefault();
+   {/* Add / Edit Product */}
+<form
+  onSubmit={async (e) => {
+    e.preventDefault();
 
-        if (!productName.trim()) {
-          addToast("error", "Product name is required");
-          return;
-        }
-
-        const price = Number(productPrice);
-
-        if (!Number.isFinite(price) || price < 0) {
-          addToast("error", "Enter a valid price");
-          return;
-        }
-
-        try {
-          setProductLoading(true);
-
-          if (editingProduct) {
-  await productService.updateProduct(
-    editingProduct.id,
-    {
-      name: productName.trim(),
-      price,
+    if (!productName.trim()) {
+      addToast("error", "Product name is required");
+      return;
     }
-  );
 
-  addToast("success", "Product updated successfully");
-} else {
-  await productService.createProduct({
-    name: productName.trim(),
-    price,
-  });
+    const price = Number(productPrice);
 
-  addToast("success", "Product created successfully");
-}
+    if (!Number.isFinite(price) || price < 0) {
+      addToast("error", "Enter a valid price");
+      return;
+    }
 
-          setProductName('');
-          setProductPrice('');
-          setEditingProduct(null);
+    try {
+      setProductLoading(true);
 
-          await loadProducts();
+      if (editingProduct) {
+        await productService.updateProduct(
+          editingProduct.id,
+          {
+            name: productName.trim(),
+            price,
+          }
+        );
 
-        } catch (error: any) {
-          addToast(
-            "error",
-            error?.response?.data?.message || "Failed to save product"
-          );
-        } finally {
-          setProductLoading(false);
-        }
-      }}
-      className="flex gap-2"
-    >
-      <input
-        type="text"
-        placeholder="Product name"
-        value={productName}
-        onChange={(e) => setProductName(e.target.value)}
-        className="flex-1 border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-xs text-txt-primary"
-      />
+        addToast("success", "Product updated successfully");
+      } else {
+        await productService.createProduct({
+          name: productName.trim(),
+          price,
+        });
 
-      <input
-        type="number"
-        min="0"
-        placeholder="Price"
-        value={productPrice}
-        onChange={(e) => setProductPrice(e.target.value)}
-        className="w-32 border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-xs text-txt-primary"
-      />
+        addToast("success", "Product created successfully");
+      }
 
-      <button
-        type="submit"
-        disabled={productLoading}
-        className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-2 text-xs font-semibold disabled:opacity-50"
-      >
-        {productLoading
-          ? "Saving..."
-          : editingProduct
-            ? "Update"
-            : "Add"}
-      </button>
-    </form>
+      setProductName('');
+      setProductPrice('');
+      setEditingProduct(null);
+
+      await loadProducts();
+
+    } catch (error: any) {
+      addToast(
+        "error",
+        error?.response?.data?.message || "Failed to save product"
+      );
+    } finally {
+      setProductLoading(false);
+    }
+  }}
+  className="flex w-full min-w-0 items-center gap-2"
+>
+  {/* Product Name */}
+  <input
+    type="text"
+    placeholder="Product name"
+    value={productName}
+    onChange={(e) => setProductName(e.target.value)}
+    className="min-w-0 w-0 flex-1 border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-xs text-txt-primary focus:outline-none focus:border-blue-500"
+  />
+
+  {/* Price */}
+  <input
+    type="number"
+    min="0"
+    placeholder="Price"
+    value={productPrice}
+    onChange={(e) => setProductPrice(e.target.value)}
+    className="w-24 sm:w-28 md:w-32 shrink-0 border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-xs text-txt-primary focus:outline-none focus:border-blue-500"
+  />
+
+  {/* Add / Update Button */}
+  <button
+    type="submit"
+    disabled={productLoading}
+    className="shrink-0 whitespace-nowrap bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-2 text-xs font-semibold shadow transition disabled:opacity-50"
+  >
+    {productLoading
+      ? "Saving..."
+      : editingProduct
+        ? "Update"
+        : "Add"}
+  </button>
+</form>
 
     {/* Product List */}
     <div className="space-y-2 mt-4">
@@ -812,7 +816,7 @@ useEffect(() => {
       </div>
 
       {/* Column 2: User management, Permissions Matrix & Change Password */}
-      <div className="lg:col-span-2 space-y-6">
+     <div className="lg:col-span-2 space-y-6 min-w-0">
         {(userRole === 'SUPER_ADMIN' || userRole === 'ADMIN') && (
           <>
             {/* User management list */}
