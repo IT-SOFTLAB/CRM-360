@@ -402,6 +402,7 @@ export default function LeadsView({
                 <div className="bg-slate-50 border border-slate-150 rounded-xl p-4 space-y-1">
                   <input
                     type="text"
+                    placeholder="Contact Name"
                     value={selectedLead.contactName}
                     onChange={(e) =>
                       setSelectedLead({
@@ -413,6 +414,7 @@ export default function LeadsView({
                   />
                   <input
                     type="text"
+                    placeholder="Company Name"
                     value={selectedLead.company || ''}
                     onChange={(e) =>
                       setSelectedLead({

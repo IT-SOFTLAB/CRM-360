@@ -142,7 +142,6 @@ export default function QuotationForm({ opportunity, onClose }: Props) {
     setItems(copy);
   };
 
-  // Calculation helpers
   const subtotal = items.reduce((sum, item) => {
     const qty = Number(item.quantity) || 0;
     const price = Number(item.unitPrice) || 0;

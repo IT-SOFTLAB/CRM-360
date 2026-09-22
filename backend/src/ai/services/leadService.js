@@ -1,6 +1,15 @@
 const { PrismaClient } = require("@prisma/client");
 const AuthorizationService = require("./authorization.service");
+const { deletePatternCache } = require("../../config/redisCache");
 const prisma = new PrismaClient();
+
+const invalidateLeadCache = async (organizationId) => {
+  if (!organizationId) return;
+  await deletePatternCache(`crm:leads:${organizationId}:*`);
+  await deletePatternCache(`crm:opportunities:${organizationId}:*`);
+  await deletePatternCache(`crm:bootstrap:${organizationId}:*`);
+  await deletePatternCache(`crm:dashboard:${organizationId}:*`);
+};
 
 class LeadService {
 
@@ -256,8 +265,9 @@ if (opportunityIds.length > 0) {
 
     });
 
-}
+    }
 
+    await invalidateLeadCache(user.organizationId);
     return updated;
 
 }
@@ -374,45 +384,46 @@ async searchLeads(filters = {}, user) {
 //----------------------------------------------------
 
 async createLead(data) {
+  if (!data?.organizationId) {
+    throw new Error("Organization access is required.");
+  }
 
-      if (!data?.organizationId) {
-
-        throw new Error(
-            "Organization access is required."
-        );
-
-    }
-
-   return await prisma.lead.create({
-
+  const lead = await prisma.lead.create({
     data: {
-
-        contactName: data.contactName,
-
-        company: data.company,
-
-        email: data.email,
-
-        phone: data.phone,
-
-        category: data.category || "",
-
-        serviceType: data.serviceType || "Service Based",
-
-        assignedUser: data.assignedUser,
-
-        assignedUserId: data.assignedUserId,
-
-        status: "New",
-
+      contactName: data.contactName,
+      company: data.company,
+      email: data.email,
+      phone: data.phone,
+      category: data.category || "",
+      serviceType: data.serviceType || "Service Based",
+      assignedUser: data.assignedUser,
+      assignedUserId: data.assignedUserId,
+      status: "New",
       dealValue: data.dealValue || 0,
-
-organizationId: data.organizationId
-
+      organizationId: data.organizationId
     }
+  });
 
-});
+  // Automatically create corresponding Opportunity in "New" stage for Pipeline view
+  await prisma.opportunity.create({
+    data: {
+      organizationId: data.organizationId,
+      leadId: lead.id,
+      customerName: lead.contactName,
+      company: lead.company,
+      email: lead.email,
+      phone: lead.phone,
+      dealValue: lead.dealValue || 0,
+      stage: "New",
+      assignedSalesperson: lead.assignedUser,
+      assignedSalespersonId: lead.assignedUserId,
+      createdAt: lead.createdAt
+    }
+  });
 
+  await invalidateLeadCache(data.organizationId);
+
+  return lead;
 }
 
 
@@ -472,56 +483,63 @@ async updateLead(contactName, updateData, user) {
       oppUpdateData.dealValue = updateData.dealValue ? Number(updateData.dealValue) : 0;
     }
     if (updateData.status !== undefined) oppUpdateData.stage = updateData.status;
-    if (updateData.assignedUser !== undefined) oppUpdateData.assignedSalesperson = updateData.assignedUser;
-    if (updateData.assignedUserId !== undefined) oppUpdateData.assignedSalespersonId = updateData.assignedUserId;
+    if (updateData.assignedUser !== undefined || updateData.assignedUserId !== undefined) {
+      oppUpdateData.assignedSalesperson = updatedLead.assignedUser;
+      oppUpdateData.assignedSalespersonId = updatedLead.assignedUserId;
+    }
 
     if (Object.keys(oppUpdateData).length > 0) {
-     await prisma.opportunity.updateMany({
-  where: {
-    leadId: lead.id,
-    organizationId: user.organizationId
-  },
-  data: oppUpdateData
-});
-    }
-
-    if (updateData.assignedUser !== undefined || updateData.assignedUserId !== undefined) {
- const opps = await prisma.opportunity.findMany({
-  where: {
-    leadId: lead.id,
-    organizationId: user.organizationId
-  },
-  select: { id: true }
-});
-      const oppIds = opps.map(o => o.id);
-      if (oppIds.length > 0) {
-      await prisma.customer.updateMany({
-
-    where: {
-
-        opportunityId: {
-            in: oppIds
+      const oppRes = await prisma.opportunity.updateMany({
+        where: {
+          leadId: lead.id,
+          organizationId: user.organizationId
         },
+        data: oppUpdateData
+      });
 
-        organizationId:
-            user.organizationId
-
-    },
-
-    data: {
-
-        assignedSalesperson:
-            updateData.assignedUser,
-
-        assignedSalespersonId:
-            updateData.assignedUserId
-
-    }
-
-});
+      if (oppRes.count === 0) {
+        await prisma.opportunity.create({
+          data: {
+            organizationId: user.organizationId,
+            leadId: lead.id,
+            customerName: updatedLead.contactName,
+            company: updatedLead.company,
+            email: updatedLead.email,
+            phone: updatedLead.phone,
+            dealValue: updatedLead.dealValue || 0,
+            stage: updatedLead.status || 'New',
+            assignedSalesperson: updatedLead.assignedUser,
+            assignedSalespersonId: updatedLead.assignedUserId,
+            createdAt: updatedLead.createdAt
+          }
+        }).catch(err => console.error("leadService update missing opp create error:", err.message));
       }
     }
 
+    if (updateData.assignedUser !== undefined || updateData.assignedUserId !== undefined) {
+      const opps = await prisma.opportunity.findMany({
+        where: {
+          leadId: lead.id,
+          organizationId: user.organizationId
+        },
+        select: { id: true }
+      });
+      const oppIds = opps.map(o => o.id);
+      if (oppIds.length > 0) {
+        await prisma.customer.updateMany({
+          where: {
+            opportunityId: { in: oppIds },
+            organizationId: user.organizationId
+          },
+          data: {
+            assignedSalesperson: updatedLead.assignedUser,
+            assignedSalespersonId: updatedLead.assignedUserId
+          }
+        });
+      }
+    }
+
+    await invalidateLeadCache(user.organizationId);
     return updatedLead;
 
 } 

@@ -167,6 +167,10 @@ if (!AuthorizationService.isAdminLike(req.user)) {
 
         });
 
+        const { deletePatternCache } = require("../../config/redisCache");
+        await deletePatternCache(`crm:activities:${organizationId}:*`);
+        await deletePatternCache(`crm:dashboard:${organizationId}:*`);
+
         return {
 
             success: true,

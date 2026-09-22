@@ -1,7 +1,16 @@
 const { PrismaClient } = require("@prisma/client");
 const AuthorizationService = require("./authorization.service");
+const { deletePatternCache } = require("../../config/redisCache");
 
 const prisma = new PrismaClient();
+
+const invalidateLeadCache = async (organizationId) => {
+  if (!organizationId) return;
+  await deletePatternCache(`crm:leads:${organizationId}:*`);
+  await deletePatternCache(`crm:opportunities:${organizationId}:*`);
+  await deletePatternCache(`crm:bootstrap:${organizationId}:*`);
+  await deletePatternCache(`crm:dashboard:${organizationId}:*`);
+};
 
 class PipelineService {
 
@@ -62,13 +71,6 @@ class PipelineService {
         // ----------------------------------------------------------
 
         if (!matchedStage) {
-
- if (!AuthorizationService.isAdminLike(user)) {
-
-        return null;
-
-    }
-
             const allStages =
                 await prisma.pipelineStage.findMany({
 
@@ -206,14 +208,12 @@ class PipelineService {
     },
 
     data: {
-
         status:
             matchedStage.name
-
     }
-
 });
 
+            await invalidateLeadCache(organizationId);
             return finalOpportunity;
         }
 
@@ -336,6 +336,7 @@ class PipelineService {
 
         }
 
+        await invalidateLeadCache(organizationId);
         return updated;
 
     }
