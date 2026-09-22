@@ -69,20 +69,51 @@ const createProduct = async (req, res) => {
 
 
 // GET ALL PRODUCTS
+// GET ALL PRODUCTS
 const getAllProducts = async (req, res) => {
   try {
-    const organizationId = req.user.organizationId;
+    const userOrganizationId = req.user?.organizationId;
+    const requestedOrganizationId = req.params.organizationId;
+
+    console.log("========== GET PRODUCTS DEBUG ==========");
+    console.log("User Organization ID:", userOrganizationId);
+    console.log("Requested Organization ID:", requestedOrganizationId);
+    console.log("User:", req.user);
+    console.log("========================================");
+
+    if (!userOrganizationId) {
+      return res.status(400).json({
+        success: false,
+        message: "Organization ID not found for logged-in user"
+      });
+    }
+
+    if (!requestedOrganizationId) {
+      return res.status(400).json({
+        success: false,
+        message: "Organization ID missing from request"
+      });
+    }
+
+    // Security check:
+    // User can only access products belonging to their own organization
+    if (userOrganizationId !== requestedOrganizationId) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to access this organization"
+      });
+    }
 
     const products = await prisma.product.findMany({
       where: {
-        organizationId
+        organizationId: userOrganizationId
       },
       orderBy: {
         createdAt: "desc"
       }
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       products
     });
@@ -90,9 +121,10 @@ const getAllProducts = async (req, res) => {
   } catch (error) {
     console.error("Get Products Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Failed to fetch products"
+      message: "Failed to fetch products",
+      error: error.message
     });
   }
 };
