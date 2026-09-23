@@ -409,12 +409,12 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
     if (leadData.assignedUser !== undefined) oppUpdate.assignedSalesperson = leadData.assignedUser;
     if (leadData.assignedUserId !== undefined) oppUpdate.assignedSalespersonId = leadData.assignedUserId;
 
-    if (Object.keys(oppUpdate).length > 0) {
-      const opps = oppCtx.opportunities.filter(o => o.leadId === leadId || o.id === leadId || (leadData.email && o.email === leadData.email));
-      const oppIds = opps.map(o => o.id);
+            if (Object.keys(oppUpdate).length > 0) {
+      const opps = oppCtx.opportunities.filter(o => o.leadId === leadId || o.id === leadId || (leadData.email && (o as any).email === leadData.email));
+      const oppIds = opps.map((o: any) => o.id); // <-- Ensure this line is present
 
       oppCtx.setOpportunities((prev: any[]) => prev.map(o =>
-        (o.leadId === leadId || o.id === leadId || (leadData.email && o.email === leadData.email)) ? { ...o, ...oppUpdate } : o
+        (o.leadId === leadId || o.id === leadId || (leadData.email && (o as any).email === leadData.email)) ? { ...o, ...oppUpdate } : o
       ));
 
       if (oppIds.length > 0 && (leadData.assignedUser !== undefined || leadData.assignedUserId !== undefined)) {
@@ -425,7 +425,6 @@ const CRMProviderInner: React.FC<{ children: React.ReactNode }> = ({ children })
         ));
       }
     }
-
     // 2. Call core handler
     await leadsCtx.handleUpdateLeadFromView(leadId, leadData);
 
