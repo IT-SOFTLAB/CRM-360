@@ -227,7 +227,6 @@ pipeline {
                                         name=BACKEND_SECRET_KEY,value=${BACKEND_SECRET_KEY},type=PLAINTEXT \
                                         name=FRONTEND_SECRET_KEY,value=${FRONTEND_SECRET_KEY},type=PLAINTEXT \
                                         name=S3_ENV_BUCKET,value=${S3_ENV_BUCKET},type=PLAINTEXT \
-
                                     --query 'build.id' \
                                     --output text
                             """,
