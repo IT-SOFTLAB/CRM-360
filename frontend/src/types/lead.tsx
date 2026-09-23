@@ -10,7 +10,9 @@ export interface Lead {
   category: string;
   status: string;
   assignedUser: string;
+  assignedUserId?: string;
   createdDate: string;
+  createdAt?: string; 
   notes?: string;
   city?: string;
   country?: string;
