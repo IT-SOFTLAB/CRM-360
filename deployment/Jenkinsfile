@@ -15,6 +15,7 @@ pipeline {
         AWS_ACCOUNT_ID = credentials('aws-rahul-account-id')
 
         S3_ENV_BUCKET = 'its360-secure-env-file'
+
         CODEBUILD_PROJECT_NAME = 'crm360-build'
 
         FRONTEND_ECR_REPOSITORY = 'crm360-frontend'
@@ -26,10 +27,10 @@ pipeline {
 
         GIT_REPO = "https://${GITHUB_PAT}@github.com/IT-SOFTLAB/CRM-360.git"
 
-        BACKEND_PRODUCTION_ENV_S3_KEY = 'crm-360-backend-production-env'
-        FRONTEND_PRODUCTION_ENV_S3_KEY = 'crm-360-frontend-production-env'
-        BACKEND_STAGING_ENV_S3_KEY = 'crm-360-backend-staging-env'
-        FRONTEND_STAGING_ENV_S3_KEY = 'crm-360-frontend-staging-env'
+        BACKEND_PRODUCTION_ENV_S3_KEY = 'crm-360-backend-production-env.env'
+        FRONTEND_PRODUCTION_ENV_S3_KEY = 'crm-360-frontend-production-env.env'
+        BACKEND_STAGING_ENV_S3_KEY = 'crm-360-backend-staging-env.env'
+        FRONTEND_STAGING_ENV_S3_KEY = 'crm-360-frontend-staging-env.env'
 
     }
 
