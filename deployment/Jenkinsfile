@@ -14,6 +14,7 @@ pipeline {
         
         AWS_ACCOUNT_ID = credentials('aws-rahul-account-id')
 
+        S3_ENV_BUCKET = 'its360-secure-env-file'
         CODEBUILD_PROJECT_NAME = 'crm360-build'
 
         FRONTEND_ECR_REPOSITORY = 'crm360-frontend'
