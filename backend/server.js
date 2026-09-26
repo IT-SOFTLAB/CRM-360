@@ -139,6 +139,18 @@ app.use(
   express.static(path.join(__dirname, "src", "uploads"))
 );
 app.use("/api/ai", aiRoutes);
+
+// Health check and root endpoints
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'OK', timestamp: new Date().toISOString() });
+});
+app.get('/', (req, res) => {
+  res.status(200).json({ name: 'CRM 360 Backend API', status: 'OK', timestamp: new Date().toISOString() });
+});
+
 // Project Categories Management
 app.get('/api/categories', (req, res) => {
   res.json(activeCategories);
