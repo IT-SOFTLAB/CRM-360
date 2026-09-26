@@ -810,7 +810,7 @@ EOF
                     env.FRONTEND_CONTAINER_NAME = "${PROJECT_NAME}-frontend"
                     env.BACKEND_CONTAINER_NAME = "${PROJECT_NAME}-backend"
 
-                    env.FRONTEND_CONTAINER_PORT = "80"
+                    env.FRONTEND_CONTAINER_PORT = "3000"
                     env.BACKEND_CONTAINER_PORT = "5000"
 
 
