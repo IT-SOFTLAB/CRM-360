@@ -1,6 +1,6 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl curl
 
 WORKDIR /app
 
@@ -24,6 +24,7 @@ HEALTHCHECK \
     --timeout=5s \
     --start-period=30s \
     --retries=3 \
-    CMD node -e "require('net').connect(5000,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"
+    CMD curl --fail --silent http://127.0.0.1:5000/health > /dev/null || exit 1
+
 
 CMD ["npm", "start"]
