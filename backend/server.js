@@ -18,11 +18,11 @@ let activeServices = ['Service Based', 'Product Based', 'Retainer Based', 'Consu
 const leadRoutes = require("./src/routes/leadRoutes.js");
 const activityRoutes = require("./src/routes/activityRoutes.js");
 
-const authRoutes=require("./src/routes/authRoutes.js");
+const authRoutes = require("./src/routes/authRoutes.js");
 const superAdminRoutes = require("./src/routes/superAdminRoutes.js");
 console.log(require.resolve("./src/routes/authRoutes.js"));
-const emailRoutes=require("./src/routes/emailRoutes.js");
-const opportunityRoutes=require("./src/routes/opportunityRoutes.js");
+const emailRoutes = require("./src/routes/emailRoutes.js");
+const opportunityRoutes = require("./src/routes/opportunityRoutes.js");
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const customerRoutes = require("./src/routes/customerRoutes.js");
@@ -48,9 +48,7 @@ if (isProduction) {
 }
 
 const allowedOrigins = [
-  'http://localhost:3000',
-  'http://127.0.0.1:3000',
-  'https://crm-360-2.onrender.com',
+  'http://crm360-frontend-lb-979440103.ap-south-1.elb.amazonaws.com',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -71,18 +69,18 @@ app.use((req, res, next) => {
 });
 app.use(cookieParser());
 app.use(
-    session({
-        secret: process.env.SESSION_SECRET || "crm360-secret",
-        resave: false,
-        saveUninitialized: false,
+  session({
+    secret: process.env.SESSION_SECRET || "crm360-secret",
+    resave: false,
+    saveUninitialized: false,
 
-        cookie: {
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-            httpOnly: true,
-            secure: isProduction,
-            sameSite: isProduction ? "none" : "lax"
-        }
-    })
+    cookie: {
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? "none" : "lax"
+    }
+  })
 );
 const organizationMiddleware = require(
   "./src/middlewares/organizationMiddleware"
