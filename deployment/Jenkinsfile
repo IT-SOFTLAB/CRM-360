@@ -1121,7 +1121,7 @@ EOF
                             aws elbv2 describe-listeners \
                                 --load-balancer-arn ${FRONTEND_LOAD_BALANCER_ARN} \
                                 --region ${AWS_REGION} \
-                                --query 'Listeners[?Port==\\`80\\`].ListenerArn | [0]' \
+                                --query 'Listeners[?Port==\\`3000\\`].ListenerArn | [0]' \
                                 --output text 2>/dev/null || true
                         """,
                         returnStdout: true
@@ -1131,14 +1131,14 @@ EOF
                     if (!frontendListenerArn || frontendListenerArn == "None") {
 
                         echo "📦 Frontend listener does not exist."
-                        echo "🚀 Creating HTTP :80 listener..."
+                        echo "🚀 Creating HTTP :3000 listener..."
 
                         frontendListenerArn = sh(
                             script: """
                                 aws elbv2 create-listener \
                                     --load-balancer-arn ${FRONTEND_LOAD_BALANCER_ARN} \
                                     --protocol HTTP \
-                                    --port 80 \
+                                    --port 3000 \
                                     --default-actions Type=forward,TargetGroupArn=${FRONTEND_TARGET_GROUP_ARN} \
                                     --region ${AWS_REGION} \
                                     --query 'Listeners[0].ListenerArn' \
@@ -1271,7 +1271,7 @@ EOF
                                     securityGroups=[${SECURITY_GROUP_1},${SECURITY_GROUP_2}],
                                     assignPublicIp=ENABLED
                                 }" \
-                                --load-balancers "targetGroupArn=${FRONTEND_TARGET_GROUP_ARN},containerName=${FRONTEND_CONTAINER_NAME},containerPort=80" \
+                                --load-balancers "targetGroupArn=${FRONTEND_TARGET_GROUP_ARN},containerName=${FRONTEND_CONTAINER_NAME},containerPort=3000" \
                                 --region ${AWS_REGION}
                         """
 
@@ -1287,7 +1287,7 @@ EOF
                                 --cluster ${ECS_CLUSTER} \
                                 --service ${FRONTEND_SERVICE} \
                                 --task-definition ${FRONTEND_TASK_DEFINITION_ARN} \
-                                --load-balancers "targetGroupArn=${FRONTEND_TARGET_GROUP_ARN},containerName=${FRONTEND_CONTAINER_NAME},containerPort=80" \
+                                --load-balancers "targetGroupArn=${FRONTEND_TARGET_GROUP_ARN},containerName=${FRONTEND_CONTAINER_NAME},containerPort=3000" \
                                 --region ${AWS_REGION}
                         """
 
@@ -1377,7 +1377,7 @@ EOF
                     echo "Frontend:"
                     echo "  Load Balancer : ${FRONTEND_LOAD_BALANCER}"
                     echo "  Target Group  : ${FRONTEND_TARGET_GROUP}"
-                    echo "  Listener      : HTTP :80"
+                    echo "  Listener      : HTTP :3000"
                     echo "  Service       : ${FRONTEND_SERVICE}"
                     echo "  Task Definition:"
                     echo "  ${FRONTEND_TASK_DEFINITION_ARN}"
