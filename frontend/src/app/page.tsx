@@ -11,7 +11,8 @@ export default function RootPage() {
   useEffect(() => {
     if (authReady) {
       if (user) {
-        router.replace('n');
+        const orgId = user.organizationId || 'orgA';
+        router.replace(`/org/${orgId}/dashboard`);
       } else {
         router.replace('/login');
       }

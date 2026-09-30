@@ -4,7 +4,7 @@ phases:
   pre_build:
     commands:
       - echo "=========================================="
-      - echo "AWS CodeBuild - DMS"
+      - echo "AWS CodeBuild - CRM"
       - echo "=========================================="
       - echo "Environment - ${ENVIRONMENT}"
       - echo "Project - ${PROJECT_NAME}"
@@ -23,18 +23,35 @@ phases:
 
       - echo "ECR login successful"
 
+  build:
+    commands:
+
       - echo "Downloading frontend environment file from S3..."
       - aws s3 cp "s3://${S3_ENV_BUCKET}/${FRONTEND_SECRET_KEY}" ./frontend/.env
       - test -s ./frontend/.env
       - echo "Frontend environment file downloaded successfully"
 
-  build:
-    commands:
+      - echo "=========================================="
+      - echo "Reading frontend API configuration"
+      - echo "=========================================="
+
+      - export NEXT_PUBLIC_API_URL=$(grep '^NEXT_PUBLIC_API_URL=' ./frontend/.env | cut -d '=' -f2-)
+      - export NEXT_PUBLIC_BACKEND_URL=$(grep '^NEXT_PUBLIC_BACKEND_URL=' ./frontend/.env | cut -d '=' -f2-)
+
+      - echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}"
+      - echo "NEXT_PUBLIC_BACKEND_URL=${NEXT_PUBLIC_BACKEND_URL}"
+
       - echo "=========================================="
       - echo "Building Frontend Image"
       - echo "=========================================="
 
-      - docker build -t ${ECR_REGISTRY}/${PROJECT_NAME}-frontend:${FRONTEND_TAG} ./frontend
+      - docker build --no-cache --build-arg NEXT_PUBLIC_API_URL="${NEXT_PUBLIC_API_URL}" --build-arg NEXT_PUBLIC_BACKEND_URL="${NEXT_PUBLIC_BACKEND_URL}" -t ${ECR_REGISTRY}/${PROJECT_NAME}-frontend:${FRONTEND_TAG} ./frontend
+
+      - echo "=========================================="
+      - echo "Verifying API URL in Next.js build"
+      - echo "=========================================="
+
+      - docker run --rm ${ECR_REGISTRY}/${PROJECT_NAME}-frontend:${FRONTEND_TAG} sh -c "grep -R -o 'crm360-backend-lb-1193834156.ap-south-1.elb.amazonaws.com' /app/.next 2>/dev/null | head -5"
 
       - echo "=========================================="
       - echo "Building Backend Image"
