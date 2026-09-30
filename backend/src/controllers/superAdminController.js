@@ -93,16 +93,22 @@ exports.createSuperAdmin = async (req, res) => {
         status: "Active",
       },
     });
-        // Auto-create 3 default sales pipeline stages for this new organization
-    const defaultStages = [
-      { name: 'New', order: 1, organizationId: organizationId.trim() },
-      { name: 'Won', order: 2, organizationId: organizationId.trim() },
-      { name: 'Lost', order: 3, organizationId: organizationId.trim() }
-    ];
-
-    await prisma.pipelineStage.createMany({
-      data: defaultStages
+    // Auto-create 3 default sales pipeline stages for this new organization if none exist
+    const existingCount = await prisma.pipelineStage.count({
+      where: { organizationId: organizationId.trim() }
     });
+
+    if (existingCount === 0) {
+      const defaultStages = [
+        { name: 'New', order: 1, organizationId: organizationId.trim() },
+        { name: 'Won', order: 2, organizationId: organizationId.trim() },
+        { name: 'Lost', order: 3, organizationId: organizationId.trim() }
+      ];
+
+      await prisma.pipelineStage.createMany({
+        data: defaultStages
+      });
+    }
     
     await prisma.user.create({
       data: {
