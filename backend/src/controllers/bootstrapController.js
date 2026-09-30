@@ -361,17 +361,22 @@ exports.getBootstrapData = async (req, res) => {
       });
     }
 
-      // 7. Get standard pipelines stages
+    // 7. Get standard pipelines stages
     let pipelines = pipelineStagesDb;
-    if (pipelines.length === 0 && orgId) {
-      const defaultStages = [
-        { name: 'New', order: 1, organizationId: orgId },
-        { name: 'Won', order: 2, organizationId: orgId },
-        { name: 'Lost', order: 3, organizationId: orgId }
-      ];
-      await prisma.pipelineStage.createMany({
-        data: defaultStages
+    if ((!pipelines || pipelines.length === 0) && orgId) {
+      const existingCount = await prisma.pipelineStage.count({
+        where: { organizationId: orgId }
       });
+      if (existingCount === 0) {
+        const defaultStages = [
+          { name: 'New', order: 1, organizationId: orgId },
+          { name: 'Won', order: 2, organizationId: orgId },
+          { name: 'Lost', order: 3, organizationId: orgId }
+        ];
+        await prisma.pipelineStage.createMany({
+          data: defaultStages
+        });
+      }
       pipelines = await prisma.pipelineStage.findMany({
         where: { organizationId: orgId },
         orderBy: { order: 'asc' }

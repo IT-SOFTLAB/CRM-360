@@ -52,12 +52,14 @@ class PipelineService {
         // 2. Resolve pipeline stage
         // ----------------------------------------------------------
 
+        const cleanStage = stage ? stage.trim() : "";
+
         let matchedStage =
             await prisma.pipelineStage.findFirst({
 
                 where: {
                     name: {
-                        equals: stage,
+                        equals: cleanStage,
                         mode: "insensitive"
                     },
 
@@ -87,25 +89,38 @@ class PipelineService {
                     0
                 );
 
-            const formattedName = stage
-                .split(" ")
+            const formattedName = cleanStage
+                .split(/\s+/)
                 .map(
                     word =>
                         word.charAt(0).toUpperCase() +
-                        word.slice(1)
+                        word.slice(1).toLowerCase()
                 )
                 .join(" ");
 
-            matchedStage =
-                await prisma.pipelineStage.create({
+            // Re-check formatted name case-insensitively
+            matchedStage = await prisma.pipelineStage.findFirst({
+                where: {
+                    name: {
+                        equals: formattedName,
+                        mode: "insensitive"
+                    },
+                    organizationId
+                }
+            });
 
-                    data: {
-                        name: formattedName,
-                        order: maxOrder + 1,
-                        organizationId
-                    }
+            if (!matchedStage) {
+                matchedStage =
+                    await prisma.pipelineStage.create({
 
-                });
+                        data: {
+                            name: formattedName,
+                            order: maxOrder + 1,
+                            organizationId
+                        }
+
+                    });
+            }
 
         }
 
