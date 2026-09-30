@@ -6,7 +6,7 @@ pipeline {
 
         AWS_REGION = 'ap-south-1'
 
-        PROJECT_NAME = 'crm-360'
+        PROJECT_NAME = 'crm360'
 
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
 
@@ -361,9 +361,11 @@ pipeline {
 
                     env.FRONTEND_CONTAINER_NAME = "${PROJECT_NAME}-frontend"
 
-                    env.FRONTEND_CONTAINER_PORT = "80"
+                    env.FRONTEND_CONTAINER_PORT = "3000"
 
                     env.FRONTEND_EXECUTION_ROLE = "arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole"
+
+                    env.FRONTEND_TASK_ROLE = "arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskRole"
 
                     env.FRONTEND_LOG_GROUP =  "/ecs/${FRONTEND_TASK_FAMILY}"
 
@@ -394,6 +396,8 @@ pipeline {
 
         "executionRoleArn": "${FRONTEND_EXECUTION_ROLE}",
 
+        "taskRoleArn": "${FRONTEND_TASK_ROLE}",
+
         "networkMode": "awsvpc",
 
         "requiresCompatibilities": [
@@ -420,9 +424,9 @@ pipeline {
                 "portMappings": [
                     {
                         "containerPort": ${FRONTEND_CONTAINER_PORT},
-                        "hostPort": 80,
+                        "hostPort": 3000,
                         "protocol": "tcp",
-                        "name": "${FRONTEND_CONTAINER_NAME}-80-tcp",
+                        "name": "${FRONTEND_CONTAINER_NAME}-3000-tcp",
                         "appProtocol": "http"
                     }
                 ],
@@ -458,7 +462,7 @@ pipeline {
                 "healthCheck": {
                     "command": [
                         "CMD-SHELL",
-                        "curl -f http://localhost/ || exit 1"
+                        "curl -f http://localhost:3000/ || exit 1"
                     ],
 
                     "interval": 30,
@@ -540,6 +544,7 @@ EOF
                     env.BACKEND_CONTAINER_PORT = "5000"
 
                     env.BACKEND_EXECUTION_ROLE = "arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole"
+                    env.BACKEND_TASK_ROLE = "arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskRole"
 
                     env.BACKEND_LOG_GROUP = "/ecs/${BACKEND_TASK_FAMILY}"
 
@@ -574,6 +579,8 @@ EOF
         "family": "${BACKEND_TASK_FAMILY}",
 
         "executionRoleArn": "${BACKEND_EXECUTION_ROLE}",
+
+        "taskRoleArn": "${BACKEND_TASK_ROLE}",
 
         "networkMode": "awsvpc",
 
@@ -680,6 +687,7 @@ EOF
                         jq '{
                             family,
                             executionRoleArn,
+                            taskRoleArn,
                             networkMode,
                             requiresCompatibilities,
                             cpu,
@@ -810,7 +818,7 @@ EOF
                     env.FRONTEND_CONTAINER_NAME = "${PROJECT_NAME}-frontend"
                     env.BACKEND_CONTAINER_NAME = "${PROJECT_NAME}-backend"
 
-                    env.FRONTEND_CONTAINER_PORT = "80"
+                    env.FRONTEND_CONTAINER_PORT = "3000"
                     env.BACKEND_CONTAINER_PORT = "5000"
 
 
@@ -830,9 +838,6 @@ EOF
                     // =========================================================
                     // LOAD BALANCER CONFIGURATION
                     // =========================================================
-
-                    env.FRONTEND_LB_PORT = "80"
-                    env.BACKEND_LB_PORT = "5000"
 
                     env.FRONTEND_HEALTH_PATH = "/"
                     env.BACKEND_HEALTH_PATH = "/health"
@@ -1131,7 +1136,7 @@ EOF
                     if (!frontendListenerArn || frontendListenerArn == "None") {
 
                         echo "📦 Frontend listener does not exist."
-                        echo "🚀 Creating HTTP :80 listener..."
+                        echo "🚀 Creating HTTP :3000 listener..."
 
                         frontendListenerArn = sh(
                             script: """
@@ -1182,7 +1187,7 @@ EOF
                             aws elbv2 describe-listeners \
                                 --load-balancer-arn ${BACKEND_LOAD_BALANCER_ARN} \
                                 --region ${AWS_REGION} \
-                                --query 'Listeners[?Port==\\`5000\\`].ListenerArn | [0]' \
+                                --query 'Listeners[?Port==\\`80\\`].ListenerArn | [0]' \
                                 --output text 2>/dev/null || true
                         """,
                         returnStdout: true
@@ -1193,14 +1198,14 @@ EOF
                         backendListenerArn == "None") {
 
                         echo "📦 Backend listener does not exist."
-                        echo "🚀 Creating HTTP :5000 listener..."
+                        echo "🚀 Creating HTTP :80 listener..."
 
                         backendListenerArn = sh(
                             script: """
                                 aws elbv2 create-listener \
                                     --load-balancer-arn ${BACKEND_LOAD_BALANCER_ARN} \
                                     --protocol HTTP \
-                                    --port 5000 \
+                                    --port 80 \
                                     --default-actions Type=forward,TargetGroupArn=${BACKEND_TARGET_GROUP_ARN} \
                                     --region ${AWS_REGION} \
                                     --query 'Listeners[0].ListenerArn' \
@@ -1266,12 +1271,13 @@ EOF
                                 --desired-count 1 \
                                 --launch-type FARGATE \
                                 --platform-version 1.4.0 \
+                                --enable-execute-command \
                                 --network-configuration "awsvpcConfiguration={
                                     subnets=[${SUBNET_1},${SUBNET_2}],
                                     securityGroups=[${SECURITY_GROUP_1},${SECURITY_GROUP_2}],
                                     assignPublicIp=ENABLED
                                 }" \
-                                --load-balancers "targetGroupArn=${FRONTEND_TARGET_GROUP_ARN},containerName=${FRONTEND_CONTAINER_NAME},containerPort=80" \
+                                --load-balancers "targetGroupArn=${FRONTEND_TARGET_GROUP_ARN},containerName=${FRONTEND_CONTAINER_NAME},containerPort=3000" \
                                 --region ${AWS_REGION}
                         """
 
@@ -1287,7 +1293,7 @@ EOF
                                 --cluster ${ECS_CLUSTER} \
                                 --service ${FRONTEND_SERVICE} \
                                 --task-definition ${FRONTEND_TASK_DEFINITION_ARN} \
-                                --load-balancers "targetGroupArn=${FRONTEND_TARGET_GROUP_ARN},containerName=${FRONTEND_CONTAINER_NAME},containerPort=80" \
+                                --load-balancers "targetGroupArn=${FRONTEND_TARGET_GROUP_ARN},containerName=${FRONTEND_CONTAINER_NAME},containerPort=3000" \
                                 --region ${AWS_REGION}
                         """
 
@@ -1331,6 +1337,7 @@ EOF
                                 --desired-count 1 \
                                 --launch-type FARGATE \
                                 --platform-version 1.4.0 \
+                                --enable-execute-command \
                                 --network-configuration "awsvpcConfiguration={
                                     subnets=[${SUBNET_1},${SUBNET_2}],
                                     securityGroups=[${SECURITY_GROUP_1},${SECURITY_GROUP_2}],
@@ -1377,7 +1384,7 @@ EOF
                     echo "Frontend:"
                     echo "  Load Balancer : ${FRONTEND_LOAD_BALANCER}"
                     echo "  Target Group  : ${FRONTEND_TARGET_GROUP}"
-                    echo "  Listener      : HTTP :80"
+                    echo "  Listener      : HTTP :3000"
                     echo "  Service       : ${FRONTEND_SERVICE}"
                     echo "  Task Definition:"
                     echo "  ${FRONTEND_TASK_DEFINITION_ARN}"
