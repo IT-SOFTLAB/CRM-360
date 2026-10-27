@@ -19,7 +19,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
+      if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = 'https://www.itsoftlab360.com/login';
+    }
     }
 
     return Promise.reject(error);

@@ -19,10 +19,8 @@ useEffect(() => {
   if (!crm.authReady) return;
 
   // User is not logged in
-  if (!crm.user) {
-    if (pathname !== "/login") {
-      router.replace("/login");
-    }
+    if (!crm.user) {
+    window.location.href = "https://www.itsoftlab360.com/login";
     return;
   }
 
@@ -30,10 +28,9 @@ useEffect(() => {
 
   // If organization ID is missing, logout/redirect
   if (!userOrganizationId) {
-    router.replace("/login");
+    window.location.href = "https://www.itsoftlab360.com/login";
     return;
   }
-
   // Redirect root or login to user's organization dashboard
   if (pathname === "/" || pathname === "/login") {
     router.replace(`/org/${userOrganizationId}/dashboard`);
@@ -51,11 +48,11 @@ useEffect(() => {
 
   // SECURITY:
   // User tries to access another organization
-  if (
+if (
     urlOrganizationId &&
     urlOrganizationId !== userOrganizationId
   ) {
-    router.replace("/login");
+    window.location.href = "https://www.itsoftlab360.com/login";
     return;
   }
 

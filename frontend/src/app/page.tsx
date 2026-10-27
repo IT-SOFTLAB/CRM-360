@@ -8,13 +8,13 @@ export default function RootPage() {
   const { user, authReady } = useCRM();
   const router = useRouter();
 
-  useEffect(() => {
+   useEffect(() => {
     if (authReady) {
       if (user) {
         const orgId = user.organizationId || 'orgA';
         router.replace(`/org/${orgId}/dashboard`);
       } else {
-        router.replace('/login');
+        window.location.href = 'https://www.itsoftlab360.com/login';
       }
     }
   }, [user, authReady, router]);

@@ -27,8 +27,11 @@ const userRole = user.role;
 
 const cacheKey = `crm:dashboard:${organizationId}:${userRole}:${userId}`;
 
+    // Allow bypassing cache in development/test environment
+    const shouldBypassCache = process.env.NODE_ENV !== "production" && (filters.bypassCache === "true" || filters.bypassCache === true);
+
     // Check Redis first
-    const cachedDashboard = await getCache(cacheKey);
+    const cachedDashboard = shouldBypassCache ? null : await getCache(cacheKey);
 
     if (cachedDashboard) {
 
@@ -330,15 +333,17 @@ const dashboardData = {
 // TTL = 5 minutes
 // ----------------------------------------
 
-await setCache(
-    cacheKey,
-    dashboardData,
-    300
-);
+if (!shouldBypassCache) {
+    await setCache(
+        cacheKey,
+        dashboardData,
+        300
+    );
 
-console.log(
-    `Dashboard cached: ${cacheKey}`
-);
+    console.log(
+        `Dashboard cached: ${cacheKey}`
+    );
+}
 
 return dashboardData;
  }
