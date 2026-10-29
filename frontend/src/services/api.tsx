@@ -124,7 +124,7 @@ api.interceptors.response.use(
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
 
-           window.location.href = 'https://www.itsoftlab360.com/login';
+           window.location.href = 'https://www.itsoftlab360.com/login?callbackUrl=https%3A%2F%2Fcrm.itsoftlab360.com';
         }
 
         return Promise.reject(refreshError);

@@ -14,7 +14,7 @@ export default function ProtectedRoute({
 
    useEffect(() => {
     if (authReady && !user) {
-      window.location.href = 'https://www.itsoftlab360.com/login';
+      window.location.href = 'https://www.itsoftlab360.com/login?callbackUrl=https%3A%2F%2Fcrm.itsoftlab360.com';
     }
   }, [authReady, user, router]);
 

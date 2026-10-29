@@ -6,7 +6,8 @@ import { authService } from '../services/auth.service';
 import { ToastContext } from './ToastContext';
 import { DEFAULT_AUTH_FORM } from '../utils/constants';
 import api from '../services/api';
-
+const CENTRAL_LOGIN_URL =
+  "https://www.itsoftlab360.com/login?callbackUrl=https%3A%2F%2Fcrm.itsoftlab360.com";
 export interface AuthContextType {
   mounted: boolean;
   setMounted: React.Dispatch<React.SetStateAction<boolean>>;
@@ -66,7 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         setUser(null);
-        window.location.href = 'https://www.itsoftlab360.com/login';
+    window.location.href = CENTRAL_LOGIN_URL;
       } finally {
         setAuthReady(true);
       }
@@ -134,7 +135,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (toastCtx) {
       toastCtx.addToast('info', 'Logged out successfully');
     }
-    window.location.href = 'https://www.itsoftlab360.com/login';
+   window.location.href = CENTRAL_LOGIN_URL;
   };
   const selectQuickAccount = (email: string) => {
     setAuthForm(prev => ({ ...prev, email, password: 'password' }));
