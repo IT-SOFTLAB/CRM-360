@@ -381,7 +381,7 @@ pipeline {
 
                     env.FRONTEND_TASK_FAMILY = "${FRONTEND_TASK_DEFINATION_FAMILY}"
 
-                    env.FRONTEND_CONTAINER_NAME = "${PROJECT_NAME}-frontend"
+                    env.FRONTEND_CONTAINER_NAME = "${FRONTEND_CONTAINER_NAME}"
 
                     env.FRONTEND_CONTAINER_PORT = "${FRONTEND_CONTAINER_PORT}"
 
@@ -561,7 +561,7 @@ EOF
 
                     env.BACKEND_TASK_FAMILY = "${BACKEND_TASK_DEFINATION_FAMILY}"
 
-                    env.BACKEND_CONTAINER_NAME = "${PROJECT_NAME}-backend"
+                    env.BACKEND_CONTAINER_NAME = "${BACKEND_CONTAINER_NAME}"
 
                     env.BACKEND_CONTAINER_PORT = "${BACKEND_CONTAINER_PORT}"
 

@@ -63,7 +63,7 @@ phases:
       - echo "Pushing Frontend Image"
       - echo "=========================================="
 
-      - docker push ${ECR_REGISTRY}/${BACKEND_ECR_REPOSITORY}:${BACKEND_TAG}
+      - docker push ${ECR_REGISTRY}/${FRONTEND_ECR_REPOSITORY}:${FRONTEND_TAG}
 
       - echo "=========================================="
       - echo "Pushing Backend Image"
