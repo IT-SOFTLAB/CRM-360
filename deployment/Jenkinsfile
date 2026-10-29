@@ -6,7 +6,28 @@ pipeline {
 
         AWS_REGION = 'ap-south-1'
 
-        PROJECT_NAME = 'crm360'
+        FRONTEND_TASK_DEFINATION_FAMILY='itsoftlab-360-crm360-frontend'
+        BACKEND_TASK_DEFINATION_FAMILY='itsoftlab-360-crm360-backend'
+
+        BACKEND_HEALTH_API='/health'
+        FRONTEND_HEALTH_API='/'
+
+        FRONTEND_SERVICE = "crm360-frontend-service"
+        BACKEND_SERVICE = "crm360-backend-service"
+
+        FRONTEND_LOAD_BALANCER = "master-load-balancer"
+        BACKEND_LOAD_BALANCER = "master-load-balancer"
+
+        FRONTEND_TARGET_GROUP = "crm360-frontend-tg"
+        BACKEND_TARGET_GROUP = "crm360-backend-tg"
+
+        FRONTEND_CONTAINER_NAME = "Main"
+        BACKEND_CONTAINER_NAME = "Main"
+        
+        FRONTEND_CONTAINER_PORT = '3000'
+        BACKEND_CONTAINER_PORT = '5000'
+
+        PROJECT_NAME = 'itsoftlab-360'
 
         AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
 
@@ -29,8 +50,8 @@ pipeline {
 
         BACKEND_PRODUCTION_ENV_S3_KEY = 'crm-360-backend-production-env'
         FRONTEND_PRODUCTION_ENV_S3_KEY = 'crm-360-frontend-production-env'
-        BACKEND_STAGING_ENV_S3_KEY = 'crm-360-backend-staging-env'
-        FRONTEND_STAGING_ENV_S3_KEY = 'crm-360-frontend-staging-env'
+        BACKEND_STAGING_ENV_S3_KEY = 'crm-360-backend-production-env'
+        FRONTEND_STAGING_ENV_S3_KEY = 'crm-360-frontend-production-en'
 
     }
 
@@ -239,7 +260,6 @@ pipeline {
 
                             error "❌ Failed to start AWS CodeBuild."
                         }
-// comment
                         env.CODEBUILD_BUILD_ID = buildId
 
                         echo "✅ AWS CodeBuild started."
@@ -357,11 +377,11 @@ pipeline {
                     // Frontend Task Definition Variables
                     // ==========================================
 
-                    env.FRONTEND_TASK_FAMILY = "itsoftlab-360-${PROJECT_NAME}-frontend"
+                    env.FRONTEND_TASK_FAMILY = "${FRONTEND_TASK_DEFINATION_FAMILY}"
 
                     env.FRONTEND_CONTAINER_NAME = "${PROJECT_NAME}-frontend"
 
-                    env.FRONTEND_CONTAINER_PORT = "3000"
+                    env.FRONTEND_CONTAINER_PORT = "${FRONTEND_CONTAINER_PORT}"
 
                     env.FRONTEND_EXECUTION_ROLE = "arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole"
 
@@ -424,9 +444,9 @@ pipeline {
                 "portMappings": [
                     {
                         "containerPort": ${FRONTEND_CONTAINER_PORT},
-                        "hostPort": 3000,
+                        "hostPort": ${FRONTEND_CONTAINER_PORT},
                         "protocol": "tcp",
-                        "name": "${FRONTEND_CONTAINER_NAME}-3000-tcp",
+                        "name": "frontend-${FRONTEND_CONTAINER_PORT}-tcp",
                         "appProtocol": "http"
                     }
                 ],
@@ -462,7 +482,7 @@ pipeline {
                 "healthCheck": {
                     "command": [
                         "CMD-SHELL",
-                        "curl -f http://localhost:3000/ || exit 1"
+                        "curl -f http://localhost:${FRONTEND_CONTAINER_PORT}${FRONTEND_HEALTH_API} || exit 1"
                     ],
 
                     "interval": 30,
@@ -537,11 +557,11 @@ EOF
                     // Backend Task Definition Variables
                     // ==========================================
 
-                    env.BACKEND_TASK_FAMILY = "itsoftlab-360-${PROJECT_NAME}-backend"
+                    env.BACKEND_TASK_FAMILY = "${BACKEND_TASK_DEFINATION_FAMILY}"
 
                     env.BACKEND_CONTAINER_NAME = "${PROJECT_NAME}-backend"
 
-                    env.BACKEND_CONTAINER_PORT = "5000"
+                    env.BACKEND_CONTAINER_PORT = "${BACKEND_CONTAINER_PORT}"
 
                     env.BACKEND_EXECUTION_ROLE = "arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole"
                     env.BACKEND_TASK_ROLE = "arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskRole"
@@ -608,9 +628,9 @@ EOF
                 "portMappings": [
                     {
                         "containerPort": ${BACKEND_CONTAINER_PORT},
-                        "hostPort": 5000,
+                        "hostPort": ${BACKEND_CONTAINER_PORT},
                         "protocol": "tcp",
-                        "name": "${BACKEND_CONTAINER_NAME}-5000-tcp",
+                        "name": "backend-${BACKEND_CONTAINER_PORT}-tcp",
                         "appProtocol": "http"
                     }
                 ],
@@ -646,7 +666,7 @@ EOF
                 "healthCheck": {
                     "command": [
                         "CMD-SHELL",
-                        "curl --fail --silent http://127.0.0.1:5000/health > /dev/null || exit 1"
+                        "curl --fail --silent http://127.0.0.1:${BACKEND_CONTAINER_PORT}${BACKEND_HEALTH_API} > /dev/null || exit 1"
                     ],
                     "interval": 30,
                     "timeout": 5,
@@ -791,615 +811,54 @@ EOF
         }
 
 
-        stage('Create/Update ECS Services') {
-
+        stage('Update ECS Services') {
             steps {
-
                 script {
-
-                    echo "🚀 Starting ECS infrastructure and service deployment..."
-
-
-                    // =========================================================
-                    // ECS CONFIGURATION
-                    // =========================================================
-
-                    env.ECS_CLUSTER = "its360-cluster"
-
-                    env.FRONTEND_SERVICE = "${PROJECT_NAME}-frontend-service"
-                    env.BACKEND_SERVICE = "${PROJECT_NAME}-backend-service"
-
-                    env.FRONTEND_LOAD_BALANCER = "${PROJECT_NAME}-frontend-lb"
-                    env.BACKEND_LOAD_BALANCER = "${PROJECT_NAME}-backend-lb"
-
-                    env.FRONTEND_TARGET_GROUP = "${PROJECT_NAME}-frontend-tg"
-                    env.BACKEND_TARGET_GROUP = "${PROJECT_NAME}-backend-tg"
-
-                    env.FRONTEND_CONTAINER_NAME = "${PROJECT_NAME}-frontend"
-                    env.BACKEND_CONTAINER_NAME = "${PROJECT_NAME}-backend"
-
-                    env.FRONTEND_CONTAINER_PORT = "3000"
-                    env.BACKEND_CONTAINER_PORT = "5000"
-
-
-                    // =========================================================
-                    // NETWORK CONFIGURATION
-                    // =========================================================
-
-                    env.VPC_ID = "vpc-08bb09e9a7c10b095"
-
-                    env.SUBNET_1 = "subnet-06fe5b3d8e95ad780"
-                    env.SUBNET_2 = "subnet-0cf9fd6f508540589"
-
-                    env.SECURITY_GROUP_1 = "sg-05e021221abdb240e"
-                    env.SECURITY_GROUP_2 = "sg-02f964fc431f9b80f"
-
-
-                    // =========================================================
-                    // LOAD BALANCER CONFIGURATION
-                    // =========================================================
-
-                    env.FRONTEND_HEALTH_PATH = "/"
-                    env.BACKEND_HEALTH_PATH = "/health"
-
-
-                    // =========================================================
-                    // CHECK ECS CLUSTER
-                    // =========================================================
-
-                    echo "🔍 Checking ECS cluster..."
-
                     def clusterStatus = sh(
-                        script: """
-                            aws ecs describe-clusters \
-                                --clusters ${ECS_CLUSTER} \
-                                --region ${AWS_REGION} \
-                                --query 'clusters[0].status' \
-                                --output text
-                        """,
+                        script: "aws ecs describe-clusters --clusters ${ECS_CLUSTER} --region ${AWS_REGION} --query 'clusters[0].status' --output text",
                         returnStdout: true
                     ).trim()
-
-                    if (clusterStatus != "ACTIVE") {
-
-                        error """
-                        ❌ ECS cluster '${ECS_CLUSTER}' is not ACTIVE.
-
-                        Current status: ${clusterStatus}
-                        """
+                    if (clusterStatus != 'ACTIVE') {
+                        error "❌ ECS cluster '${ECS_CLUSTER}' is not ACTIVE (status: ${clusterStatus})."
                     }
 
-                    echo "✅ ECS cluster is ACTIVE."
-
-
-                    // =========================================================
-                    // FRONTEND LOAD BALANCER
-                    // =========================================================
-
-                    echo ""
-                    echo "=========================================="
-                    echo "🌐 FRONTEND LOAD BALANCER"
-                    echo "=========================================="
-
-
-                    def frontendLoadBalancerArn = sh(
-                        script: """
-                            aws elbv2 describe-load-balancers \
-                                --names ${FRONTEND_LOAD_BALANCER} \
-                                --region ${AWS_REGION} \
-                                --query 'LoadBalancers[0].LoadBalancerArn' \
-                                --output text 2>/dev/null || true
-                        """,
+                    // Read-only lookups, needed by the Health Check stage
+                    env.FRONTEND_TARGET_GROUP_ARN = sh(
+                        script: "aws elbv2 describe-target-groups --names ${FRONTEND_TARGET_GROUP} --region ${AWS_REGION} --query 'TargetGroups[0].TargetGroupArn' --output text",
+                        returnStdout: true
+                    ).trim()
+                    env.BACKEND_TARGET_GROUP_ARN = sh(
+                        script: "aws elbv2 describe-target-groups --names ${BACKEND_TARGET_GROUP} --region ${AWS_REGION} --query 'TargetGroups[0].TargetGroupArn' --output text",
                         returnStdout: true
                     ).trim()
 
+                    // Services must already exist; a deploy only rolls them to the new task definition
+                    def services = [
+                        [name: env.FRONTEND_SERVICE, taskDef: env.FRONTEND_TASK_DEFINITION_ARN],
+                        [name: env.BACKEND_SERVICE,  taskDef: env.BACKEND_TASK_DEFINITION_ARN]
+                    ]
 
-                    if (!frontendLoadBalancerArn ||  frontendLoadBalancerArn == "None") {
-
-                        echo "📦 Frontend load balancer does not exist."
-                        echo "🚀 Creating ${FRONTEND_LOAD_BALANCER}..."
-
-                        frontendLoadBalancerArn = sh(
-                            script: """
-                                aws elbv2 create-load-balancer \
-                                    --name ${FRONTEND_LOAD_BALANCER} \
-                                    --type application \
-                                    --scheme internet-facing \
-                                    --subnets ${SUBNET_1} ${SUBNET_2} \
-                                    --security-groups ${SECURITY_GROUP_1} ${SECURITY_GROUP_2} \
-                                    --region ${AWS_REGION} \
-                                    --query 'LoadBalancers[0].LoadBalancerArn' \
-                                    --output text
-                            """,
+                    for (svc in services) {
+                        def status = sh(
+                            script: "aws ecs describe-services --cluster ${ECS_CLUSTER} --services ${svc.name} --region ${AWS_REGION} --query 'services[0].status' --output text 2>/dev/null || true",
                             returnStdout: true
                         ).trim()
 
-                        echo "✅ Frontend load balancer created."
-
-                    } else {
-
-                        echo "✅ Frontend load balancer already exists."
-                        echo "Using existing load balancer."
-                    }
-
-                    env.FRONTEND_LOAD_BALANCER_ARN = frontendLoadBalancerArn
-
-                    echo "Frontend ALB ARN:"
-                    echo "${FRONTEND_LOAD_BALANCER_ARN}"
-
-
-                    // =========================================================
-                    // BACKEND LOAD BALANCER
-                    // =========================================================
-
-                    echo ""
-                    echo "=========================================="
-                    echo "⚙️ BACKEND LOAD BALANCER"
-                    echo "=========================================="
-
-
-                    def backendLoadBalancerArn = sh(
-                        script: """
-                            aws elbv2 describe-load-balancers \
-                                --names ${BACKEND_LOAD_BALANCER} \
-                                --region ${AWS_REGION} \
-                                --query 'LoadBalancers[0].LoadBalancerArn' \
-                                --output text 2>/dev/null || true
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-
-                    if (!backendLoadBalancerArn ||  backendLoadBalancerArn == "None") {
-
-                        echo "📦 Backend load balancer does not exist."
-                        echo "🚀 Creating ${BACKEND_LOAD_BALANCER}..."
-
-                        backendLoadBalancerArn = sh(
-                            script: """
-                                aws elbv2 create-load-balancer \
-                                    --name ${BACKEND_LOAD_BALANCER} \
-                                    --type application \
-                                    --scheme internet-facing \
-                                    --subnets ${SUBNET_1} ${SUBNET_2} \
-                                    --security-groups ${SECURITY_GROUP_1} ${SECURITY_GROUP_2} \
-                                    --region ${AWS_REGION} \
-                                    --query 'LoadBalancers[0].LoadBalancerArn' \
-                                    --output text
-                            """,
-                            returnStdout: true
-                        ).trim()
-
-                        echo "✅ Backend load balancer created."
-
-                    } else {
-
-                        echo "✅ Backend load balancer already exists."
-                        echo "Using existing load balancer."
-                    }
-
-                    env.BACKEND_LOAD_BALANCER_ARN = backendLoadBalancerArn
-
-                    echo "Backend ALB ARN:"
-                    echo "${BACKEND_LOAD_BALANCER_ARN}"
-
-
-                    // =========================================================
-                    // FRONTEND TARGET GROUP
-                    // =========================================================
-
-                    echo ""
-                    echo "=========================================="
-                    echo "🎯 FRONTEND TARGET GROUP"
-                    echo "=========================================="
-
-
-                    def frontendTargetGroupArn = sh(
-                        script: """
-                            aws elbv2 describe-target-groups \
-                                --names ${FRONTEND_TARGET_GROUP} \
-                                --region ${AWS_REGION} \
-                                --query 'TargetGroups[0].TargetGroupArn' \
-                                --output text 2>/dev/null || true
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-
-                    if (!frontendTargetGroupArn || frontendTargetGroupArn == "None") {
-
-                        echo "📦 Frontend target group does not exist."
-                        echo "🚀 Creating ${FRONTEND_TARGET_GROUP}..."
-
-                        frontendTargetGroupArn = sh(
-                            script: """
-                                aws elbv2 create-target-group \
-                                    --name ${FRONTEND_TARGET_GROUP} \
-                                    --protocol HTTP \
-                                    --port 80 \
-                                    --target-type ip \
-                                    --vpc-id ${VPC_ID} \
-                                    --health-check-protocol HTTP \
-                                    --health-check-path ${FRONTEND_HEALTH_PATH} \
-                                    --health-check-port traffic-port \
-                                    --health-check-interval-seconds 30 \
-                                    --health-check-timeout-seconds 5 \
-                                    --healthy-threshold-count 2 \
-                                    --unhealthy-threshold-count 3 \
-                                    --region ${AWS_REGION} \
-                                    --query 'TargetGroups[0].TargetGroupArn' \
-                                    --output text
-                            """,
-                            returnStdout: true
-                        ).trim()
-
-                        echo "✅ Frontend target group created."
-
-                    } else {
-
-                        echo "✅ Frontend target group already exists."
-                        echo "Using existing target group."
-                    }
-
-                    env.FRONTEND_TARGET_GROUP_ARN = frontendTargetGroupArn
-
-                    echo "Frontend Target Group ARN:"
-                    echo "${FRONTEND_TARGET_GROUP_ARN}"
-
-
-                    // =========================================================
-                    // BACKEND TARGET GROUP
-                    // =========================================================
-
-                    echo ""
-                    echo "=========================================="
-                    echo "🎯 BACKEND TARGET GROUP"
-                    echo "=========================================="
-
-
-                    def backendTargetGroupArn = sh(
-                        script: """
-                            aws elbv2 describe-target-groups \
-                                --names ${BACKEND_TARGET_GROUP} \
-                                --region ${AWS_REGION} \
-                                --query 'TargetGroups[0].TargetGroupArn' \
-                                --output text 2>/dev/null || true
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-
-                    if (!backendTargetGroupArn ||
-                        backendTargetGroupArn == "None") {
-
-                        echo "📦 Backend target group does not exist."
-                        echo "🚀 Creating ${BACKEND_TARGET_GROUP}..."
-
-                        backendTargetGroupArn = sh(
-                            script: """
-                                aws elbv2 create-target-group \
-                                    --name ${BACKEND_TARGET_GROUP} \
-                                    --protocol HTTP \
-                                    --port 5000 \
-                                    --target-type ip \
-                                    --vpc-id ${VPC_ID} \
-                                    --health-check-protocol HTTP \
-                                    --health-check-path ${BACKEND_HEALTH_PATH} \
-                                    --health-check-port traffic-port \
-                                    --health-check-interval-seconds 30 \
-                                    --health-check-timeout-seconds 5 \
-                                    --healthy-threshold-count 2 \
-                                    --unhealthy-threshold-count 3 \
-                                    --region ${AWS_REGION} \
-                                    --query 'TargetGroups[0].TargetGroupArn' \
-                                    --output text
-                            """,
-                            returnStdout: true
-                        ).trim()
-
-                        echo "✅ Backend target group created."
-
-                    } else {
-
-                        echo "✅ Backend target group already exists."
-                        echo "Using existing target group."
-                    }
-
-                    env.BACKEND_TARGET_GROUP_ARN = backendTargetGroupArn
-
-                    echo "Backend Target Group ARN:"
-                    echo "${BACKEND_TARGET_GROUP_ARN}"
-
-
-                    // =========================================================
-                    // FRONTEND LISTENER
-                    // =========================================================
-
-                    echo ""
-                    echo "=========================================="
-                    echo "🔊 FRONTEND LISTENER"
-                    echo "=========================================="
-
-
-                    def frontendListenerArn = sh(
-                        script: """
-                            aws elbv2 describe-listeners \
-                                --load-balancer-arn ${FRONTEND_LOAD_BALANCER_ARN} \
-                                --region ${AWS_REGION} \
-                                --query 'Listeners[?Port==\\`80\\`].ListenerArn | [0]' \
-                                --output text 2>/dev/null || true
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-
-                    if (!frontendListenerArn || frontendListenerArn == "None") {
-
-                        echo "📦 Frontend listener does not exist."
-                        echo "🚀 Creating HTTP :3000 listener..."
-
-                        frontendListenerArn = sh(
-                            script: """
-                                aws elbv2 create-listener \
-                                    --load-balancer-arn ${FRONTEND_LOAD_BALANCER_ARN} \
-                                    --protocol HTTP \
-                                    --port 80 \
-                                    --default-actions Type=forward,TargetGroupArn=${FRONTEND_TARGET_GROUP_ARN} \
-                                    --region ${AWS_REGION} \
-                                    --query 'Listeners[0].ListenerArn' \
-                                    --output text
-                            """,
-                            returnStdout: true
-                        ).trim()
-
-                        echo "✅ Frontend listener created."
-
-                    } else {
-
-                        echo "✅ Frontend listener already exists."
-                        echo "🔄 Ensuring listener forwards to frontend target group..."
-
-                        sh """
-                            aws elbv2 modify-listener \
-                                --listener-arn ${frontendListenerArn} \
-                                --default-actions Type=forward,TargetGroupArn=${FRONTEND_TARGET_GROUP_ARN} \
-                                --region ${AWS_REGION}
-                        """
-
-                        echo "✅ Frontend listener configuration verified."
-                    }
-
-                    env.FRONTEND_LISTENER_ARN = frontendListenerArn
-
-
-                    // =========================================================
-                    // BACKEND LISTENER
-                    // =========================================================
-
-                    echo ""
-                    echo "=========================================="
-                    echo "🔊 BACKEND LISTENER"
-                    echo "=========================================="
-
-
-                    def backendListenerArn = sh(
-                        script: """
-                            aws elbv2 describe-listeners \
-                                --load-balancer-arn ${BACKEND_LOAD_BALANCER_ARN} \
-                                --region ${AWS_REGION} \
-                                --query 'Listeners[?Port==\\`80\\`].ListenerArn | [0]' \
-                                --output text 2>/dev/null || true
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-
-                    if (!backendListenerArn ||
-                        backendListenerArn == "None") {
-
-                        echo "📦 Backend listener does not exist."
-                        echo "🚀 Creating HTTP :80 listener..."
-
-                        backendListenerArn = sh(
-                            script: """
-                                aws elbv2 create-listener \
-                                    --load-balancer-arn ${BACKEND_LOAD_BALANCER_ARN} \
-                                    --protocol HTTP \
-                                    --port 80 \
-                                    --default-actions Type=forward,TargetGroupArn=${BACKEND_TARGET_GROUP_ARN} \
-                                    --region ${AWS_REGION} \
-                                    --query 'Listeners[0].ListenerArn' \
-                                    --output text
-                            """,
-                            returnStdout: true
-                        ).trim()
-
-                        echo "✅ Backend listener created."
-
-                    } else {
-
-                        echo "✅ Backend listener already exists."
-                        echo "🔄 Ensuring listener forwards to backend target group..."
-
-                        sh """
-                            aws elbv2 modify-listener \
-                                --listener-arn ${backendListenerArn} \
-                                --default-actions Type=forward,TargetGroupArn=${BACKEND_TARGET_GROUP_ARN} \
-                                --region ${AWS_REGION}
-                        """
-
-                        echo "✅ Backend listener configuration verified."
-                    }
-
-                    env.BACKEND_LISTENER_ARN = backendListenerArn
-
-
-                    // =========================================================
-                    // FRONTEND ECS SERVICE
-                    // =========================================================
-
-                    echo ""
-                    echo "=========================================="
-                    echo "🌐 FRONTEND ECS SERVICE"
-                    echo "=========================================="
-
-
-                    def frontendServiceArn = sh(
-                        script: """
-                            aws ecs describe-services \
-                                --cluster ${ECS_CLUSTER} \
-                                --services ${FRONTEND_SERVICE} \
-                                --region ${AWS_REGION} \
-                                --query 'services[0].serviceArn' \
-                                --output text 2>/dev/null || true
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-
-                    if (!frontendServiceArn ||
-                        frontendServiceArn == "None") {
-
-                        echo "📦 Frontend ECS service does not exist."
-                        echo "🚀 Creating ${FRONTEND_SERVICE}..."
-
-                        sh """
-                            aws ecs create-service \
-                                --cluster ${ECS_CLUSTER} \
-                                --service-name ${FRONTEND_SERVICE} \
-                                --task-definition ${FRONTEND_TASK_DEFINITION_ARN} \
-                                --desired-count 1 \
-                                --launch-type FARGATE \
-                                --platform-version 1.4.0 \
-                                --enable-execute-command \
-                                --network-configuration "awsvpcConfiguration={
-                                    subnets=[${SUBNET_1},${SUBNET_2}],
-                                    securityGroups=[${SECURITY_GROUP_1},${SECURITY_GROUP_2}],
-                                    assignPublicIp=ENABLED
-                                }" \
-                                --load-balancers "targetGroupArn=${FRONTEND_TARGET_GROUP_ARN},containerName=${FRONTEND_CONTAINER_NAME},containerPort=3000" \
-                                --region ${AWS_REGION}
-                        """
-
-                        echo "✅ Frontend ECS service created."
-
-                    } else {
-
-                        echo "✅ Frontend ECS service already exists."
-                        echo "🔄 Updating frontend ECS service..."
-
+                        if (status != 'ACTIVE') {
+                            error "❌ ECS service '${svc.name}' not found or not ACTIVE (status: '${status}'). Create it once manually."
+                        }
+
+                        echo "🔄 Updating ${svc.name} -> ${svc.taskDef}"
                         sh """
                             aws ecs update-service \
                                 --cluster ${ECS_CLUSTER} \
-                                --service ${FRONTEND_SERVICE} \
-                                --task-definition ${FRONTEND_TASK_DEFINITION_ARN} \
-                                --load-balancers "targetGroupArn=${FRONTEND_TARGET_GROUP_ARN},containerName=${FRONTEND_CONTAINER_NAME},containerPort=3000" \
-                                --region ${AWS_REGION}
-                        """
-
-                        echo "✅ Frontend ECS service updated."
-                    }
-
-
-                    // =========================================================
-                    // BACKEND ECS SERVICE
-                    // =========================================================
-
-                    echo ""
-                    echo "=========================================="
-                    echo "⚙️ BACKEND ECS SERVICE"
-                    echo "=========================================="
-
-
-                    def backendServiceArn = sh(
-                        script: """
-                            aws ecs describe-services \
-                                --cluster ${ECS_CLUSTER} \
-                                --services ${BACKEND_SERVICE} \
+                                --service ${svc.name} \
+                                --task-definition ${svc.taskDef} \
+                                --force-new-deployment \
                                 --region ${AWS_REGION} \
-                                --query 'services[0].serviceArn' \
-                                --output text 2>/dev/null || true
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-
-                    if (!backendServiceArn || backendServiceArn == "None") {
-
-                        echo "📦 Backend ECS service does not exist."
-                        echo "🚀 Creating ${BACKEND_SERVICE}..."
-
-                        sh """
-                            aws ecs create-service \
-                                --cluster ${ECS_CLUSTER} \
-                                --service-name ${BACKEND_SERVICE} \
-                                --task-definition ${BACKEND_TASK_DEFINITION_ARN} \
-                                --desired-count 1 \
-                                --launch-type FARGATE \
-                                --platform-version 1.4.0 \
-                                --enable-execute-command \
-                                --network-configuration "awsvpcConfiguration={
-                                    subnets=[${SUBNET_1},${SUBNET_2}],
-                                    securityGroups=[${SECURITY_GROUP_1},${SECURITY_GROUP_2}],
-                                    assignPublicIp=ENABLED
-                                }" \
-                                --load-balancers "targetGroupArn=${BACKEND_TARGET_GROUP_ARN},containerName=${BACKEND_CONTAINER_NAME},containerPort=5000" \
-                                --region ${AWS_REGION}
+                                --query 'service.serviceName' --output text
                         """
-
-                        echo "✅ Backend ECS service created."
-
-                    } else {
-
-                        echo "✅ Backend ECS service already exists."
-                        echo "🔄 Updating backend ECS service..."
-
-                        sh """
-                            aws ecs update-service \
-                                --cluster ${ECS_CLUSTER} \
-                                --service ${BACKEND_SERVICE} \
-                                --task-definition ${BACKEND_TASK_DEFINITION_ARN} \
-                                --load-balancers "targetGroupArn=${BACKEND_TARGET_GROUP_ARN},containerName=${BACKEND_CONTAINER_NAME},containerPort=5000" \
-                                --region ${AWS_REGION}
-                        """
-
-                        echo "✅ Backend ECS service updated."
                     }
-
-
-                    // =========================================================
-                    // FINAL SUMMARY
-                    // =========================================================
-
-                    echo ""
-                    echo "=========================================="
-                    echo "✅ ECS DEPLOYMENT CONFIGURED"
-                    echo "=========================================="
-
-                    echo ""
-                    echo "Cluster:"
-                    echo "${ECS_CLUSTER}"
-
-                    echo ""
-                    echo "Frontend:"
-                    echo "  Load Balancer : ${FRONTEND_LOAD_BALANCER}"
-                    echo "  Target Group  : ${FRONTEND_TARGET_GROUP}"
-                    echo "  Listener      : HTTP :3000"
-                    echo "  Service       : ${FRONTEND_SERVICE}"
-                    echo "  Task Definition:"
-                    echo "  ${FRONTEND_TASK_DEFINITION_ARN}"
-
-                    echo ""
-                    echo "Backend:"
-                    echo "  Load Balancer : ${BACKEND_LOAD_BALANCER}"
-                    echo "  Target Group  : ${BACKEND_TARGET_GROUP}"
-                    echo "  Listener      : HTTP :5000"
-                    echo "  Service       : ${BACKEND_SERVICE}"
-                    echo "  Task Definition:"
-                    echo "  ${BACKEND_TASK_DEFINITION_ARN}"
-
-                    echo ""
-                    echo "=========================================="
                 }
             }
         }
@@ -1496,244 +955,237 @@ EOF
             }
         }
 
+
         stage('Health Check') {
             steps {
                 script {
-
-                    echo ""
                     echo "=========================================="
                     echo "🏥 ECS APPLICATION HEALTH CHECK"
                     echo "=========================================="
 
-                    // =========================================================
-                    // VALIDATE REQUIRED VARIABLES
-                    // =========================================================
+                    // =====================================================
+                    // 1. VALIDATE REQUIRED ENVIRONMENT VARIABLES
+                    // =====================================================
 
-                    if (!env.ECS_CLUSTER) {
-                        error "❌ ECS_CLUSTER is not available."
+                    def requiredVariables = [
+                        'AWS_REGION',
+                        'ECS_CLUSTER',
+                        'FRONTEND_SERVICE',
+                        'BACKEND_SERVICE',
+                        'FRONTEND_TARGET_GROUP_ARN',
+                        'BACKEND_TARGET_GROUP_ARN'
+                    ]
+
+                    requiredVariables.each { variableName ->
+                        if (!env[variableName]?.trim()) {
+                            error "❌ Required variable ${variableName} is missing."
+                        }
                     }
 
-                    if (!env.FRONTEND_SERVICE) {
-                        error "❌ FRONTEND_SERVICE is not available."
+                    echo "✅ Required variables are available."
+                    echo "AWS region: ${env.AWS_REGION}"
+                    echo "ECS cluster: ${env.ECS_CLUSTER}"
+
+                    // =====================================================
+                    // 2. WAIT FOR ECS SERVICES TO BECOME STABLE
+                    // =====================================================
+
+                    echo "⏳ Waiting for frontend and backend ECS services..."
+
+                    timeout(time: 15, unit: 'MINUTES') {
+                        sh(
+                            label: 'Wait for ECS services to stabilize',
+                            script: '''
+                                set -eu
+
+                                aws ecs wait services-stable \
+                                    --cluster "$ECS_CLUSTER" \
+                                    --services "$FRONTEND_SERVICE" "$BACKEND_SERVICE" \
+                                    --region "$AWS_REGION"
+
+                                echo "✅ ECS services have stabilized."
+                            '''
+                        )
                     }
 
-                    if (!env.BACKEND_SERVICE) {
-                        error "❌ BACKEND_SERVICE is not available."
+                    // =====================================================
+                    // 3. CHECK ECS SERVICE STATUS AND TASK COUNTS
+                    // =====================================================
+
+                    def checkEcsService = { serviceName, serviceLabel ->
+
+                        echo "🔍 Checking ${serviceLabel} ECS service..."
+
+                        def serviceInfo = sh(
+                            label: "Check ${serviceLabel} ECS status",
+                            script: '''
+                                set -eu
+
+                                aws ecs describe-services \
+                                    --cluster "$ECS_CLUSTER" \
+                                    --services "$SERVICE_NAME" \
+                                    --region "$AWS_REGION" \
+                                    --query 'services[0].[status,desiredCount,runningCount,pendingCount]' \
+                                    --output text
+                            ''',
+                            returnStdout: true
+                        ).trim()
+
+                        // Supply the service name as a shell environment variable.
+                        // This avoids Groovy interpolation in the shell command.
+                        echo "${serviceLabel} ECS details: ${serviceInfo}"
+
+                        def values = serviceInfo.tokenize()
+
+                        if (values.size() < 4 || values[0] == 'None') {
+                            error "❌ Could not retrieve ${serviceLabel} ECS service details."
+                        }
+
+                        def status = values[0]
+                        def desired = values[1].toInteger()
+                        def running = values[2].toInteger()
+                        def pending = values[3].toInteger()
+
+                        if (status != 'ACTIVE') {
+                            error "❌ ${serviceLabel} ECS service status is ${status}, not ACTIVE."
+                        }
+
+                        if (desired < 1) {
+                            error "❌ ${serviceLabel} ECS service has no desired tasks."
+                        }
+
+                        if (running < desired) {
+                            error "❌ ${serviceLabel}: running ${running} tasks, but ${desired} are desired."
+                        }
+
+                        echo "✅ ${serviceLabel}: ACTIVE | Desired=${desired} | Running=${running} | Pending=${pending}"
+
+                        return desired
                     }
 
-                    if (!env.FRONTEND_TARGET_GROUP_ARN) {
-                        error "❌ FRONTEND_TARGET_GROUP_ARN is not available."
+                    // Set the service name using withEnv, not Groovy interpolation
+                    // inside the shell command.
+                    def frontendDesired
+                    def backendDesired
+
+                    withEnv(["SERVICE_NAME=${env.FRONTEND_SERVICE}"]) {
+                        frontendDesired = checkEcsService(
+                            env.FRONTEND_SERVICE,
+                            'Frontend'
+                        )
                     }
 
-                    if (!env.BACKEND_TARGET_GROUP_ARN) {
-                        error "❌ BACKEND_TARGET_GROUP_ARN is not available."
+                    withEnv(["SERVICE_NAME=${env.BACKEND_SERVICE}"]) {
+                        backendDesired = checkEcsService(
+                            env.BACKEND_SERVICE,
+                            'Backend'
+                        )
                     }
 
-                    // =========================================================
-                    // FRONTEND ECS SERVICE HEALTH
-                    // =========================================================
+                    // =====================================================
+                    // 4. CHECK ALB TARGET HEALTH
+                    //
+                    // Pass when healthy targets meet the ECS desired count.
+                    // "draining" targets are allowed during replacement.
+                    // =====================================================
 
-                    echo ""
-                    echo "🌐 Checking frontend ECS service health..."
+                    def checkTargetGroup = { targetGroupArn, serviceLabel, desiredCount ->
 
-                    def frontendHealth = sh(
-                        script: """
-                            aws ecs describe-services \
-                                --cluster ${ECS_CLUSTER} \
-                                --services ${FRONTEND_SERVICE} \
-                                --region ${AWS_REGION} \
-                                --query 'services[0].{
-                                    Status:status,
-                                    Desired:desiredCount,
-                                    Running:runningCount,
-                                    Pending:pendingCount,
-                                    Deployments:deployments[0].rolloutState
-                                }' \
-                                --output json
-                        """,
-                        returnStdout: true
-                    ).trim()
+                        echo "🌐 Checking ${serviceLabel} ALB target health..."
 
-                    echo "Frontend ECS status:"
-                    echo frontendHealth
+                        def healthyCount = 0
+                        def states = []
 
-                    // =========================================================
-                    // BACKEND ECS SERVICE HEALTH
-                    // =========================================================
+                        // Allow up to 5 minutes for ALB health checks to catch up.
+                        for (int attempt = 1; attempt <= 20; attempt++) {
 
-                    echo ""
-                    echo "⚙️ Checking backend ECS service health..."
+                            def targetOutput = sh(
+                                label: "Read ${serviceLabel} ALB target states",
+                                script: '''
+                                    set -eu
 
-                    def backendHealth = sh(
-                        script: """
-                            aws ecs describe-services \
-                                --cluster ${ECS_CLUSTER} \
-                                --services ${BACKEND_SERVICE} \
-                                --region ${AWS_REGION} \
-                                --query 'services[0].{
-                                    Status:status,
-                                    Desired:desiredCount,
-                                    Running:runningCount,
-                                    Pending:pendingCount,
-                                    Deployments:deployments[0].rolloutState
-                                }' \
-                                --output json
-                        """,
-                        returnStdout: true
-                    ).trim()
+                                    aws elbv2 describe-target-health \
+                                        --target-group-arn "$TARGET_GROUP_ARN" \
+                                        --region "$AWS_REGION" \
+                                        --query 'TargetHealthDescriptions[].TargetHealth.State' \
+                                        --output text
+                                ''',
+                                returnStdout: true
+                            ).trim()
 
-                    echo "Backend ECS status:"
-                    echo backendHealth
+                            states = targetOutput
+                                .tokenize()
+                                .collect { it.toLowerCase() }
 
-                    // =========================================================
-                    // CHECK ECS TASK HEALTH
-                    // =========================================================
+                            healthyCount = states.count { it == 'healthy' }
 
-                    echo ""
-                    echo "🔍 Checking frontend and backend task health..."
+                            echo "${serviceLabel} target states: ${states ? states.join(', ') : 'NO TARGETS'}"
+                            echo "${serviceLabel}: ${healthyCount} healthy target(s); ${desiredCount} required."
 
-                    def frontendTaskHealth = sh(
-                        script: """
-                            aws ecs list-tasks \
-                                --cluster ${ECS_CLUSTER} \
-                                --service-name ${FRONTEND_SERVICE} \
-                                --desired-status RUNNING \
-                                --region ${AWS_REGION} \
-                                --query 'taskArns' \
-                                --output text
-                        """,
-                        returnStdout: true
-                    ).trim()
+                            // Healthy capacity is available. Draining old targets
+                            // do not cause a failure by themselves.
+                            if (healthyCount >= desiredCount) {
 
-                    if (!frontendTaskHealth || frontendTaskHealth == "None") {
-                        error "❌ No RUNNING frontend ECS task found."
+                                def drainingCount = states.count { it == 'draining' }
+                                def unhealthyCount = states.count { it == 'unhealthy' }
+
+                                echo "✅ ${serviceLabel}: required healthy target capacity is available."
+
+                                if (drainingCount > 0) {
+                                    echo "ℹ️ ${serviceLabel}: ${drainingCount} old target(s) are draining."
+                                }
+
+                                if (unhealthyCount > 0) {
+                                    echo "⚠️ ${serviceLabel}: ${unhealthyCount} target(s) are unhealthy, but healthy capacity meets the desired count."
+                                }
+
+                                return
+                            }
+
+                            if (attempt < 20) {
+                                echo "⏳ Waiting 15 seconds for ${serviceLabel} targets to become healthy (attempt ${attempt}/20)..."
+                                sleep(time: 15, unit: 'SECONDS')
+                            }
+                        }
+
+                        error "❌ ${serviceLabel} ALB check failed: only ${healthyCount} healthy target(s); ${desiredCount} required. Final states: ${states ? states.join(', ') : 'NO TARGETS'}"
                     }
 
-                    def backendTaskHealth = sh(
-                        script: """
-                            aws ecs list-tasks \
-                                --cluster ${ECS_CLUSTER} \
-                                --service-name ${BACKEND_SERVICE} \
-                                --desired-status RUNNING \
-                                --region ${AWS_REGION} \
-                                --query 'taskArns' \
-                                --output text
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-                    if (!backendTaskHealth || backendTaskHealth == "None") {
-                        error "❌ No RUNNING backend ECS task found."
+                    // Pass target group ARNs into the shell through environment variables.
+                    withEnv(["TARGET_GROUP_ARN=${env.FRONTEND_TARGET_GROUP_ARN}"]) {
+                        checkTargetGroup(
+                            env.FRONTEND_TARGET_GROUP_ARN,
+                            'Frontend',
+                            frontendDesired
+                        )
                     }
 
-                    echo "✅ Frontend has RUNNING task(s)."
-                    echo "✅ Backend has RUNNING task(s)."
-
-                    // =========================================================
-                    // FRONTEND ALB TARGET HEALTH
-                    // =========================================================
-
-                    echo ""
-                    echo "🌐 Checking frontend ALB target health..."
-
-                    def frontendTargetHealth = sh(
-                        script: """
-                            aws elbv2 describe-target-health \
-                                --target-group-arn ${FRONTEND_TARGET_GROUP_ARN} \
-                                --region ${AWS_REGION} \
-                                --query 'TargetHealthDescriptions[].TargetHealth.State' \
-                                --output text
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-                    echo "Frontend target health: ${frontendTargetHealth}"
-
-                    if (!frontendTargetHealth) {
-                        error "❌ Frontend target group has no registered targets."
+                    withEnv(["TARGET_GROUP_ARN=${env.BACKEND_TARGET_GROUP_ARN}"]) {
+                        checkTargetGroup(
+                            env.BACKEND_TARGET_GROUP_ARN,
+                            'Backend',
+                            backendDesired
+                        )
                     }
 
-                    def frontendUnhealthy = sh(
-                        script: """
-                            aws elbv2 describe-target-health \
-                                --target-group-arn ${FRONTEND_TARGET_GROUP_ARN} \
-                                --region ${AWS_REGION} \
-                                --query 'TargetHealthDescriptions[?TargetHealth.State!=`healthy`].TargetHealth.State' \
-                                --output text
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-                    if (frontendUnhealthy) {
-                        echo "❌ Frontend unhealthy targets detected:"
-                        echo "${frontendUnhealthy}"
-                        error "❌ Frontend ALB target health check failed."
-                    }
-
-                    echo "✅ Frontend ALB targets are healthy."
-
-                    // =========================================================
-                    // BACKEND ALB TARGET HEALTH
-                    // =========================================================
-
-                    echo ""
-                    echo "⚙️ Checking backend ALB target health..."
-
-                    def backendTargetHealth = sh(
-                        script: """
-                            aws elbv2 describe-target-health \
-                                --target-group-arn ${BACKEND_TARGET_GROUP_ARN} \
-                                --region ${AWS_REGION} \
-                                --query 'TargetHealthDescriptions[].TargetHealth.State' \
-                                --output text
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-                    echo "Backend target health: ${backendTargetHealth}"
-
-                    if (!backendTargetHealth) {
-                        error "❌ Backend target group has no registered targets."
-                    }
-
-                    def backendUnhealthy = sh(
-                        script: """
-                            aws elbv2 describe-target-health \
-                                --target-group-arn ${BACKEND_TARGET_GROUP_ARN} \
-                                --region ${AWS_REGION} \
-                                --query 'TargetHealthDescriptions[?TargetHealth.State!=`healthy`].TargetHealth.State' \
-                                --output text
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-                    if (backendUnhealthy) {
-                        echo "❌ Backend unhealthy targets detected:"
-                        echo "${backendUnhealthy}"
-                        error "❌ Backend ALB target health check failed."
-                    }
-
-                    echo "✅ Backend ALB targets are healthy."
-
-                    // =========================================================
-                    // FINAL HEALTH SUMMARY
-                    // =========================================================
+                    // =====================================================
+                    // 5. FINAL SUMMARY
+                    // =====================================================
 
                     echo ""
                     echo "=========================================="
                     echo "✅ HEALTH CHECK PASSED"
                     echo "=========================================="
-                    echo ""
                     echo "Frontend ECS : HEALTHY"
                     echo "Frontend ALB : HEALTHY"
                     echo "Backend ECS  : HEALTHY"
                     echo "Backend ALB  : HEALTHY"
-                    echo ""
                     echo "🚀 Application deployment is healthy."
                     echo "=========================================="
                 }
             }
         }
+
 
     }
 }

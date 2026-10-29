@@ -297,10 +297,10 @@ const tabs = [
   const activeTab = tabs.find(t => t.id === currentTab);
   const displayName = activeTab ? activeTab.label : currentTab;
 
-  const handleLogoutClick = async () => {
+    const handleLogoutClick = async () => {
     setShowProfileMenu(false);
     await crm.handleLogout();
-    router.push('/login');
+    window.location.href = 'https://www.itsoftlab360.com/login';
   };
 
   const userRole = (crm.user?.role || '').trim().toUpperCase().replace(/[\s_]+/g, '_');

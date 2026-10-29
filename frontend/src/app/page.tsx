@@ -14,7 +14,7 @@ export default function RootPage() {
         const orgId = user.organizationId || 'orgA';
         router.replace(`/org/${orgId}/dashboard`);
       } else {
-        router.replace('/login');
+        window.location.href = 'https://www.itsoftlab360.com/login';
       }
     }
   }, [user, authReady, router]);

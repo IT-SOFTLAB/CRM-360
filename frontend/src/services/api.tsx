@@ -36,7 +36,7 @@ api.interceptors.request.use((config) => {
     }
 
     const orgId = getCurrentOrganizationId();
-  if (
+    if (
       orgId &&
       config.url &&
       !config.url.startsWith('/auth') &&
@@ -124,7 +124,7 @@ api.interceptors.response.use(
           localStorage.removeItem('token');
           localStorage.removeItem('refreshToken');
 
-          window.location.href = '/';
+          window.location.href = 'https://www.itsoftlab360.com/login';
         }
 
         return Promise.reject(refreshError);

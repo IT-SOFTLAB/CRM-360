@@ -12,9 +12,9 @@ export default function ProtectedRoute({
   const { user, authReady } = useCRM();
   const router = useRouter();
 
-  useEffect(() => {
+   useEffect(() => {
     if (authReady && !user) {
-      router.replace('/login');
+      window.location.href = 'https://www.itsoftlab360.com/login';
     }
   }, [authReady, user, router]);
 

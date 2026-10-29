@@ -37,3 +37,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
