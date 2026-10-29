@@ -233,26 +233,61 @@ pipeline {
                         echo "Frontend image exists: ${frontendExists}"
                         echo "Backend image exists : ${backendExists}"
 
+                        // Validate Jenkins variables before starting CodeBuild
+                        def requiredVars = [
+                            'ENVIRONMENT',
+                            'PROJECT_NAME',
+                            'TAG_NAME',
+                            'BACKEND_TAG',
+                            'FRONTEND_TAG',
+                            'BACKEND_SECRET_KEY',
+                            'FRONTEND_SECRET_KEY',
+                            'S3_ENV_BUCKET',
+                            'AWS_REGION'
+                        ]
+
+                        requiredVars.each { key ->
+                            if (!env[key]?.trim()) {
+                                error("Missing Jenkins environment variable: ${key}")
+                            }
+                        }
+
+                        echo "========== CRM BUILD CONFIGURATION =========="
+                        echo "Environment: ${env.ENVIRONMENT}"
+                        echo "Project: ${env.PROJECT_NAME}"
+                        echo "Git Tag: ${env.TAG_NAME}"
+                        echo "Frontend Tag: ${env.FRONTEND_TAG}"
+                        echo "Backend Tag: ${env.BACKEND_TAG}"
+                        echo "AWS Region: ${env.AWS_REGION}"
+
+                        // Start CodeBuild
                         def buildId = sh(
                             script: """
+                                set -eu
+
                                 aws codebuild start-build \
-                                    --project-name "${CODEBUILD_PROJECT_NAME}" \
-                                    --source-version "${TAG_NAME}" \
-                                    --region "${AWS_REGION}" \
+                                    --project-name "${env.CODEBUILD_PROJECT_NAME}" \
+                                    --source-version "${env.TAG_NAME}" \
+                                    --region "${env.AWS_REGION}" \
                                     --environment-variables-override \
-                                        name=ENVIRONMENT,value=${ENVIRONMENT},type=PLAINTEXT \
-                                        name=PROJECT_NAME,value=${PROJECT_NAME},type=PLAINTEXT \
-                                        name=GIT_TAG,value=${TAG_NAME},type=PLAINTEXT \
-                                        name=BACKEND_TAG,value=${BACKEND_TAG},type=PLAINTEXT \
-                                        name=FRONTEND_TAG,value=${FRONTEND_TAG},type=PLAINTEXT \
-                                        name=BACKEND_SECRET_KEY,value=${BACKEND_SECRET_KEY},type=PLAINTEXT \
-                                        name=FRONTEND_SECRET_KEY,value=${FRONTEND_SECRET_KEY},type=PLAINTEXT \
-                                        name=S3_ENV_BUCKET,value=${S3_ENV_BUCKET},type=PLAINTEXT \
+                                        name=ENVIRONMENT,value=${env.ENVIRONMENT},type=PLAINTEXT \
+                                        name=PROJECT_NAME,value=${env.PROJECT_NAME},type=PLAINTEXT \
+                                        name=GIT_TAG,value=${env.TAG_NAME},type=PLAINTEXT \
+                                        name=FRONTEND_TAG,value=${env.FRONTEND_TAG},type=PLAINTEXT \
+                                        name=BACKEND_TAG,value=${env.BACKEND_TAG},type=PLAINTEXT \
+                                        name=FRONTEND_ECR_REPOSITORY,value=${env.FRONTEND_ECR_REPOSITORY ?: env.PROJECT_NAME + '-frontend'},type=PLAINTEXT \
+                                        name=BACKEND_ECR_REPOSITORY,value=${env.BACKEND_ECR_REPOSITORY ?: env.PROJECT_NAME + '-backend'},type=PLAINTEXT \
+                                        name=BACKEND_SECRET_KEY,value=${env.BACKEND_SECRET_KEY},type=PLAINTEXT \
+                                        name=FRONTEND_SECRET_KEY,value=${env.FRONTEND_SECRET_KEY},type=PLAINTEXT \
+                                        name=S3_ENV_BUCKET,value=${env.S3_ENV_BUCKET},type=PLAINTEXT \
+                                        name=AWS_DEFAULT_REGION,value=${env.AWS_REGION},type=PLAINTEXT \
                                     --query 'build.id' \
                                     --output text
                             """,
                             returnStdout: true
                         ).trim()
+
+                        echo "CodeBuild started: ${buildId}".trim()
 
                         if (!buildId ||
                             buildId == 'None' ||
