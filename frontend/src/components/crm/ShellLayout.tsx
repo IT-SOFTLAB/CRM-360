@@ -300,7 +300,7 @@ const tabs = [
     const handleLogoutClick = async () => {
     setShowProfileMenu(false);
     await crm.handleLogout();
-    window.location.href = 'https://www.itsoftlab360.com/login';
+    window.location.href = 'https://www.itsoftlab360.com/login?callbackUrl=https%3A%2F%2Fcrm.itsoftlab360.com';
   };
 
   const userRole = (crm.user?.role || '').trim().toUpperCase().replace(/[\s_]+/g, '_');

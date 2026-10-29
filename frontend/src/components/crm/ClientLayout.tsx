@@ -20,7 +20,7 @@ useEffect(() => {
 
   // User is not logged in
     if (!crm.user) {
-    window.location.href = "https://www.itsoftlab360.com/login";
+    window.location.href = "https://www.itsoftlab360.com/login?callbackUrl=https%3A%2F%2Fcrm.itsoftlab360.com";
     return;
   }
 
@@ -28,7 +28,7 @@ useEffect(() => {
 
   // If organization ID is missing, logout/redirect
   if (!userOrganizationId) {
-    window.location.href = "https://www.itsoftlab360.com/login";
+    window.location.href = "https://www.itsoftlab360.com/login?callbackUrl=https%3A%2F%2Fcrm.itsoftlab360.com";
     return;
   }
   // Redirect root or login to user's organization dashboard
@@ -52,7 +52,7 @@ if (
     urlOrganizationId &&
     urlOrganizationId !== userOrganizationId
   ) {
-    window.location.href = "https://www.itsoftlab360.com/login";
+    window.location.href = "https://www.itsoftlab360.com/login?callbackUrl=https%3A%2F%2Fcrm.itsoftlab360.com";
     return;
   }
 

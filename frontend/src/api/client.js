@@ -21,7 +21,7 @@ api.interceptors.response.use(
       localStorage.removeItem('token');
       if (error.response?.status === 401) {
       localStorage.removeItem('token');
-      window.location.href = 'https://www.itsoftlab360.com/login';
+      window.location.href = 'https://www.itsoftlab360.com/login?callbackUrl=https%3A%2F%2Fcrm.itsoftlab360.com';
     }
     }
 
