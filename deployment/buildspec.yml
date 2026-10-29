@@ -7,7 +7,7 @@ phases:
       - echo "AWS CodeBuild - CRM"
       - echo "=========================================="
       - echo "Environment - ${ENVIRONMENT}"
-      - echo "Project - ${PROJECT_NAME}"
+      - echo "ECR Repo - ${FRONTEND_ECR_REPOSITORY}"
       - echo "Git Tag - ${GIT_TAG}"
       - echo "Frontend Tag - ${FRONTEND_TAG}"
       - echo "Backend Tag - ${BACKEND_TAG}"
