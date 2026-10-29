@@ -841,24 +841,36 @@ EOF
                     ]
 
                     for (svc in services) {
-                        def status = sh(
-                            script: "aws ecs describe-services --cluster ${ECS_CLUSTER} --services ${svc.name} --region ${AWS_REGION} --query 'services[0].status' --output text 2>/dev/null || true",
-                            returnStdout: true
-                        ).trim()
+                        def isFrontend = svc.name == env.FRONTEND_SERVICE
 
-                        if (status != 'ACTIVE') {
-                            error "❌ ECS service '${svc.name}' not found or not ACTIVE (status: '${status}'). Create it once manually."
-                        }
+                        def containerName = isFrontend
+                            ? env.FRONTEND_CONTAINER_NAME
+                            : env.BACKEND_CONTAINER_NAME
 
-                        echo "🔄 Updating ${svc.name} -> ${svc.taskDef}"
+                        def targetGroupArn = isFrontend
+                            ? env.FRONTEND_TARGET_GROUP_ARN
+                            : env.BACKEND_TARGET_GROUP_ARN
+
+                        def containerPort = isFrontend
+                            ? env.FRONTEND_CONTAINER_PORT
+                            : env.BACKEND_CONTAINER_PORT
+
+                        echo "Updating service: ${svc.name}"
+                        echo "Task definition: ${svc.taskDef}"
+                        echo "Container name: ${containerName}"
+                        echo "Target group: ${targetGroupArn}"
+                        echo "Container port: ${containerPort}"
+
                         sh """
                             aws ecs update-service \
-                                --cluster ${ECS_CLUSTER} \
-                                --service ${svc.name} \
-                                --task-definition ${svc.taskDef} \
+                                --cluster "${ECS_CLUSTER}" \
+                                --service "${svc.name}" \
+                                --task-definition "${svc.taskDef}" \
+                                --load-balancers "targetGroupArn=${targetGroupArn},containerName=${containerName},containerPort=${containerPort}" \
                                 --force-new-deployment \
-                                --region ${AWS_REGION} \
-                                --query 'service.serviceName' --output text
+                                --region "${AWS_REGION}" \
+                                --query 'service.serviceName' \
+                                --output text
                         """
                     }
                 }
