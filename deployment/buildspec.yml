@@ -50,7 +50,7 @@ phases:
       - echo "Verifying API URL in Next.js build"
       - echo "=========================================="
 
-      - docker run --rm ${ECR_REGISTRY}/${FRONTEND_ECR_REPOSITORY}-frontend:${FRONTEND_TAG} sh -c "grep -R -o 'crm360-backend-lb-1193834156.ap-south-1.elb.amazonaws.com' /app/.next 2>/dev/null | head -5"
+      - docker run --rm ${ECR_REGISTRY}/${FRONTEND_ECR_REPOSITORY}:${FRONTEND_TAG} sh -c "grep -R -o 'crm360-backend-lb-1193834156.ap-south-1.elb.amazonaws.com' /app/.next 2>/dev/null | head -5"
 
       - echo "=========================================="
       - echo "Building Backend Image"
