@@ -95,20 +95,21 @@ exports.login = async (req, res) => {
 
       // Save refresh token
       const isProduction = process.env.NODE_ENV === "production";
+res.cookie("crm_accessToken", accessToken, {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? "None" : "Lax",
+  path: "/",
+  maxAge: 15 * 60 * 1000,
+});
 
-      res.cookie("accessToken", accessToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: isProduction ? "None" : "Lax",
-        maxAge: 15 * 60 * 1000
-      });
-
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: isProduction ? "None" : "Lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000
-      });
+res.cookie("crm_refreshToken", refreshToken, {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? "None" : "Lax",
+  path: "/",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+});
 
       return res.json({
         user: {
@@ -189,19 +190,21 @@ exports.login = async (req, res) => {
 
     const isProduction = process.env.NODE_ENV === "production";
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "None" : "Lax",
-      maxAge: 15 * 60 * 1000
-    });
+  res.cookie("crm_accessToken", accessToken, {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? "None" : "Lax",
+  path: "/",
+  maxAge: 15 * 60 * 1000,
+});
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: isProduction,
-      sameSite: isProduction ? "None" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000
-    });
+res.cookie("crm_refreshToken", refreshToken, {
+  httpOnly: true,
+  secure: isProduction,
+  sameSite: isProduction ? "None" : "Lax",
+  path: "/",
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+});
 
     const { password: _, ...userWithoutPassword } = user;
 
@@ -225,7 +228,9 @@ exports.login = async (req, res) => {
 
 exports.refresh = async (req, res) => {
   try {
-    let token = req.cookies ? req.cookies.refreshToken : null;
+    let token = req.cookies
+  ? req.cookies.crm_refreshToken
+  : null;
     if (!token && req.body) {
       token = req.body.refreshToken;
     }
@@ -263,14 +268,14 @@ exports.refresh = async (req, res) => {
       );
 
       const isProduction = process.env.NODE_ENV === 'production';
-      res.cookie('accessToken', nextAccessToken, {
+      res.cookie('crm_accessToken', nextAccessToken, {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? 'None' : 'lax',
         maxAge: 15 * 60 * 1000
       });
 
-      res.cookie('refreshToken', nextRefreshToken, {
+      res.cookie('crm_refreshToken', nextRefreshToken, {
         httpOnly: true,
         secure: isProduction,
         sameSite: isProduction ? 'None' : 'lax',
@@ -325,14 +330,14 @@ exports.refresh = async (req, res) => {
     });
 
     const isProduction = process.env.NODE_ENV === 'production';
-    res.cookie('accessToken', nextAccessToken, {
+    res.cookie('crm_accessToken', nextAccessToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'None' : 'lax',
       maxAge: 15 * 60 * 1000
     });
 
-    res.cookie('refreshToken', nextRefreshToken, {
+    res.cookie('crm_refreshToken', nextRefreshToken, {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? 'None' : 'lax',
@@ -353,7 +358,9 @@ exports.refresh = async (req, res) => {
 
 exports.logout = async (req, res) => {
   try {
-    let token = req.cookies ? req.cookies.refreshToken : null;
+    let token = req.cookies
+  ? req.cookies.crm_refreshToken
+  : null;
     if (!token && req.body) {
       token = req.body.refreshToken;
     }
@@ -363,13 +370,13 @@ exports.logout = async (req, res) => {
     }
 
     const isProduction = process.env.NODE_ENV === 'production';
-    res.clearCookie("accessToken", {
+    res.clearCookie("crm_accessToken", {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "None" : "lax",
     });
 
-    res.clearCookie("refreshToken", {
+    res.clearCookie("crm_refreshToken", {
       httpOnly: true,
       secure: isProduction,
       sameSite: isProduction ? "None" : "lax",

@@ -27,8 +27,8 @@ const authenticateJWT = async (req, res, next) => {
     }
 
     // 2. Get token from cookie if not found in header
-    if (!token && req.cookies?.accessToken) {
-      token = req.cookies.accessToken;
+    if (!token && req.cookies?.crm_accessToken) {
+      token = req.cookies.crm_accessToken;
     }
 
     if (!token) {
