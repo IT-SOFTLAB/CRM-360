@@ -970,9 +970,11 @@ EOF
         }
 
 
+
         stage('Health Check') {
             steps {
                 script {
+
                     echo "=========================================="
                     echo "🏥 ECS APPLICATION HEALTH CHECK"
                     echo "=========================================="
@@ -996,63 +998,126 @@ EOF
                         }
                     }
 
-                    echo "✅ Required variables are available."
-                    echo "AWS region: ${env.AWS_REGION}"
-                    echo "ECS cluster: ${env.ECS_CLUSTER}"
+                    echo "✅ Required environment variables available."
+                    echo "AWS Region: ${env.AWS_REGION}"
+                    echo "ECS Cluster: ${env.ECS_CLUSTER}"
 
                     // =====================================================
-                    // 2. WAIT FOR ECS SERVICES TO BECOME STABLE
+                    // 2. ECS SERVICE DIAGNOSTICS
+                    // =====================================================
+
+                    def printEcsDiagnostics = { serviceName, serviceLabel ->
+
+                        echo "🔍 Collecting ${serviceLabel} ECS diagnostics..."
+
+                        withEnv(["SERVICE_NAME=${serviceName}"]) {
+                            sh(
+                                label: "Collect ${serviceLabel} ECS diagnostics",
+                                script: '''
+                                    echo "---- ECS SERVICE DETAILS ----"
+
+                                    aws ecs describe-services \
+                                        --cluster "$ECS_CLUSTER" \
+                                        --services "$SERVICE_NAME" \
+                                        --region "$AWS_REGION" \
+                                        --query 'services[0].{
+                                            Service:serviceName,
+                                            Status:status,
+                                            Desired:desiredCount,
+                                            Running:runningCount,
+                                            Pending:pendingCount,
+                                            Deployments:deployments[*].{
+                                                Status:status,
+                                                RolloutState:rolloutState,
+                                                Desired:desiredCount,
+                                                Running:runningCount,
+                                                Pending:pendingCount
+                                            },
+                                            Events:events[0:10].message
+                                        }' \
+                                        --output json || true
+                                '''
+                            )
+                        }
+                    }
+
+                    // =====================================================
+                    // 3. WAIT FOR ECS SERVICES TO STABILIZE
                     // =====================================================
 
                     echo "⏳ Waiting for frontend and backend ECS services..."
 
-                    timeout(time: 15, unit: 'MINUTES') {
-                        sh(
-                            label: 'Wait for ECS services to stabilize',
-                            script: '''
-                                set -eu
+                    try {
 
-                                aws ecs wait services-stable \
-                                    --cluster "$ECS_CLUSTER" \
-                                    --services "$FRONTEND_SERVICE" "$BACKEND_SERVICE" \
-                                    --region "$AWS_REGION"
+                        timeout(time: 15, unit: 'MINUTES') {
 
-                                echo "✅ ECS services have stabilized."
-                            '''
+                            sh(
+                                label: 'Wait for ECS services to stabilize',
+                                script: '''
+                                    set -eu
+
+                                    aws ecs wait services-stable \
+                                        --cluster "$ECS_CLUSTER" \
+                                        --services "$FRONTEND_SERVICE" "$BACKEND_SERVICE" \
+                                        --region "$AWS_REGION"
+
+                                    echo "✅ Both ECS services are stable."
+                                '''
+                            )
+
+                        }
+
+                    } catch (Exception e) {
+
+                        echo "❌ ECS stabilization failed."
+
+                        printEcsDiagnostics(
+                            env.FRONTEND_SERVICE,
+                            'Frontend'
                         )
+
+                        printEcsDiagnostics(
+                            env.BACKEND_SERVICE,
+                            'Backend'
+                        )
+
+                        error("ECS deployment did not stabilize. Check ECS service events and deployment logs.")
                     }
 
                     // =====================================================
-                    // 3. CHECK ECS SERVICE STATUS AND TASK COUNTS
+                    // 4. VALIDATE ECS SERVICE STATUS
                     // =====================================================
 
                     def checkEcsService = { serviceName, serviceLabel ->
 
                         echo "🔍 Checking ${serviceLabel} ECS service..."
 
-                        def serviceInfo = sh(
-                            label: "Check ${serviceLabel} ECS status",
-                            script: '''
-                                set -eu
+                        def serviceInfo
 
-                                aws ecs describe-services \
-                                    --cluster "$ECS_CLUSTER" \
-                                    --services "$SERVICE_NAME" \
-                                    --region "$AWS_REGION" \
-                                    --query 'services[0].[status,desiredCount,runningCount,pendingCount]' \
-                                    --output text
-                            ''',
-                            returnStdout: true
-                        ).trim()
+                        withEnv(["SERVICE_NAME=${serviceName}"]) {
 
-                        // Supply the service name as a shell environment variable.
-                        // This avoids Groovy interpolation in the shell command.
+                            serviceInfo = sh(
+                                label: "Check ${serviceLabel} ECS status",
+                                script: '''
+                                    set -eu
+
+                                    aws ecs describe-services \
+                                        --cluster "$ECS_CLUSTER" \
+                                        --services "$SERVICE_NAME" \
+                                        --region "$AWS_REGION" \
+                                        --query 'services[0].[status,desiredCount,runningCount,pendingCount]' \
+                                        --output text
+                                ''',
+                                returnStdout: true
+                            ).trim()
+                        }
+
                         echo "${serviceLabel} ECS details: ${serviceInfo}"
 
                         def values = serviceInfo.tokenize()
 
                         if (values.size() < 4 || values[0] == 'None') {
-                            error "❌ Could not retrieve ${serviceLabel} ECS service details."
+                            error "❌ Unable to retrieve ${serviceLabel} ECS service details."
                         }
 
                         def status = values[0]
@@ -1061,144 +1126,205 @@ EOF
                         def pending = values[3].toInteger()
 
                         if (status != 'ACTIVE') {
-                            error "❌ ${serviceLabel} ECS service status is ${status}, not ACTIVE."
+                            error "❌ ${serviceLabel} service is ${status}, expected ACTIVE."
                         }
 
                         if (desired < 1) {
-                            error "❌ ${serviceLabel} ECS service has no desired tasks."
+                            error "❌ ${serviceLabel} desired task count is zero."
                         }
 
                         if (running < desired) {
-                            error "❌ ${serviceLabel}: running ${running} tasks, but ${desired} are desired."
+                            error "❌ ${serviceLabel}: Running ${running}, Desired ${desired}."
                         }
 
-                        echo "✅ ${serviceLabel}: ACTIVE | Desired=${desired} | Running=${running} | Pending=${pending}"
+                        if (pending > 0) {
+                            error "❌ ${serviceLabel}: ${pending} task(s) are still pending."
+                        }
+
+                        echo "✅ ${serviceLabel} ECS service is healthy."
+                        echo "Desired: ${desired} | Running: ${running} | Pending: ${pending}"
 
                         return desired
                     }
 
-                    // Set the service name using withEnv, not Groovy interpolation
-                    // inside the shell command.
                     def frontendDesired
                     def backendDesired
 
-                    withEnv(["SERVICE_NAME=${env.FRONTEND_SERVICE}"]) {
-                        frontendDesired = checkEcsService(
-                            env.FRONTEND_SERVICE,
-                            'Frontend'
-                        )
-                    }
+                    frontendDesired = checkEcsService(
+                        env.FRONTEND_SERVICE,
+                        'Frontend'
+                    )
 
-                    withEnv(["SERVICE_NAME=${env.BACKEND_SERVICE}"]) {
-                        backendDesired = checkEcsService(
-                            env.BACKEND_SERVICE,
-                            'Backend'
-                        )
-                    }
+                    backendDesired = checkEcsService(
+                        env.BACKEND_SERVICE,
+                        'Backend'
+                    )
 
                     // =====================================================
-                    // 4. CHECK ALB TARGET HEALTH
-                    //
-                    // Pass when healthy targets meet the ECS desired count.
-                    // "draining" targets are allowed during replacement.
+                    // 5. ALB TARGET HEALTH CHECK
                     // =====================================================
 
-                    def checkTargetGroup = { targetGroupArn, serviceLabel, desiredCount ->
+                    def checkTargetGroup = {
+                        targetGroupArn,
+                        serviceLabel,
+                        desiredCount ->
 
-                        echo "🌐 Checking ${serviceLabel} ALB target health..."
+                        echo "=========================================="
+                        echo "🌐 ${serviceLabel} ALB TARGET HEALTH CHECK"
+                        echo "=========================================="
 
                         def healthyCount = 0
                         def states = []
 
-                        // Allow up to 5 minutes for ALB health checks to catch up.
+                        // Maximum 5 minutes (20 attempts x 15 seconds).
+
                         for (int attempt = 1; attempt <= 20; attempt++) {
 
-                            def targetOutput = sh(
-                                label: "Read ${serviceLabel} ALB target states",
-                                script: '''
-                                    set -eu
+                            def targetOutput
 
-                                    aws elbv2 describe-target-health \
-                                        --target-group-arn "$TARGET_GROUP_ARN" \
-                                        --region "$AWS_REGION" \
-                                        --query 'TargetHealthDescriptions[].TargetHealth.State' \
-                                        --output text
-                                ''',
-                                returnStdout: true
-                            ).trim()
+                            withEnv([
+                                "TARGET_GROUP_ARN=${targetGroupArn}"
+                            ]) {
+
+                                targetOutput = sh(
+                                    label: "${serviceLabel} ALB target health",
+                                    script: '''
+                                        set -eu
+
+                                        aws elbv2 describe-target-health \
+                                            --target-group-arn "$TARGET_GROUP_ARN" \
+                                            --region "$AWS_REGION" \
+                                            --query 'TargetHealthDescriptions[].TargetHealth.State' \
+                                            --output text
+                                    ''',
+                                    returnStdout: true
+                                ).trim()
+
+                                healthyCount = sh(
+                                    label: "Count ${serviceLabel} healthy targets",
+                                    script: '''
+                                        set -eu
+
+                                        aws elbv2 describe-target-health \
+                                            --target-group-arn "$TARGET_GROUP_ARN" \
+                                            --region "$AWS_REGION" \
+                                            --query 'length(TargetHealthDescriptions[?TargetHealth.State==`healthy`])' \
+                                            --output text
+                                    ''',
+                                    returnStdout: true
+                                ).trim().toInteger()
+                            }
 
                             states = targetOutput
                                 .tokenize()
                                 .collect { it.toLowerCase() }
 
-                            healthyCount = states.count { it == 'healthy' }
+                            echo "------------------------------------------"
+                            echo "${serviceLabel} ALB Attempt: ${attempt}/20"
+                            echo "Target states: ${states ? states.join(', ') : 'NO TARGETS'}"
+                            echo "Healthy targets: ${healthyCount}"
+                            echo "Required targets: ${desiredCount}"
+                            echo "------------------------------------------"
 
-                            echo "${serviceLabel} target states: ${states ? states.join(', ') : 'NO TARGETS'}"
-                            echo "${serviceLabel}: ${healthyCount} healthy target(s); ${desiredCount} required."
+                            // All required targets are healthy.
 
-                            // Healthy capacity is available. Draining old targets
-                            // do not cause a failure by themselves.
                             if (healthyCount >= desiredCount) {
 
-                                def drainingCount = states.count { it == 'draining' }
-                                def unhealthyCount = states.count { it == 'unhealthy' }
-
-                                echo "✅ ${serviceLabel}: required healthy target capacity is available."
-
-                                if (drainingCount > 0) {
-                                    echo "ℹ️ ${serviceLabel}: ${drainingCount} old target(s) are draining."
-                                }
-
-                                if (unhealthyCount > 0) {
-                                    echo "⚠️ ${serviceLabel}: ${unhealthyCount} target(s) are unhealthy, but healthy capacity meets the desired count."
-                                }
+                                echo "✅ ${serviceLabel} ALB target health PASSED."
 
                                 return
                             }
 
-                            if (attempt < 20) {
-                                echo "⏳ Waiting 15 seconds for ${serviceLabel} targets to become healthy (attempt ${attempt}/20)..."
-                                sleep(time: 15, unit: 'SECONDS')
+                            // Print detailed diagnostics on final attempt.
+
+                            if (attempt == 20) {
+
+                                echo "❌ ${serviceLabel} ALB health check timed out."
+
+                                withEnv([
+                                    "TARGET_GROUP_ARN=${targetGroupArn}"
+                                ]) {
+
+                                    sh(
+                                        label: "Print ${serviceLabel} ALB failure details",
+                                        script: '''
+                                            echo "---- DETAILED TARGET HEALTH ----"
+
+                                            aws elbv2 describe-target-health \
+                                                --target-group-arn "$TARGET_GROUP_ARN" \
+                                                --region "$AWS_REGION" \
+                                                --query 'TargetHealthDescriptions[].{
+                                                    Target:Target.Id,
+                                                    Port:Target.Port,
+                                                    State:TargetHealth.State,
+                                                    Reason:TargetHealth.Reason,
+                                                    Description:TargetHealth.Description
+                                                }' \
+                                                --output table || true
+                                        '''
+                                    )
+                                }
+
+                                error(
+                                    "${serviceLabel} ALB FAILED: " +
+                                    "Healthy=${healthyCount}, Required=${desiredCount}, " +
+                                    "States=${states ? states.join(', ') : 'NO TARGETS'}"
+                                )
                             }
+
+                            echo "⏳ Waiting 15 seconds for ALB targets..."
+
+                            sleep(time: 15, unit: 'SECONDS')
                         }
-
-                        error "❌ ${serviceLabel} ALB check failed: only ${healthyCount} healthy target(s); ${desiredCount} required. Final states: ${states ? states.join(', ') : 'NO TARGETS'}"
-                    }
-
-                    // Pass target group ARNs into the shell through environment variables.
-                    withEnv(["TARGET_GROUP_ARN=${env.FRONTEND_TARGET_GROUP_ARN}"]) {
-                        checkTargetGroup(
-                            env.FRONTEND_TARGET_GROUP_ARN,
-                            'Frontend',
-                            frontendDesired
-                        )
-                    }
-
-                    withEnv(["TARGET_GROUP_ARN=${env.BACKEND_TARGET_GROUP_ARN}"]) {
-                        checkTargetGroup(
-                            env.BACKEND_TARGET_GROUP_ARN,
-                            'Backend',
-                            backendDesired
-                        )
                     }
 
                     // =====================================================
-                    // 5. FINAL SUMMARY
+                    // 6. FRONTEND ALB HEALTH CHECK
+                    // =====================================================
+
+                    checkTargetGroup(
+                        env.FRONTEND_TARGET_GROUP_ARN,
+                        'Frontend',
+                        frontendDesired
+                    )
+
+                    // =====================================================
+                    // 7. BACKEND ALB HEALTH CHECK
+                    // =====================================================
+
+                    checkTargetGroup(
+                        env.BACKEND_TARGET_GROUP_ARN,
+                        'Backend',
+                        backendDesired
+                    )
+
+                    // =====================================================
+                    // 8. FINAL DEPLOYMENT SUMMARY
                     // =====================================================
 
                     echo ""
                     echo "=========================================="
-                    echo "✅ HEALTH CHECK PASSED"
+                    echo "       ✅ HEALTH CHECK PASSED"
                     echo "=========================================="
+
                     echo "Frontend ECS : HEALTHY"
                     echo "Frontend ALB : HEALTHY"
                     echo "Backend ECS  : HEALTHY"
                     echo "Backend ALB  : HEALTHY"
-                    echo "🚀 Application deployment is healthy."
+
+                    echo "------------------------------------------"
+
+                    echo "Frontend Desired Tasks: ${frontendDesired}"
+                    echo "Backend Desired Tasks : ${backendDesired}"
+
+                    echo "------------------------------------------"
+
+                    echo "🚀 APPLICATION DEPLOYMENT SUCCESSFUL"
                     echo "=========================================="
                 }
             }
         }
+
 
 
     }
