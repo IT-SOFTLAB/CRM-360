@@ -426,9 +426,9 @@ pipeline {
             "FARGATE"
         ],
 
-        "cpu": "1024",
+        "cpu": "256",
 
-        "memory": "3072",
+        "memory": "512",
 
         "runtimePlatform": {
             "cpuArchitecture": "X86_64",
@@ -610,9 +610,9 @@ EOF
             "FARGATE"
         ],
 
-        "cpu": "1024",
+        "cpu": "256",
 
-        "memory": "3072",
+        "memory": "512",
 
         "runtimePlatform": {
             "cpuArchitecture": "X86_64",
