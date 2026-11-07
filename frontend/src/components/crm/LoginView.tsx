@@ -95,15 +95,22 @@ const handleForgotPassword = async () => {
   try {
     const res = await authService.forgotPassword(forgotData.email);
 
-    addToast("success", res.message);
+    addToast("success", res.message || "OTP sent successfully!");
 
     setForgotStep(2);
+
   } catch (err: any) {
-    setError(err.response?.data?.message || "Failed to send OTP");
+    const message =
+      err.message || "Failed to send OTP. Please try again.";
+
+    setError(message);
+    addToast("error", message);
+
   } finally {
     setLoading(false);
   }
 };
+
 const handleOtpChange = (
   value: string,
   index: number

@@ -125,7 +125,7 @@ const updatedUser = await prisma.user.findFirst({
 };
 
 // Reset user password (Super Admin or Admin for standard users)
-exports.resetPassword = async (req, res) => {
+exports.adminResetUserPassword = async (req, res) => {
   try {
     const { id } = req.params;
     const { newPassword } = req.body;

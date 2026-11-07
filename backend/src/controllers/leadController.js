@@ -375,175 +375,325 @@ function getVal(row, keyNames) {
 const importLeads = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(200).json({ success: false, message: 'No file uploaded' });
-    }
-
-    // Read the file using xlsx (works for both CSV and Excel)
-    let workbook;
-    try {
-      workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-    } catch (err) {
-      console.error('Error reading file with xlsx:', err);
-      return res.status(200).json({ success: false, message: 'Failed to parse CSV/Excel file structure' });
-    }
-
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    
-    // Get headers from first row
-    const sheetRows = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
-    const headers = sheetRows[0] || [];
-
-    // Header validation (case/space/underscore/dash insensitive)
-    const normalizedHeaders = headers.map(normalizeKey);
-    const requiredAliases = {
-      contactName: ['contactName', 'name'],
-      category: ['category'],
-      serviceType: ['serviceType', 'servicetype'],
-      company: ['company'],
-      email: ['email'],
-      phone: ['phone'],
-      linkedinId: ['linkedinId', 'linkedinid', 'linkedin', 'linkedin id']
-    };
-
-    const missingFields = Object.keys(requiredAliases).filter(field => {
-      const aliases = requiredAliases[field];
-      return !aliases.some(alias => normalizedHeaders.includes(normalizeKey(alias)));
-    });
-
-    if (missingFields.length > 0) {
-      return res.status(200).json({ 
-        success: false, 
-        message: `uploading failed: missing required column headers: ${missingFields.join(', ')}` 
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded"
       });
     }
 
-    // Convert sheet to JSON array of objects
-    const results = xlsx.utils.sheet_to_json(worksheet);
-    const createdLeads = [];
+    const organizationId = req.organizationId;
 
+    if (!organizationId) {
+      return res.status(400).json({
+        success: false,
+        message: "Organization ID is missing"
+      });
+    }
+
+    // Read Excel / CSV file
+    let workbook;
+
+    try {
+      workbook = xlsx.read(req.file.buffer, { type: "buffer" });
+    } catch (err) {
+      console.error("File parsing error:", err);
+
+      return res.status(400).json({
+        success: false,
+        message: "Failed to parse CSV/Excel file"
+      });
+    }
+
+    const sheetName = workbook.SheetNames[0];
+
+    if (!sheetName) {
+      return res.status(400).json({
+        success: false,
+        message: "Uploaded file contains no worksheet"
+      });
+    }
+
+    const worksheet = workbook.Sheets[sheetName];
+
+    // Read headers
+    const sheetRows = xlsx.utils.sheet_to_json(
+      worksheet,
+      { header: 1 }
+    );
+
+    const headers = sheetRows[0] || [];
+    const normalizedHeaders = headers.map(normalizeKey);
+
+    const requiredAliases = {
+      contactName: ["contactName", "name"],
+      category: ["category"],
+      serviceType: ["serviceType", "servicetype"],
+      company: ["company"],
+      email: ["email"],
+      phone: ["phone"],
+      linkedinId: ["linkedinId", "linkedinid", "linkedin", "linkedin id"]
+    };
+
+    const missingFields = Object.keys(requiredAliases).filter(field => {
+      return !requiredAliases[field].some(alias =>
+        normalizedHeaders.includes(normalizeKey(alias))
+      );
+    });
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required column headers: ${missingFields.join(", ")}`
+      });
+    }
+
+    const results = xlsx.utils.sheet_to_json(worksheet);
+
+    // Normalize values before comparing records
+    const normalizeValue = (value) => {
+      if (value === undefined || value === null) {
+        return "";
+      }
+
+      return String(value).trim().toLowerCase();
+    };
+
+    // Generate a unique comparison key using ALL imported fields
+    const generateLeadKey = (lead) => {
+      const fields = [
+        lead.contactName,
+        lead.company,
+        lead.email,
+        lead.phone,
+        lead.category,
+        lead.serviceType,
+        lead.linkedinId
+      ];
+
+      return JSON.stringify(fields.map(normalizeValue));
+    };
+
+    // Resolve default assignee
     const { teamId } = req.query;
-    let initialAssigneeName = req.user?.name || 'Admin';
+
+    let initialAssigneeName = req.user?.name || "Admin";
     let initialAssigneeId = req.user?.id || null;
 
     if (teamId) {
       try {
-       const team = await prisma.salesTeam.findFirst({
-  where: {
-    id: teamId,
-    organizationId: req.organizationId
-  },
-  include: {
-    leader: true,
-    members: {
-      select: {
-        id: true,
-        name: true
-      }
-    }
-  }
-});
+        const team = await prisma.salesTeam.findFirst({
+          where: {
+            id: teamId,
+            organizationId
+          },
+          include: {
+            leader: true,
+            members: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
+        });
+
         if (team) {
           if (team.leader) {
             initialAssigneeName = team.leader.name;
             initialAssigneeId = team.leader.id;
-          } else if (team.members && team.members.length > 0) {
+          } else if (team.members?.length > 0) {
             initialAssigneeName = team.members[0].name;
             initialAssigneeId = team.members[0].id;
           }
         }
       } catch (teamErr) {
-        console.warn('Failed to resolve team leader for import:', teamErr.message);
+        console.warn(
+          "Failed to resolve team leader:",
+          teamErr.message
+        );
       }
     }
-    
 
+    // 1. Fetch existing leads of this organization
+    const existingLeads = await prisma.lead.findMany({
+      where: { organizationId },
+      select: {
+        contactName: true,
+        company: true,
+        email: true,
+        phone: true,
+        category: true,
+        serviceType: true,
+        linkedinId: true
+      }
+    });
 
+    // Store existing lead fingerprints
+    const existingLeadKeys = new Set(
+      existingLeads.map(generateLeadKey)
+    );
+
+    const createdLeads = [];
+
+    let duplicatesSkipped = 0;
+    let failed = 0;
+    let invalidSkipped = 0;
+
+    // 2. Process uploaded records
     for (const row of results) {
-      // Find fields case-insensitively and trim keys/values
-      const contactName = getVal(row, ['contactName', 'name']);
-      
-      // Validate required field
-      if (!contactName || !contactName.toString().trim()) {
-        continue; // Skip invalid records missing a name
-      }
-
-      const company = getVal(row, ['company']);
-      const email = getVal(row, ['email']);
-      const phone = getVal(row, ['phone']);
-      const category = getVal(row, ['category']) || '';
-      const serviceType = getVal(row, ['serviceType', 'servicetype']) || '';
-      const linkedinId = getVal(row, ['linkedinId', 'linkedinid', 'linkedin', 'linkedin id']);
-
-      const trimmedName = contactName.toString().trim();
-      const trimmedCompany = company ? company.toString().trim() : null;
-      const trimmedSource = 'CSV/Excel Import'; // Default source since it's not in the sheet anymore
-      const trimmedEmail = email ? email.toString().trim() : null;
-      const trimmedPhone = phone ? phone.toString().trim() : null;
-      const trimmedCategory = category.toString().trim();
-      const trimmedServiceType = serviceType.toString().trim();
-      const trimmedAssignedUser = initialAssigneeName;
-      const trimmedAssignedUserId = initialAssigneeId;
-      const trimmedLinkedinId = linkedinId ? linkedinId.toString().trim() : null;
-
-      const parsedCreatedAt = new Date();
-
-      // 1. Save to Prisma Database (PostgreSQL)
-      let lead;
       try {
-        lead = await prisma.lead.create({
-          data: {
-            organizationId: req.organizationId,
-            contactName: trimmedName,
-            company: trimmedCompany,
-            email: trimmedEmail,
-            phone: trimmedPhone,
-            category: trimmedCategory,
-            serviceType: trimmedServiceType,
-            assignedUser: trimmedAssignedUser,
-            assignedUserId: trimmedAssignedUserId,
-            status: 'New', // Automatically set status to "New"
-            dealValue: 0,
-            createdAt: parsedCreatedAt,
-            linkedinId: trimmedLinkedinId
-          }
+        const contactName = getVal(row, [
+          "contactName",
+          "name"
+        ]);
+
+        if (!contactName || !contactName.toString().trim()) {
+          invalidSkipped++;
+          continue;
+        }
+
+        const leadData = {
+          contactName: contactName.toString().trim(),
+
+          company: (() => {
+            const value = getVal(row, ["company"]);
+            return value ? value.toString().trim() : null;
+          })(),
+
+          email: (() => {
+            const value = getVal(row, ["email"]);
+            return value ? value.toString().trim() : null;
+          })(),
+
+          phone: (() => {
+            const value = getVal(row, ["phone"]);
+            return value !== null && value !== undefined
+              ? value.toString().trim()
+              : null;
+          })(),
+
+          category: (
+            getVal(row, ["category"]) || ""
+          ).toString().trim(),
+
+          serviceType: (
+            getVal(row, ["serviceType", "servicetype"]) || ""
+          ).toString().trim(),
+
+          linkedinId: (() => {
+            const value = getVal(row, [
+              "linkedinId",
+              "linkedinid",
+              "linkedin",
+              "linkedin id"
+            ]);
+
+            return value ? value.toString().trim() : null;
+          })()
+        };
+
+        // 3. Check duplicate against existing DB records
+        // and previously processed rows in this upload
+        const leadKey = generateLeadKey(leadData);
+
+        if (existingLeadKeys.has(leadKey)) {
+          duplicatesSkipped++;
+          continue;
+        }
+
+        // 4. Create Lead and corresponding Opportunity together
+        // so a failed Opportunity creation does not leave
+        // an incomplete imported Lead.
+        const lead = await prisma.$transaction(async (tx) => {
+          const newLead = await tx.lead.create({
+            data: {
+              organizationId,
+              contactName: leadData.contactName,
+              company: leadData.company,
+              email: leadData.email,
+              phone: leadData.phone,
+              category: leadData.category,
+              serviceType: leadData.serviceType,
+              linkedinId: leadData.linkedinId,
+
+              assignedUser: initialAssigneeName,
+              assignedUserId: initialAssigneeId,
+
+              status: "New",
+              dealValue: 0,
+              createdAt: new Date()
+            }
+          });
+
+          await tx.opportunity.create({
+            data: {
+              organizationId,
+              leadId: newLead.id,
+
+              customerName: newLead.contactName,
+              company: newLead.company,
+              email: newLead.email,
+              phone: newLead.phone,
+              linkedinId: newLead.linkedinId,
+
+              dealValue: 0,
+              stage: "New",
+
+              assignedSalesperson: newLead.assignedUser,
+              assignedSalespersonId: newLead.assignedUserId,
+
+              createdAt: newLead.createdAt
+            }
+          });
+
+          return newLead;
         });
 
-        // Automatically create a corresponding Opportunity in the "New" stage
-        await prisma.opportunity.create({
-          data: {
-            organizationId: req.organizationId,
-            leadId: lead.id,
-            customerName: lead.contactName,
-            company: lead.company,
-            email: lead.email,
-            phone: lead.phone,
-            dealValue: 0,
-            stage: 'New',
-            assignedSalesperson: lead.assignedUser,
-            assignedSalespersonId: lead.assignedUserId,
-            createdAt: lead.createdAt,
-            linkedinId: trimmedLinkedinId
-          }
-        });
-      } catch (dbErr) {
-        console.error('Prisma lead create failed:', dbErr.message);
-        continue;
+        createdLeads.push(lead);
+
+        // Add successfully imported record to the set.
+        // This also prevents duplicates within the same file.
+        existingLeadKeys.add(leadKey);
+
+      } catch (rowError) {
+        failed++;
+
+        console.error(
+          "Lead import row failed:",
+          rowError.message
+        );
       }
-
-      createdLeads.push(lead);
     }
-    
-await invalidateLeadCache(req.organizationId);
-    res.status(200).json({
+
+    // 5. Clear Redis cache
+    if (createdLeads.length > 0) {
+      await invalidateLeadCache(organizationId);
+    }
+
+    // 6. Return import summary
+    return res.status(200).json({
       success: true,
-      message: `Successfully imported ${createdLeads.length} leads.`,
-      leadsCount: createdLeads.length
+      message: "Lead import completed successfully",
+
+      summary: {
+        totalUploaded: results.length,
+        imported: createdLeads.length,
+        duplicatesSkipped,
+        invalidSkipped,
+        failed
+      },
+
+      leadsCount: createdLeads.length,
+      leads: createdLeads
     });
 
   } catch (error) {
-    console.error('Import controller error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Import controller error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 };
 

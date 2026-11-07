@@ -14,7 +14,7 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'myrefreshsecretkey
 const {
   checkLicenseAvailability,
 } = require("../services/licenseService");
-
+const validatePassword = require("../utils/passwordValidator");
 
 exports.login = async (req, res) => {
   try {
@@ -136,6 +136,8 @@ res.cookie("crm_refreshToken", refreshToken, {
       user.password
     );
 
+
+    
     if (!isMatch) {
       return res.status(401).json({
         message: "Invalid email or password"
@@ -408,7 +410,16 @@ exports.changePassword = async (req, res) => {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ message: 'Current and new passwords required' });
     }
+// Validate new password
+const validation = validatePassword(newPassword);
 
+if (!validation.isValid) {
+  return res.status(400).json({
+    success: false,
+    message: "Password validation failed",
+    errors: validation.errors
+  });
+}
     const user = await prisma.user.findUnique({ where: { id: userId } });
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) {
@@ -431,11 +442,13 @@ exports.changePassword = async (req, res) => {
   }
 };
 
+
+
 exports.forgotPassword = async (req, res) => {
   try {
     console.log("1. forgotPassword API called");
 
-    const { email } = req.body;
+    const email = req.body.email?.toLowerCase().trim();
 
     if (!email) {
       return res.status(400).json({
@@ -444,29 +457,32 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
-    console.log("2. Email received:", email);
+    console.log("2. Checking registered email:", email);
 
+    // Find only an existing registered user
     const user = await prisma.user.findUnique({
-      where: {
-        email: email.toLowerCase().trim(),
-      },
+      where: { email },
     });
 
     console.log("3. User lookup completed");
 
+    // If email is not registered, do not generate or send OTP
     if (!user) {
-      console.log("4. User not found");
-      return res.json({
-        success: true,
-        message: "If an account exists, an OTP has been sent.",
+      console.log("4. Email is not registered. OTP not generated.");
+
+      return res.status(400).json({
+        success: false,
+        message: "This email is not registered with CRM-360.",
       });
     }
 
-    console.log("5. User found:", user.email);
+    console.log("5. Registered user found:", user.email);
 
+    // Generate OTP only for registered users
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiry = new Date(Date.now() + 10 * 60 * 1000);
 
+    // Save OTP against the registered user
     await prisma.user.update({
       where: { id: user.id },
       data: {
@@ -478,30 +494,33 @@ exports.forgotPassword = async (req, res) => {
     console.log("6. OTP saved in database");
 
     try {
-      console.log("7. Calling sendMail()");
+      console.log("7. Sending OTP to registered email");
 
+      // Always use the email fetched from the database
       await sendMail({
         to: user.email,
-        subject: "CRM Password Reset OTP",
+        subject: "CRM-360 Password Reset OTP",
         html: `
           <h2>Password Reset</h2>
-          <p>Hello ${user.name},</p>
-          <p>Your OTP is:</p>
+          <p>Hello ${user.name || "User"},</p>
+          <p>Your CRM-360 password reset OTP is:</p>
           <h1>${otp}</h1>
+          <p>This OTP is valid for 10 minutes.</p>
+          <p>If you did not request this password reset, please ignore this email.</p>
         `,
       });
 
-      console.log("8. sendMail() completed");
+      console.log("8. OTP sent successfully");
 
-      return res.json({
+      return res.status(200).json({
         success: true,
-        message: "OTP sent successfully",
+        message: "OTP sent successfully to your registered email address.",
       });
 
     } catch (mailError) {
-      console.log("9. sendMail() failed");
-      console.error(mailError);
+      console.error("9. Email sending failed:", mailError);
 
+      // Clear OTP if email delivery fails
       await prisma.user.update({
         where: { id: user.id },
         data: {
@@ -514,15 +533,15 @@ exports.forgotPassword = async (req, res) => {
     }
 
   } catch (err) {
-    console.log("10. Outer catch");
-    console.error(err);
+    console.error("10. Forgot password error:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: err.message,
+      message: "Unable to send OTP. Please try again later.",
     });
   }
 };
+
 
 exports.verifyOtp = async (req, res) => {
   try {
@@ -572,48 +591,51 @@ exports.verifyOtp = async (req, res) => {
   }
 };
 
+
+// Reset password using registered email and OTP (Forgot Password)
 exports.resetPassword = async (req, res) => {
   try {
-    const { email, otp, newPassword } = req.body;
+    const email = req.body.email?.toLowerCase().trim();
+    const otp = String(req.body.otp || "").trim();
+    const { newPassword } = req.body;
 
-    if (!newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "New password is required",
-      });
-    }
-
-    if (newPassword.length < 8) {
-      return res.status(400).json({
-        success: false,
-        message: "Password must be at least 8 characters long.",
-      });
-    }
-
+    // Validate required fields first
     if (!email || !otp || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: "All fields are required",
+        message: "Email, OTP and new password are required",
       });
     }
 
+    // Validate password strength
+    const validation = validatePassword(newPassword);
+
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: "Password validation failed",
+        errors: validation.errors,
+      });
+    }
+
+    // Find registered user
     const user = await prisma.user.findUnique({
-      where: {
-        email: email.toLowerCase().trim(),
-      },
+      where: { email },
     });
 
     if (!user) {
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
-        message: "User not found",
+        message: "Invalid email or OTP",
       });
     }
 
+    // Verify OTP and expiry
     if (
-      user.resetOtp !== otp ||
+      !user.resetOtp ||
+      String(user.resetOtp).trim() !== otp ||
       !user.resetOtpExpiry ||
-      user.resetOtpExpiry < new Date()
+      new Date(user.resetOtpExpiry) < new Date()
     ) {
       return res.status(400).json({
         success: false,
@@ -621,12 +643,12 @@ exports.resetPassword = async (req, res) => {
       });
     }
 
+    // Hash new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
+    // Update password and clear OTP
     await prisma.user.update({
-      where: {
-        id: user.id,
-      },
+      where: { id: user.id },
       data: {
         password: hashedPassword,
         resetOtp: null,
@@ -634,24 +656,22 @@ exports.resetPassword = async (req, res) => {
       },
     });
 
-    // Log the user out from all devices
+    // Logout user from all devices
     await prisma.refreshToken.deleteMany({
-      where: {
-        userId: user.id,
-      },
+      where: { userId: user.id },
     });
 
-    res.json({
+    return res.status(200).json({
       success: true,
       message: "Password reset successful",
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Forgot password reset error:", err);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: err.message,
+      message: "Unable to reset password. Please try again.",
     });
   }
 };
@@ -682,6 +702,17 @@ exports.inviteUser = async (req, res) => {
         message: "Name, email, role, and password are required"
       });
     }
+
+// Validate password strength
+const validation = validatePassword(password);
+
+if (!validation.isValid) {
+  return res.status(400).json({
+    success: false,
+    message: "Password validation failed",
+    errors: validation.errors
+  });
+}
 
     const inviterRole = (inviter.role || "")
       .toUpperCase()
@@ -804,6 +835,17 @@ exports.acceptInvitation = async (req, res) => {
     if (!token || !password) {
       return res.status(400).json({ message: 'Token and password required' });
     }
+
+// Validate password strength
+const validation = validatePassword(password);
+
+if (!validation.isValid) {
+  return res.status(400).json({
+    success: false,
+    message: "Password validation failed",
+    errors: validation.errors
+  });
+}
 
     const user = await prisma.user.findUnique({ where: { invitationToken: token } });
     if (!user) {

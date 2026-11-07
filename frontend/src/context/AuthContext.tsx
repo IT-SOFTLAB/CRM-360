@@ -1,13 +1,12 @@
 "use client";
-
+ 
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { User, AuthForm } from '../types/user';
 import { authService } from '../services/auth.service';
 import { ToastContext } from './ToastContext';
 import { DEFAULT_AUTH_FORM } from '../utils/constants';
 import api from '../services/api';
-const CENTRAL_LOGIN_URL =
-  "https://www.itsoftlab360.com/login?callbackUrl=https%3A%2F%2Fcrm.itsoftlab360.com";
+ 
 export interface AuthContextType {
   mounted: boolean;
   setMounted: React.Dispatch<React.SetStateAction<boolean>>;
@@ -23,24 +22,24 @@ export interface AuthContextType {
   handleLogout: () => void;
   selectQuickAccount: (email: string) => void;
 }
-
+ 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
+ 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [mounted, setMounted] = useState(false);
   const [authReady, setAuthReady] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register' |"forgotPassword"| 'setup'>('login');
   const [authForm, setAuthForm] = useState<AuthForm>(DEFAULT_AUTH_FORM);
-
+ 
   const toastCtx = useContext(ToastContext);
-
+ 
   useEffect(() => {
     setMounted(true);
-
+ 
     const initialize = async () => {
       // Che setup status
-
+ 
       // Restore user from localStorage
       const savedUser = localStorage.getItem('crm_user');
       if (!savedUser) {
@@ -48,38 +47,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setAuthReady(true);
         return;
       }
-
+ 
       // Silently refresh the accessToken cookie or token fallback so API calls work on reload
+            // Silently refresh the crm_accessToken cookie or token fallback so API calls work on reload
       try {
-        const storedRefreshToken = localStorage.getItem('refreshToken');
-        const refreshRes = await api.post('/auth/refresh', { refreshToken: storedRefreshToken });
-        if (refreshRes.data?.accessToken) {
-          localStorage.setItem('token', refreshRes.data.accessToken);
+        const storedRefreshToken =
+          localStorage.getItem('crm_refreshToken') || localStorage.getItem('refreshToken');
+ 
+        const refreshRes = await api.post('/auth/refresh', {
+          refreshToken: storedRefreshToken,
+          crm_refreshToken: storedRefreshToken
+        });
+ 
+        const newAccessToken = refreshRes.data?.crm_accessToken || refreshRes.data?.accessToken;
+        const newRefreshToken = refreshRes.data?.crm_refreshToken || refreshRes.data?.refreshToken;
+ 
+        if (newAccessToken) {
+          localStorage.setItem('crm_accessToken', newAccessToken);
+          localStorage.setItem('token', newAccessToken);
         }
-        if (refreshRes.data?.refreshToken) {
-          localStorage.setItem('refreshToken', refreshRes.data.refreshToken);
+        if (newRefreshToken) {
+          localStorage.setItem('crm_refreshToken', newRefreshToken);
+          localStorage.setItem('refreshToken', newRefreshToken);
         }
+ 
         // Token refreshed — restore user from localStorage
         setUser(JSON.parse(savedUser));
       } catch {
         // Refresh token expired or invalid — force logout
         localStorage.removeItem('crm_user');
+        localStorage.removeItem('crm_accessToken');
         localStorage.removeItem('token');
+        localStorage.removeItem('crm_refreshToken');
         localStorage.removeItem('refreshToken');
         setUser(null);
-    window.location.href = CENTRAL_LOGIN_URL;
+       //  router.push("/login")
+        // window.location.href = 'https://www.itsoftlab360.com/login';
       } finally {
         setAuthReady(true);
       }
     };
-
+ 
     initialize();
   }, []);
-
+ 
   const handleAuthSubmit = async (e: React.FormEvent, onSuccess?: () => void) => {
     e.preventDefault();
     if (!toastCtx) return;
-
+ 
     if (authMode === 'login') {
       try {
         const res = await authService.login({ email: authForm.email, password: authForm.password });
@@ -118,13 +133,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
   };
-
-
-
-   const handleLogout = async () => {
+ 
+ 
+ 
+     const handleLogout = async () => {
     setUser(null);
     localStorage.removeItem('crm_user');
+    localStorage.removeItem('crm_accessToken');
     localStorage.removeItem('token');
+    localStorage.removeItem('crm_refreshToken');
     localStorage.removeItem('refreshToken');
     setAuthForm(DEFAULT_AUTH_FORM);
     try {
@@ -135,12 +152,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (toastCtx) {
       toastCtx.addToast('info', 'Logged out successfully');
     }
-   window.location.href = CENTRAL_LOGIN_URL;
+    //router.push("/login")
+    // window.location.href = 'https://www.itsoftlab360.com/login';
   };
   const selectQuickAccount = (email: string) => {
     setAuthForm(prev => ({ ...prev, email, password: 'password' }));
   };
-
+ 
   return (
     <AuthContext.Provider value={{
       mounted,

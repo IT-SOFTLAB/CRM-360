@@ -75,19 +75,21 @@ export const authService = {
     }
   },
 
+forgotPassword: async (email: string) => {
+  try {
+    const res = await api.post("/auth/forgot-password", {
+      email: email.trim().toLowerCase(),
+    });
 
-  forgotPassword: async (email: string) => {
-    try {
-      const res = await api.post("/auth/forgot-password", {
-        email,
-      });
-      return res.data;
-    } catch (err) {
-      console.error("API error sending OTP", err);
-      throw err;
-    }
-  },
+    return res.data;
+  } catch (err: any) {
+    const message =
+      err.response?.data?.message ||
+      "Unable to send OTP. Please try again.";
 
+    throw new Error(message);
+  }
+},
   verifyOtp: async (email: string, otp: string) => {
     try {
       const res = await api.post("/auth/verify-otp", {
