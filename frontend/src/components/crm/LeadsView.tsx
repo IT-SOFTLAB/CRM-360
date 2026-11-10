@@ -82,6 +82,10 @@ export default function LeadsView({
   };
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [showLeadDrawer, setShowLeadDrawer] = useState(false);
+  const [editErrors, setEditErrors] = useState({
+  phone: "",
+  linkedinId: ""
+});
   const [convertLeadId, setConvertLeadId] = useState<string | null>(null);
   const [convertForm, setConvertForm] = useState({
     dealValue: '15000'
@@ -110,21 +114,41 @@ export default function LeadsView({
       }));
     }
   }, [user]);
-  const [errors, setErrors] = useState({
-    contactName: "",
-    company: "",
-    email: "",
-    phone: "",
-  });
+const [errors, setErrors] = useState({
+  contactName: "",
+  company: "",
+  email: "",
+  phone: "",
+  linkedinId: "",
+});
+
+const validateLinkedIn = (value: string) => {
+  if (!value.trim()) return true; // LinkedIn is optional
+
+  try {
+    const input = value.trim();
+    const url = new URL(
+      input.startsWith("http") ? input : `https://${input}`
+    );
+
+    return (
+      ["linkedin.com", "www.linkedin.com"].includes(url.hostname) &&
+      /^\/in\/[a-zA-Z0-9_%\-]+\/?$/.test(url.pathname)
+    );
+  } catch {
+    return false;
+  }
+};
 
   const validateLeadForm = () => {
 
-    const newErrors = {
-      contactName: "",
-      company: "",
-      email: "",
-      phone: "",
-    };
+   const newErrors = {
+  contactName: "",
+  company: "",
+  email: "",
+  phone: "",
+  linkedinId: "",
+};
 
     let valid = true;
 
@@ -149,6 +173,11 @@ export default function LeadsView({
       valid = false;
     }
 
+    // LinkedIn
+if (!validateLinkedIn(leadForm.linkedinId)) {
+  newErrors.linkedinId = "Enter a valid personal LinkedIn profile URL";
+  valid = false;
+}
     setErrors(newErrors);
 
     return valid;
@@ -254,7 +283,14 @@ export default function LeadsView({
             {filteredLeads.map(ld => (
               <tr
                 key={ld.id}
-                onClick={() => { setSelectedLead(ld); setShowLeadDrawer(true); }}
+             onClick={() => {
+  setSelectedLead(ld);
+  setEditErrors({
+    phone: "",
+    linkedinId: ""
+  });
+  setShowLeadDrawer(true);
+}}
                 className="hover:bg-slate-50 transition cursor-pointer text-txt-primary"
               >
                 {isAdmin && (
@@ -302,10 +338,14 @@ export default function LeadsView({
 
                   {/* Edit Button */}
                   <button
-                    onClick={() => {
-                      setSelectedLead(ld);
-                      setShowLeadDrawer(true);
-                    }}
+                  onClick={() => {
+  setSelectedLead(ld);
+  setEditErrors({
+    phone: "",
+    linkedinId: ""
+  });
+  setShowLeadDrawer(true);
+}}
                     className="text-blue-500 hover:text-blue-700 p-1 transition cursor-pointer"
                     title="Edit Lead"
                   >
@@ -451,31 +491,57 @@ export default function LeadsView({
                   </div>
                   <div>
                     <p className="text-slate-400 font-semibold uppercase text-[10px]">Phone</p>
-                    <input
-                      type="text"
-                      value={selectedLead.phone || ''}
-                      onChange={(e) =>
-                        setSelectedLead({
-                          ...selectedLead,
-                          phone: e.target.value
-                        })
-                      }
-                      className="w-full border rounded-lg px-3 py-2"
-                    />
+                   <input
+  type="text"
+  inputMode="numeric"
+  maxLength={10}
+  placeholder="Enter 10-digit mobile number"
+  value={selectedLead.phone || ''}
+  onChange={e => {
+    setSelectedLead({
+      ...selectedLead,
+      phone: e.target.value.replace(/\D/g, "").slice(0, 10)
+    });
+
+    setEditErrors(prev => ({
+      ...prev,
+      phone: ""
+    }));
+  }}
+  className="w-full border rounded-lg px-3 py-2"
+/>
+
+{editErrors.phone && (
+  <p className="text-red-500 text-xs mt-1">
+    {editErrors.phone}
+  </p>
+)}
                   </div>
                   <div>
                     <p className="text-slate-400 font-semibold uppercase text-[10px]">LinkedIn ID</p>
-                    <input
-                      type="text"
-                      value={selectedLead.linkedinId || ''}
-                      onChange={(e) =>
-                        setSelectedLead({
-                          ...selectedLead,
-                          linkedinId: e.target.value
-                        })
-                      }
-                      className="w-full border rounded-lg px-3 py-2"
-                    />
+                   <input
+  type="text"
+  placeholder="https://www.linkedin.com/in/username"
+  value={selectedLead.linkedinId || ''}
+  onChange={e => {
+    setSelectedLead({
+      ...selectedLead,
+      linkedinId: e.target.value
+    });
+
+    setEditErrors(prev => ({
+      ...prev,
+      linkedinId: ""
+    }));
+  }}
+  className="w-full border rounded-lg px-3 py-2"
+/>
+
+{editErrors.linkedinId && (
+  <p className="text-red-500 text-xs mt-1">
+    {editErrors.linkedinId}
+  </p>
+)}
                   </div>
                   <div>
                     <p className="text-slate-400 font-semibold uppercase text-[10px] mb-1">Assigned Representative</p>
@@ -556,15 +622,44 @@ export default function LeadsView({
 
               </div>
               <div className="border-t border-border-crm pt-4 flex gap-2 shrink-0">
-                <button
-                  onClick={() => {
-                    onUpdateLead(selectedLead.id, selectedLead);
-                    setShowLeadDrawer(false);
-                  }}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl cursor-pointer font-semibold"
-                >
-                  Save Changes
-                </button>
+              <button
+  onClick={() => {
+    const newErrors = {
+      phone: "",
+      linkedinId: ""
+    };
+
+    let isValid = true;
+
+    // Validate phone number
+    if (
+      selectedLead.phone &&
+      !/^[6-9]\d{9}$/.test(selectedLead.phone.trim())
+    ) {
+      newErrors.phone = "Enter a valid 10-digit mobile number";
+      isValid = false;
+    }
+
+    // Validate LinkedIn profile
+    if (!validateLinkedIn(selectedLead.linkedinId || "")) {
+      newErrors.linkedinId =
+        "Enter a valid personal LinkedIn profile URL";
+      isValid = false;
+    }
+
+    setEditErrors(newErrors);
+
+    // Stop saving if validation fails
+    if (!isValid) return;
+
+    // Save only when all validations pass
+    onUpdateLead(selectedLead.id, selectedLead);
+    setShowLeadDrawer(false);
+  }}
+  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl cursor-pointer font-semibold"
+>
+  Save Changes
+</button>
               </div>
             </div>
           </div>
@@ -631,12 +726,21 @@ export default function LeadsView({
                 </div>
                 <div>
                   <label className="block text-slate-400 font-semibold mb-1">Phone</label>
-                  <input
-                    type="text"
-                    className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary bg-white"
-                    value={leadForm.phone}
-                    onChange={e => setLeadForm({ ...leadForm, phone: e.target.value })}
-                  />
+                <input
+  type="text"
+  inputMode="numeric"
+  maxLength={10}
+  placeholder="Enter 10-digit mobile number"
+  className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary bg-white"
+  value={leadForm.phone}
+  onChange={e => {
+    setLeadForm({
+      ...leadForm,
+      phone: e.target.value.replace(/\D/g, "").slice(0, 10)
+    });
+    setErrors(prev => ({ ...prev, phone: "" }));
+  }}
+/>
                   {errors.phone && (
                     <p className="text-red-500 text-xs mt-1">
                       {errors.phone}
@@ -676,15 +780,31 @@ export default function LeadsView({
                       onChange={e => setLeadForm({ ...leadForm, dealValue: e.target.value })}
                     />
                   </div>
-                  <div>
-                    <label className="block text-slate-400 font-semibold mb-1">LinkedIn ID</label>
-                    <input
-                      type="text"
-                      className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary bg-white"
-                      value={leadForm.linkedinId || ''}
-                      onChange={e => setLeadForm({ ...leadForm, linkedinId: e.target.value })}
-                    />
-                  </div>
+                 <div>
+  <label className="block text-slate-400 font-semibold mb-1">
+    LinkedIn Profile URL
+  </label>
+
+  <input
+    type="text"
+    placeholder="https://www.linkedin.com/in/username"
+    className="w-full border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-txt-primary bg-white"
+    value={leadForm.linkedinId || ''}
+    onChange={e => {
+      setLeadForm({
+        ...leadForm,
+        linkedinId: e.target.value
+      });
+      setErrors(prev => ({ ...prev, linkedinId: "" }));
+    }}
+  />
+
+  {errors.linkedinId && (
+    <p className="text-red-500 text-xs mt-1">
+      {errors.linkedinId}
+    </p>
+  )}
+</div>
                 <div className="col-span-2">
                   <label className="block text-slate-400 font-semibold mb-1">
                     Assigned Sales Executive

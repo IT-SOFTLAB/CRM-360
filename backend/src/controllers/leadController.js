@@ -1,7 +1,10 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { getCache, setCache, deletePatternCache } = require('../config/redisCache');
-
+const {
+  validatePhone,
+  validateLinkedIn
+} = require('../utils/contactValidation');
 const invalidateLeadCache = async (organizationId) => {
   if (!organizationId) return;
   await deletePatternCache(`crm:leads:${organizationId}:*`);
@@ -15,6 +18,21 @@ const createLead = async (req, res) => {
     const now = new Date();
     const user = req.user;
 
+        // Validate phone number if provided
+    if (req.body.phone && !validatePhone(req.body.phone)) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number must be a valid 10-digit Indian mobile number."
+      });
+    }
+
+    // Validate LinkedIn profile URL if provided
+    if (req.body.linkedinId && !validateLinkedIn(req.body.linkedinId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid LinkedIn profile URL."
+      });
+    }
     // Fallback to creator user if assignee is not explicitly specified in req.body
     const assignedUserId = req.body.assignedUserId || user.id;
     const assignedUser = req.body.assignedUser || user.name;
@@ -204,6 +222,30 @@ const updateLead = async (req, res) => {
   try {
     const { id } = req.params;
 
+    // Validate phone only when it is included in the update request
+    if (
+      req.body.phone !== undefined &&
+      req.body.phone !== null &&
+      req.body.phone !== "" &&
+      !validatePhone(req.body.phone)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number must be a valid 10-digit Indian mobile number."
+      });
+    }
+
+    // Validate LinkedIn ID only when it is included
+    if (
+      req.body.linkedinId &&
+      !validateLinkedIn(req.body.linkedinId)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid LinkedIn profile URL."
+      });
+    }
+
     // Get current lead to check if assignee changed
     const currentLead = await prisma.lead.findFirst({
       where: { id, organizationId: req.organizationId }
@@ -314,6 +356,7 @@ const updateLead = async (req, res) => {
               company: lead.company,
               email: lead.email,
               phone: lead.phone,
+              linkedinId: lead.linkedinId,
               dealValue: lead.dealValue || 0,
               stage: lead.status || 'New',
               assignedSalesperson: lead.assignedUser,
@@ -592,6 +635,21 @@ const importLeads = async (req, res) => {
           })()
         };
 
+// Validate imported phone number
+if (leadData.phone && !validatePhone(leadData.phone)) {
+  invalidSkipped++;
+  continue;
+}
+
+// Validate imported LinkedIn profile
+if (
+  leadData.linkedinId &&
+  !validateLinkedIn(leadData.linkedinId)
+) {
+  invalidSkipped++;
+  continue;
+}
+
         // 3. Check duplicate against existing DB records
         // and previously processed rows in this upload
         const leadKey = generateLeadKey(leadData);
@@ -731,6 +789,7 @@ const bulkAssignLeads = async (req, res) => {
         company: true,
         email: true,
         phone: true,
+        linkedinId: true,
         status: true,
         dealValue: true,
         createdAt: true
@@ -779,6 +838,7 @@ const bulkAssignLeads = async (req, res) => {
             company: l.company,
             email: l.email,
             phone: l.phone,
+            linkedinId: l.linkedinId,
             dealValue: l.dealValue || 0,
             stage: l.status || 'New',
             assignedSalesperson: assignedUser,

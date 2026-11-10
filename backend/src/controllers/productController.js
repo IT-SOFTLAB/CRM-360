@@ -21,14 +21,18 @@ const createProduct = async (req, res) => {
         message: "Product name and price are required"
       });
     }
+const numericPrice = Number(price);
 
-    if (Number(price) < 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Price cannot be negative"
-      });
-    }
-
+if (
+  price === "" ||
+  !Number.isFinite(numericPrice) ||
+  numericPrice < 0
+) {
+  return res.status(400).json({
+    success: false,
+    message: "Please enter a valid price. Price cannot be negative."
+  });
+}
     const existingProduct = await prisma.product.findFirst({
       where: {
         name: name.trim(),
@@ -46,7 +50,7 @@ const createProduct = async (req, res) => {
     const product = await prisma.product.create({
       data: {
         name: name.trim(),
-        price: Number(price),
+       price: numericPrice,
         organizationId
       }
     });
@@ -166,6 +170,7 @@ const getProduct = async (req, res) => {
 };
 
 
+
 // UPDATE PRODUCT
 const updateProduct = async (req, res) => {
   try {
@@ -180,6 +185,7 @@ const updateProduct = async (req, res) => {
     const { name, price } = req.body;
     const organizationId = req.user.organizationId;
 
+    // Check whether product exists in this organization
     const existingProduct = await prisma.product.findFirst({
       where: {
         id,
@@ -194,24 +200,37 @@ const updateProduct = async (req, res) => {
       });
     }
 
-    if (!name || price === undefined) {
+    // Validate product name and price
+    if (!name?.trim() || price === undefined || price === null || price === "") {
       return res.status(400).json({
         success: false,
         message: "Product name and price are required"
       });
     }
 
+    // Convert price into a number
+    const numericPrice = Number(price);
+
+    // Validate decimal or whole-number price
+    if (!Number.isFinite(numericPrice) || numericPrice < 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid price. Price cannot be negative."
+      });
+    }
+
+    // Update product
     const product = await prisma.product.update({
       where: {
         id
       },
       data: {
         name: name.trim(),
-        price: Number(price)
+        price: numericPrice
       }
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Product updated successfully",
       product
@@ -220,7 +239,7 @@ const updateProduct = async (req, res) => {
   } catch (error) {
     console.error("Update Product Error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to update product"
     });

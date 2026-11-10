@@ -564,12 +564,16 @@ useEffect(() => {
       return;
     }
 
-    const price = Number(productPrice);
+const price = Number(productPrice);
 
-    if (!Number.isFinite(price) || price < 0) {
-      addToast("error", "Enter a valid price");
-      return;
-    }
+if (
+  productPrice.trim() === "" ||
+  !Number.isFinite(price) ||
+  price < 0
+) {
+  addToast("error", "Please enter a valid price");
+  return;
+}
 
     try {
       setProductLoading(true);
@@ -619,16 +623,17 @@ useEffect(() => {
     className="min-w-0 w-0 flex-1 border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-xs text-txt-primary focus:outline-none focus:border-blue-500"
   />
 
-  {/* Price */}
-  <input
-    type="number"
-    min="0"
-    placeholder="Price"
-    value={productPrice}
-    onChange={(e) => setProductPrice(e.target.value)}
-    className="w-24 sm:w-28 md:w-32 shrink-0 border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-xs text-txt-primary focus:outline-none focus:border-blue-500"
-  />
-
+{/* Price */}
+<input
+  type="number"
+  min="0"
+  step="any"
+  required
+  placeholder="Price"
+  value={productPrice}
+  onChange={(e) => setProductPrice(e.target.value)}
+  className="w-24 sm:w-28 md:w-32 shrink-0 border border-border-crm bg-bg-main rounded-xl px-3 py-2 text-xs text-txt-primary focus:outline-none focus:border-blue-500"
+/>
   {/* Add / Update Button */}
   <button
     type="submit"

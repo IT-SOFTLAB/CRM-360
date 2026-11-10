@@ -93,13 +93,22 @@ export default function ReferralsView({
     dashboard
 
 }: ReferralsViewProps) {
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSubmitReferral(referralForm);
-  };
+ const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
+
+  const phone = String(referralForm.referredPhone || "").trim();
+
+  if (!/^[6-9]\d{9}$/.test(phone)) {
+    setPhoneError("Enter a valid 10-digit Indian mobile number.");
+    return;
+  }
+
+  setPhoneError("");
+  onSubmitReferral(referralForm);
+};
 
   const [selectedReferral, setSelectedReferral] = useState<any>(null);
-
+const [phoneError, setPhoneError] = useState("");
 const [showStageModal, setShowStageModal] = useState(false);
 
   const wonOpportunities = (opportunities ?? []).filter((o: any) => {
@@ -281,18 +290,29 @@ dashboard?.qualifiedLeads ?? 0
   </label>
 
   <input
-    type="text"
-    className="w-full border border-border-crm rounded-xl px-3 py-2"
-
+  type="tel"
+  inputMode="numeric"
+  maxLength={10}
+  placeholder="Enter 10-digit mobile number"
+  className="w-full border border-border-crm rounded-xl px-3 py-2"
   value={referralForm.referredPhone || ""}
+  onChange={e => {
+    const phone = e.target.value.replace(/\D/g, "").slice(0, 10);
 
-    onChange={e =>
-      setReferralForm({
-        ...referralForm,
-        referredPhone: e.target.value
-      })
-    }
-  />
+    setReferralForm({
+      ...referralForm,
+      referredPhone: phone
+    });
+
+    setPhoneError("");
+  }}
+/>
+
+{phoneError && (
+  <p className="text-red-500 text-[11px] mt-1">
+    {phoneError}
+  </p>
+)}
 </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>

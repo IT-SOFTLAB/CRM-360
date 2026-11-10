@@ -3,7 +3,10 @@ const { PrismaClient } = require("@prisma/client");
 
 const prisma = new PrismaClient();
 const { getCache, setCache, deletePatternCache } = require("../config/redisCache")
-
+const {
+  validatePhone,
+  validateLinkedIn
+} = require("../utils/contactValidation");
 
 /*
 GET ALL
@@ -129,6 +132,21 @@ exports.createOpportunity = async (req, res) => {
 
         } = req.body;
 
+// Validate phone number if provided
+if (phone && !validatePhone(phone)) {
+  return res.status(400).json({
+    success: false,
+    message: "Phone number must be a valid 10-digit Indian mobile number."
+  });
+}
+
+// Validate LinkedIn profile if provided
+if (linkedinId && !validateLinkedIn(linkedinId)) {
+  return res.status(400).json({
+    success: false,
+    message: "Please enter a valid LinkedIn profile URL."
+  });
+}
 
         const opportunity = await prisma.opportunity.create({
 
@@ -180,6 +198,29 @@ exports.updateOpportunity = async (req, res) => {
   try {
 
     const { id } = req.params;
+// Validate phone number if included in the update
+if (
+  req.body.phone !== undefined &&
+  req.body.phone !== null &&
+  req.body.phone !== "" &&
+  !validatePhone(req.body.phone)
+) {
+  return res.status(400).json({
+    success: false,
+    message: "Phone number must be a valid 10-digit Indian mobile number."
+  });
+}
+
+// Validate LinkedIn profile if included in the update
+if (
+  req.body.linkedinId &&
+  !validateLinkedIn(req.body.linkedinId)
+) {
+  return res.status(400).json({
+    success: false,
+    message: "Please enter a valid LinkedIn profile URL."
+  });
+}
 
     const oppUpdateData = { ...req.body };
     delete oppUpdateData.category;
@@ -340,6 +381,21 @@ exports.convertLeadToOpportunity = async (req, res) => {
         message: "Lead not found",
       });
     }
+
+    // Validate existing lead contact details before conversion
+if (lead.phone && !validatePhone(lead.phone)) {
+  return res.status(400).json({
+    success: false,
+    message: "Cannot convert lead: phone number must be a valid 10-digit Indian mobile number."
+  });
+}
+
+if (lead.linkedinId && !validateLinkedIn(lead.linkedinId)) {
+  return res.status(400).json({
+    success: false,
+    message: "Cannot convert lead: please correct the LinkedIn profile URL."
+  });
+}
 
     // Check if already converted
     const existing = await prisma.opportunity.findFirst({

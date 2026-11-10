@@ -2,7 +2,7 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 const { generateReferralCode } = require("../utils/referralCode");
-
+const { validatePhone } = require("../utils/contactValidation");
 exports.getDashboard = async (req, res) => {
   try {
     const user = req.user;
@@ -96,6 +96,14 @@ exports.createReferral = async(req,res)=>{
             rewardType,
             rewardValue
         } = req.body;
+
+// Validate referred phone number
+if (!validatePhone(referredPhone)) {
+    return res.status(400).json({
+        success: false,
+        message: "Please enter a valid 10-digit Indian mobile number."
+    });
+}
 
       let firstStage = await prisma.referralPipeline.findFirst({
         where: { organizationId: req.organizationId },
@@ -237,6 +245,17 @@ exports.getReferral = async(req,res)=>{
 exports.updateReferral = async(req,res)=>{
 
     try{
+
+      // Validate phone number when it is included in the update
+if (
+    req.body.referredPhone !== undefined &&
+    !validatePhone(req.body.referredPhone)
+) {
+    return res.status(400).json({
+        success: false,
+        message: "Please enter a valid 10-digit Indian mobile number."
+    });
+}
         const existing = await prisma.referral.findFirst({ where: { id: req.params.id, organizationId: req.organizationId } });
         if (!existing) return res.status(404).json({message: 'Not found'});
 
