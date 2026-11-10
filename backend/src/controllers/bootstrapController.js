@@ -55,7 +55,11 @@ exports.getBootstrapData = async (req, res) => {
     const user = req.user;
     const userRole = (user.role || '').toUpperCase().replace(/[\s_]+/g, '_');
     const orgId = user.organizationId;
-
+console.log("========== BOOTSTRAP PIPELINE DEBUG ==========");
+console.log("User ID:", user.id);
+console.log("User organizationId:", user.organizationId);
+console.log("Bootstrap organizationId:", orgId);
+console.log("==============================================");
     // Trigger activity reminders generation
     await checkAndCreateActivityReminders(user.id, user.name);
 
@@ -268,7 +272,10 @@ exports.getBootstrapData = async (req, res) => {
         orderBy: { order: 'asc' }
       })
     ]);
-
+console.log(
+  "BOOTSTRAP PIPELINE STAGES:",
+  pipelineStagesDb
+);
     let finalOpportunities = opportunities;
 
     // 2.5. Synchronize old leads to pipeline if they don't have opportunities

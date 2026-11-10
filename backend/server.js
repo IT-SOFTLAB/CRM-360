@@ -198,7 +198,7 @@ async function logActivity(db, user, action, module, details, organizationId = '
 
 
 
-orgRouter.get('/pipelines', async (req, res) => {
+orgRouter.get('/:organizationId/pipelines', async (req, res) => {
   try {
     let stages = await prisma.pipelineStage.findMany({
       where: { organizationId: req.organizationId },
@@ -225,26 +225,78 @@ orgRouter.get('/pipelines', async (req, res) => {
   }
 });
 
-orgRouter.post('/pipelines', async (req, res) => {
-  const { name } = req.body;
-  if (!name) return res.status(400).json({ message: 'Pipeline stage name required' });
+
+orgRouter.post('/:organizationId/pipelines', async (req, res) => {
   try {
-    const stages = await prisma.pipelineStage.findMany({ where: { organizationId: req.organizationId } });
-    const maxOrder = stages.reduce((max, p) => p.order > max ? p.order : max, 0);
-    const newStage = await prisma.pipelineStage.create({
-      data: {
-        name,
-        order: maxOrder + 1
+    const organizationId = req.organizationId;
+    const { name } = req.body;
+
+    if (!organizationId) {
+      return res.status(400).json({
+        message: "Organization ID is missing"
+      });
+    }
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({
+        message: "Pipeline stage name required"
+      });
+    }
+
+    const existing = await prisma.pipelineStage.findFirst({
+      where: {
+        organizationId,
+        name: {
+          equals: name.trim(),
+          mode: "insensitive"
+        }
       }
     });
-    logActivity(null, null, 'CREATE_PIPELINE', 'Settings', `Created sales pipeline stage: ${name}`, req.organizationId);
-    res.status(201).json(newStage);
+
+    if (existing) {
+      return res.status(400).json({
+        message: "Pipeline stage already exists"
+      });
+    }
+
+    const stages = await prisma.pipelineStage.findMany({
+      where: { organizationId }
+    });
+
+    const maxOrder = stages.reduce(
+      (max, stage) => Math.max(max, stage.order),
+      0
+    );
+
+    const newStage = await prisma.pipelineStage.create({
+      data: {
+        name: name.trim(),
+        order: maxOrder + 1,
+        organizationId
+      }
+    });
+
+    await logActivity(
+      null,
+      null,
+      'CREATE_PIPELINE',
+      'Settings',
+      `Created sales pipeline stage: ${name}`,
+      organizationId
+    );
+
+    return res.status(201).json(newStage);
+
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("CREATE PIPELINE ERROR:", err);
+    return res.status(500).json({
+      message: err.message
+    });
   }
 });
 
-orgRouter.put('/pipelines/:id', async (req, res) => {
+
+orgRouter.put('/:organizationId/pipelines/:id', async (req, res) => {
   const { id } = req.params;
   const { name, order } = req.body;
   try {
@@ -263,7 +315,7 @@ orgRouter.put('/pipelines/:id', async (req, res) => {
   }
 });
 
-orgRouter.post('/pipelines/reorder', async (req, res) => {
+orgRouter.post('/:organizationId/pipelines/reorder', async (req, res) => {
   const { stages } = req.body; // Expect array of { id, order }
   if (!stages || !Array.isArray(stages)) return res.status(400).json({ message: 'Stages array required' });
   try {
@@ -285,46 +337,98 @@ orgRouter.post('/pipelines/reorder', async (req, res) => {
   }
 });
 
-orgRouter.delete('/pipelines/:id', async (req, res) => {
-  const { id } = req.params;
-  try {
-    const stage = await prisma.pipelineStage.findUnique({
-      where: { id }
-    });
-    if (!stage) return res.status(404).json({ message: 'Pipeline stage not found' });
 
-    const mandatory = ['new', 'won', 'lost'];
-    if (mandatory.includes((stage.name || '').trim().toLowerCase())) {
-      return res.status(400).json({ message: `System stage "${stage.name}" is mandatory and cannot be deleted.` });
+orgRouter.delete('/:organizationId/pipelines/:id', async (req, res) => {
+  try {
+    const organizationId = req.organizationId;
+    const { id } = req.params;
+
+    if (!organizationId) {
+      return res.status(400).json({
+        message: "Organization ID is missing"
+      });
     }
 
-    await prisma.pipelineStage.delete({
-      where: { id }
-    });
-
-    const allStages = await prisma.pipelineStage.findMany({
-      orderBy: { order: 'asc' }
-    });
-
-    // Re-link opportunities in this stage to the first stage if they exist
-    const fallbackStage = allStages[0];
-    const fallbackId = fallbackStage ? fallbackStage.id : '';
-    const fallbackName = fallbackStage ? fallbackStage.name : 'New';
-
-    await prisma.opportunity.updateMany({
-      where: { stageId: id },
-      data: {
-        stageId: fallbackId,
-        stage: fallbackName
+    const stage = await prisma.pipelineStage.findFirst({
+      where: {
+        id,
+        organizationId
       }
     });
 
-    logActivity(null, null, 'DELETE_PIPELINE', 'Settings', `Deleted pipeline stage: ${stage.name}`, req.organizationId);
-    res.json({ message: 'Stage deleted', fallbackStageId: fallbackId });
+    if (!stage) {
+      return res.status(404).json({
+        message: "Pipeline stage not found"
+      });
+    }
+
+    const mandatory = ['new', 'won', 'lost'];
+
+    if (mandatory.includes(stage.name.trim().toLowerCase())) {
+      return res.status(400).json({
+        message: `System stage "${stage.name}" is mandatory and cannot be deleted.`
+      });
+    }
+
+    const count = await prisma.pipelineStage.count({
+      where: { organizationId }
+    });
+
+    if (count <= 1) {
+      return res.status(400).json({
+        message: "At least one pipeline stage is required."
+      });
+    }
+
+    const allStages = await prisma.pipelineStage.findMany({
+      where: { organizationId },
+      orderBy: { order: 'asc' }
+    });
+
+    const fallbackStage = allStages.find(
+      item => item.id !== id
+    );
+
+    await prisma.$transaction([
+      prisma.opportunity.updateMany({
+        where: {
+          organizationId,
+          stageId: id
+        },
+        data: {
+          stageId: fallbackStage.id,
+          stage: fallbackStage.name
+        }
+      }),
+
+      prisma.pipelineStage.delete({
+        where: { id }
+      })
+    ]);
+
+    await logActivity(
+      null,
+      null,
+      'DELETE_PIPELINE',
+      'Settings',
+      `Deleted pipeline stage: ${stage.name}`,
+      organizationId
+    );
+
+    return res.json({
+      message: "Stage deleted successfully",
+      fallbackStageId: fallbackStage.id
+    });
+
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("DELETE PIPELINE ERROR:", err);
+
+    return res.status(500).json({
+      message: err.message
+    });
   }
 });
+
 
 // Referral Pipelines Config (CRUD)
 app.get('/api/referral-pipelines', async (req, res) => {

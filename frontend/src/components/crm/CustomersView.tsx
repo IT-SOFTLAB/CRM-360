@@ -19,7 +19,9 @@ const CustomerView = () => {
     const [activeFilter, setActiveFilter] = useState<'all' | 'my' | 'team'>('all');
     const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
     const [showCustomerDrawer, setShowCustomerDrawer] = useState(false);
-
+const [customerErrors, setCustomerErrors] = useState({
+  phone: ""
+});
     const salespersonsList = useMemo(() => {
         return settingsUsers.filter((u: any) => {
             const roleStr = (u.role || '').toLowerCase();
@@ -351,19 +353,36 @@ const CustomerView = () => {
                                                 }
                                             />
                                         </div>
-                                        <div>
-                                            <p className="text-slate-400 font-semibold uppercase text-[10px]">Phone</p>
-                                            <input
-                                                className="w-full border rounded-lg px-3 py-2"
-                                                value={selectedCustomer.phone}
-                                                onChange={(e) =>
-                                                    setSelectedCustomer({
-                                                        ...selectedCustomer,
-                                                        phone: e.target.value
-                                                    })
-                                                }
-                                            />
-                                        </div>
+                                      <div>
+  <p className="text-slate-400 font-semibold uppercase text-[10px]">
+    Phone
+  </p>
+
+  <input
+    type="tel"
+    inputMode="numeric"
+    maxLength={10}
+    placeholder="Enter 10-digit mobile number"
+    className="w-full border rounded-lg px-3 py-2"
+    value={selectedCustomer.phone || ""}
+    onChange={(e) => {
+      const value = e.target.value.replace(/\D/g, "").slice(0, 10);
+
+      setSelectedCustomer({
+        ...selectedCustomer,
+        phone: value
+      });
+
+      setCustomerErrors({ phone: "" });
+    }}
+  />
+
+  {customerErrors.phone && (
+    <p className="text-red-500 text-xs mt-1">
+      {customerErrors.phone}
+    </p>
+  )}
+</div>
                                         <div>
                                             <p className="text-slate-400 font-semibold uppercase text-[10px] mb-1">Assigned Salesperson</p>
                                             {userRole !== 'USER' ? (
@@ -392,6 +411,17 @@ const CustomerView = () => {
                                         <div className="border-t border-border-crm pt-4">
                                             <button
                                                 onClick={async () => {
+
+                                                    const phone = String(selectedCustomer.phone || "").trim();
+
+if (phone && !/^[6-9]\d{9}$/.test(phone)) {
+  setCustomerErrors({
+    phone: "Enter a valid 10-digit Indian mobile number."
+  });
+  return;
+}
+
+setCustomerErrors({ phone: "" });
                                                     try {
                                                         await customerService.updateCustomer(selectedCustomer.id, selectedCustomer);
                                                         setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? selectedCustomer : c));

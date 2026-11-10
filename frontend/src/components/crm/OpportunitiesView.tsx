@@ -237,33 +237,9 @@ export default function OpportunitiesView({
   const [draggedOppId, setDraggedOppId] = useState<string | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const [selectedOpp, setSelectedOpp] = useState<any | null>(null);
-  const [opportunityErrors, setOpportunityErrors] = useState({
-  phone: "",
-  linkedinId: ""
-});
   const [showQuotationForm, setShowQuotationForm] = useState(false);
   const [quotationOpportunity, setQuotationOpportunity] = useState<any>(null);
-const validateOpportunityPhone = (phone: string) => {
-  return /^[6-9]\d{9}$/.test(phone);
-};
 
-const validateOpportunityLinkedIn = (value: string) => {
-  if (!value.trim()) return true;
-
-  try {
-    const input = value.trim();
-    const url = new URL(
-      input.startsWith("http") ? input : `https://${input}`
-    );
-
-    return (
-      ["linkedin.com", "www.linkedin.com"].includes(url.hostname) &&
-      /^\/in\/[a-zA-Z0-9_%\-]+\/?$/.test(url.pathname)
-    );
-  } catch {
-    return false;
-  }
-};
   const [oppDescription, setOppDescription] = useState('');
   const [saveNotesLoading, setSaveNotesLoading] = useState(false);
 
@@ -864,13 +840,7 @@ const handleBulkDelete = async () => {
                       key={opp.id}
                       draggable
                       onDragStart={() => handleDragStart(opp.id)}
-                   onClick={() => {
-  setOpportunityErrors({
-    phone: "",
-    linkedinId: ""
-  });
-  setSelectedOpp(opp);
-}}
+                      onClick={() => setSelectedOpp(opp)}
                       className="group bg-card border border-border-crm rounded-xl p-3 shadow-xs hover:shadow-md hover:border-primary/40 transition-all cursor-pointer text-txt-primary flex flex-col gap-1.5 relative"
                     >
                       {/* Top Line: Title & Hover Delete */}
@@ -1011,13 +981,7 @@ const handleBulkDelete = async () => {
                   return (
                     <tr
                       key={opp.id}
-                   onClick={() => {
-  setOpportunityErrors({
-    phone: "",
-    linkedinId: ""
-  });
-  setSelectedOpp(opp);
-}}
+                      onClick={() => setSelectedOpp(opp)}
                       className="hover:bg-slate-50/50 dark:hover:bg-slate-800/10 transition-colors cursor-pointer text-txt-primary"
                     >
                       <td className="py-3.5 px-4 w-10" onClick={(e) => e.stopPropagation()}>
@@ -1294,105 +1258,45 @@ const handleBulkDelete = async () => {
                     </div>
                     <div className="col-span-2 sm:col-span-1">
                       <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">Phone</p>
-                   <input
-  type="tel"
-  inputMode="numeric"
-  maxLength={10}
-  placeholder="Enter 10-digit mobile number"
-  value={selectedOpp.phone ?? phone}
-  onChange={(e) => {
-    const value = e.target.value.replace(/\D/g, "").slice(0, 10);
-
-    setSelectedOpp({
-      ...selectedOpp,
-      phone: value
-    });
-
-    setOpportunityErrors(prev => ({
-      ...prev,
-      phone: ""
-    }));
-  }}
-  onBlur={async () => {
-    const value = String(selectedOpp.phone ?? phone ?? "").trim();
-
-    if (value && !validateOpportunityPhone(value)) {
-      setOpportunityErrors(prev => ({
-        ...prev,
-        phone: "Enter a valid 10-digit Indian mobile number."
-      }));
-      return;
-    }
-
-    setOpportunityErrors(prev => ({
-      ...prev,
-      phone: ""
-    }));
-
-    if (onUpdateOpportunity && selectedOpp.phone != null) {
-      await onUpdateOpportunity(selectedOpp.id, {
-        phone: value
-      });
-    }
-  }}
-  className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 focus:outline-none"
-/>
-
-{opportunityErrors.phone && (
-  <p className="text-red-500 text-[10px] mt-1">
-    {opportunityErrors.phone}
-  </p>
-)}
+                      <input
+                        type="text"
+                        value={selectedOpp.phone ?? phone}
+                        onChange={(e) =>
+                          setSelectedOpp({
+                            ...selectedOpp,
+                            phone: e.target.value
+                          })
+                        }
+                        onBlur={async () => {
+                          if (onUpdateOpportunity && selectedOpp.phone != null) {
+                            await onUpdateOpportunity(selectedOpp.id, {
+                              phone: selectedOpp.phone
+                            });
+                          }
+                        }}
+                        className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                      />
                     </div>
                     <div className="col-span-2 sm:col-span-1">
                       <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">LinkedIn ID</p>
-                    <input
-  type="text"
-  placeholder="https://linkedin.com/in/username"
-  value={selectedOpp.linkedinId ?? linkedinId}
-  onChange={(e) => {
-    setSelectedOpp({
-      ...selectedOpp,
-      linkedinId: e.target.value
-    });
-
-    setOpportunityErrors(prev => ({
-      ...prev,
-      linkedinId: ""
-    }));
-  }}
-  onBlur={async () => {
-    const value = String(
-      selectedOpp.linkedinId ?? linkedinId ?? ""
-    ).trim();
-
-    if (!validateOpportunityLinkedIn(value)) {
-      setOpportunityErrors(prev => ({
-        ...prev,
-        linkedinId: "Enter a valid personal LinkedIn profile URL."
-      }));
-      return;
-    }
-
-    setOpportunityErrors(prev => ({
-      ...prev,
-      linkedinId: ""
-    }));
-
-    if (onUpdateOpportunity && selectedOpp.linkedinId != null) {
-      await onUpdateOpportunity(selectedOpp.id, {
-        linkedinId: value
-      });
-    }
-  }}
-  className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 focus:outline-none"
-/>
-
-{opportunityErrors.linkedinId && (
-  <p className="text-red-500 text-[10px] mt-1">
-    {opportunityErrors.linkedinId}
-  </p>
-)}
+                      <input
+                        type="text"
+                        value={selectedOpp.linkedinId ?? linkedinId}
+                        onChange={(e) =>
+                          setSelectedOpp({
+                            ...selectedOpp,
+                            linkedinId: e.target.value
+                          })
+                        }
+                        onBlur={async () => {
+                          if (onUpdateOpportunity && selectedOpp.linkedinId != null) {
+                            await onUpdateOpportunity(selectedOpp.id, {
+                              linkedinId: selectedOpp.linkedinId
+                            });
+                          }
+                        }}
+                        className="w-full border border-border-crm bg-bg-main dark:bg-slate-900 rounded-lg px-2.5 py-1.5 focus:outline-none"
+                      />
                     </div>
                     <div>
                       <p className="text-slate-400 font-semibold uppercase text-[9px] mb-1">Assigned Rep</p>
