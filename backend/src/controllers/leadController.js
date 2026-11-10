@@ -13,6 +13,60 @@ const invalidateLeadCache = async (organizationId) => {
   await deletePatternCache(`crm:dashboard:${organizationId}:*`);
 };
 
+
+// ==========================================
+// CREATE LEAD ASSIGNMENT NOTIFICATION
+// ==========================================
+
+const createLeadAssignmentNotification = async (
+  assignedUserId,
+  organizationId,
+  title,
+  message
+) => {
+  try {
+    if (!assignedUserId || !organizationId) return;
+
+    // Verify that the assigned employee belongs to this organization
+    const employee = await prisma.user.findFirst({
+      where: {
+        id: assignedUserId,
+        organizationId
+      },
+      select: {
+        id: true
+      }
+    });
+
+    if (!employee) {
+      console.warn(
+        "Lead notification skipped: Employee not found in organization."
+      );
+      return;
+    }
+
+    await prisma.notification.create({
+      data: {
+        userId: employee.id,
+        title,
+        message,
+        read: false
+      }
+    });
+
+    console.log(
+      `Lead assignment notification created for user: ${employee.id}`
+    );
+
+  } catch (error) {
+    console.error(
+      "Lead assignment notification error:",
+      error
+    );
+  }
+};
+
+
 const createLead = async (req, res) => {
   try {
     const now = new Date();
@@ -85,6 +139,19 @@ const createLead = async (req, res) => {
         console.error("Error sending assignment email in createLead:", err);
       });
     }
+
+// Create in-app notification for assigned employee
+if (assignedUserId && assignedUserId !== user.id) {
+  await createLeadAssignmentNotification(
+    assignedUserId,
+    req.organizationId,
+    "New Lead Assigned",
+    `You have been assigned a new lead: ${lead.contactName}${
+      lead.company ? ` (${lead.company})` : ""
+    }.`
+  );
+}
+
    await invalidateLeadCache(req.organizationId);
   res.status(201).json(lead);
     
@@ -256,18 +323,18 @@ const updateLead = async (req, res) => {
     let finalAssignedUserId = req.body.assignedUserId;
 
     // Resolve user if either assignedUserId or assignedUser is missing
-    if (finalAssignedUserId && !finalAssignedUser) {
-      const u = await prisma.user.findUnique({ where: { id: finalAssignedUserId } });
-      if (u) finalAssignedUser = u.name;
-    } else if (finalAssignedUser && !finalAssignedUserId) {
-      const u = await prisma.user.findFirst({
-        where: {
-          name: { equals: finalAssignedUser, mode: 'insensitive' },
-          organizationId: req.organizationId
-        }
-      });
-      if (u) finalAssignedUserId = u.id;
+   if (finalAssignedUserId && !finalAssignedUser) {
+  const u = await prisma.user.findFirst({
+    where: {
+      id: finalAssignedUserId,
+      organizationId: req.organizationId
     }
+  });
+
+  if (u) {
+    finalAssignedUser = u.name;
+  }
+}
 
     const lead = await prisma.lead.update({
       where: {
@@ -304,6 +371,18 @@ const updateLead = async (req, res) => {
         console.error("Error sending single lead assign email:", err);
       });
     }
+
+    // Create notification only when assignment changes
+if (assignedUserIdChanged) {
+  await createLeadAssignmentNotification(
+    lead.assignedUserId,
+    req.organizationId,
+    "New Lead Assigned",
+    `A lead has been assigned to you: ${lead.contactName}${
+      lead.company ? ` (${lead.company})` : ""
+    }.`
+  );
+}
 
     // Also update associated opportunity and customer if key fields or salesperson change
     const oppUpdateData = {};
@@ -764,10 +843,23 @@ const bulkAssignLeads = async (req, res) => {
     }
 
     // Resolve user if missing assignedUser or assignedUserId
-    if (assignedUserId && !assignedUser) {
-      const u = await prisma.user.findUnique({ where: { id: assignedUserId } });
-      if (u) assignedUser = u.name;
-    } else if (assignedUser && !assignedUserId) {
+  if (assignedUserId) {
+  const u = await prisma.user.findFirst({
+    where: {
+      id: assignedUserId,
+      organizationId: req.organizationId
+    }
+  });
+
+  if (!u) {
+    return res.status(404).json({
+      success: false,
+      message: "Assigned employee not found in this organization."
+    });
+  }
+
+  assignedUser = u.name;
+}else if (assignedUser && !assignedUserId) {
       const u = await prisma.user.findFirst({
         where: {
           name: { equals: assignedUser, mode: 'insensitive' },
@@ -792,7 +884,8 @@ const bulkAssignLeads = async (req, res) => {
         linkedinId: true,
         status: true,
         dealValue: true,
-        createdAt: true
+        createdAt: true,
+        assignedUserId: true
       }
     });
 
@@ -873,6 +966,29 @@ const bulkAssignLeads = async (req, res) => {
       });
     }
    
+
+// ==========================================
+// CREATE BULK LEAD ASSIGNMENT NOTIFICATION
+// ==========================================
+
+const newlyAssignedLeads = leadsForEmail.filter(
+  lead => lead.assignedUserId !== assignedUserId
+);
+
+if (
+  assignedUserId &&
+  assignedUserId !== req.user.id &&
+  newlyAssignedLeads.length > 0
+) {
+  await createLeadAssignmentNotification(
+    assignedUserId,
+    req.organizationId,
+    "New Leads Assigned",
+    `You have been assigned ${newlyAssignedLeads.length} new lead(s).`
+  );
+}
+
+
     await invalidateLeadCache(req.organizationId);
     res.status(200).json({ success: true, message: `Successfully assigned ${ids.length} leads`, updatedCount: updated.count });
   } catch (error) {

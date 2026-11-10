@@ -1,17 +1,26 @@
+
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-
-const checkAndCreateActivityReminders = async (userId, userName, organizationId) => {
+const checkAndCreateActivityReminders = async (
+  userId,
+  userName,
+  organizationId
+) => {
   try {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0]; // "YYYY-MM-DD"
 
-    const tomorrowStart = new Date(tomorrowStr + "T00:00:00.000Z");
-    const tomorrowEnd = new Date(tomorrowStr + "T23:59:59.999Z");
+    const tomorrowStr = tomorrow.toISOString().split("T")[0];
 
-    // Find all undone activities for this user scheduled for tomorrow
+    const tomorrowStart = new Date(
+      tomorrowStr + "T00:00:00.000Z"
+    );
+
+    const tomorrowEnd = new Date(
+      tomorrowStr + "T23:59:59.999Z"
+    );
+
     const upcomingActivities = await prisma.activity.findMany({
       where: {
         salesperson: userName,
@@ -25,7 +34,6 @@ const checkAndCreateActivityReminders = async (userId, userName, organizationId)
     });
 
     for (const act of upcomingActivities) {
-      // Check if a reminder for this activity is already created
       const existing = await prisma.notification.findFirst({
         where: {
           userId,
@@ -48,62 +56,109 @@ const checkAndCreateActivityReminders = async (userId, userName, organizationId)
       }
     }
   } catch (err) {
-    console.error("Error in checkAndCreateActivityReminders:", err);
+    console.error(
+      "Error in checkAndCreateActivityReminders:",
+      err
+    );
   }
 };
+
+// ==========================================
+// GET NOTIFICATIONS
+// ==========================================
 
 exports.getNotifications = async (req, res) => {
   try {
     const userId = req.user.id;
     const userName = req.user.name;
 
-    // Trigger activity reminders generation
-    await checkAndCreateActivityReminders(userId, userName, req.organizationId);
+    await checkAndCreateActivityReminders(
+      userId,
+      userName,
+      req.organizationId
+    );
 
     const notifications = await prisma.notification.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" }
+      where: {
+        userId,
+        user: {
+          organizationId: req.organizationId
+        }
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
     });
 
     res.json(notifications);
+
   } catch (err) {
     console.error("Error fetching notifications:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
+// ==========================================
+// MARK ONE AS READ
+// ==========================================
+
 exports.markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const notification = await prisma.notification.updateMany({
-      where: { id, userId },
-      data: { read: true }
+    await prisma.notification.updateMany({
+      where: {
+        id,
+        userId,
+        user: {
+          organizationId: req.organizationId
+        }
+      },
+      data: {
+        read: true
+      }
     });
 
     res.json({ success: true });
+
   } catch (err) {
     console.error("Error marking notification as read:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
+// ==========================================
+// MARK ALL AS READ
+// ==========================================
+
 exports.markAllAsRead = async (req, res) => {
   try {
     const userId = req.user.id;
 
     await prisma.notification.updateMany({
-      where: { userId },
-      data: { read: true }
+      where: {
+        userId,
+        user: {
+          organizationId: req.organizationId
+        }
+      },
+      data: {
+        read: true
+      }
     });
 
     res.json({ success: true });
+
   } catch (err) {
     console.error("Error marking all notifications as read:", err);
     res.status(500).json({ message: err.message });
   }
 };
+
+// ==========================================
+// DELETE NOTIFICATION
+// ==========================================
 
 exports.deleteNotification = async (req, res) => {
   try {
@@ -111,13 +166,19 @@ exports.deleteNotification = async (req, res) => {
     const userId = req.user.id;
 
     await prisma.notification.deleteMany({
-      where: { id, userId }
+      where: {
+        id,
+        userId,
+        user: {
+          organizationId: req.organizationId
+        }
+      }
     });
 
     res.json({ success: true });
+
   } catch (err) {
     console.error("Error deleting notification:", err);
     res.status(500).json({ message: err.message });
   }
 };
-

@@ -170,6 +170,71 @@ Retention management
    -> retention.approve
    -> retention.reject
 
+
+--------------------------------------------------
+GENERAL CONVERSATION HANDLING
+--------------------------------------------------
+
+IMPORTANT: Not every user message requires a CRM tool.
+
+If the user sends a message that does not require
+a CRM operation, return an EMPTY steps array.
+
+Examples:
+
+User: Hi
+Output:
+{"steps":[]}
+
+User: Hello
+Output:
+{"steps":[]}
+
+User: Good morning
+Output:
+{"steps":[]}
+
+User: How are you?
+Output:
+{"steps":[]}
+
+User: Thank you
+Output:
+{"steps":[]}
+
+User: What can you do?
+Output:
+{"steps":[]}
+
+User: Tell me about CRM-360
+Output:
+{"steps":[]}
+
+User: What is CRM?
+Output:
+{"steps":[]}
+
+User: How can I improve my sales?
+Output:
+{"steps":[]}
+
+IMPORTANT RULES:
+
+1. Do not create fake CRM tool calls for greetings.
+2. Do not force general questions into CRM actions.
+3. Do not return an error for normal conversation.
+4. Use an empty steps array when no CRM tool is required.
+5. If the user clearly requests a CRM operation,
+   select the appropriate available tool.
+6. If the user asks for CRM data, use the appropriate
+   tool instead of guessing or inventing data.
+7. Missing information for a genuine CRM operation
+   should follow the existing parameter rules.
+
+Return ONLY valid JSON.
+--------------------------------------------------
+
+
 --------------------------------------------------
 RULES
 --------------------------------------------------
@@ -942,15 +1007,15 @@ Show my dashboard
  
 Output:
  
-{
-  "steps": [
-    {
-      "tool": "dashboard",
-      "action": "summary",
-      "parameters": {}
-    }
-  ]
-}
+Always return a valid JSON object containing "steps".
+
+If a CRM operation is required:
+Return the appropriate execution steps.
+
+If no CRM operation is required:
+Return {"steps":[]}.
+
+Never create an empty tool/action object.
  
 Use Dashboard Tool ONLY when the user asks:
  

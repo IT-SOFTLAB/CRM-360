@@ -70,6 +70,55 @@ validatePlan(plan) {
 }
 
 
+async createConversationResponse(userMessage) {
+    try {
+        const completion = await groq.chat.completions.create({
+            model: GROQ_MODEL,
+            temperature: 0.5,
+            messages: [
+                {
+                    role: "system",
+                    content: `
+You are CRM-360 AI Agent, a friendly and professional
+conversational assistant.
+
+Your responsibilities:
+- Respond naturally to greetings.
+- Answer general questions politely.
+- Handle small talk and casual conversations.
+- Explain CRM-360 features when asked.
+- Keep responses clear, friendly and concise.
+- Ask for clarification when necessary.
+
+IMPORTANT:
+- Do not invent CRM data.
+- Do not claim that you executed any CRM operation.
+- CRM data queries must be handled through CRM tools.
+- Never return an empty response.
+`
+                },
+                {
+                    role: "user",
+                    content: userMessage
+                }
+            ]
+        });
+
+        const reply =
+            completion.choices?.[0]?.message?.content?.trim();
+
+        return reply ||
+            "Hello! 👋 How can I help you with CRM-360 today?";
+
+    } catch (error) {
+        console.error("Conversation Error:", error);
+
+        return "I'm here to help! Could you please try again?";
+    }
+}
+
+
+
     async createPlan(userMessage) {
 
         try {

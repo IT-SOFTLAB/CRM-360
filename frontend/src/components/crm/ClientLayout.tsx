@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { CRMProvider, useCRM } from '@/context/CRMContext';
 import ShellLayout from './ShellLayout';
 import heroMascot from "@/assets/hero-mascot.jpeg";
+import { NotificationProvider } from '@/context/NotificationContext';
 function AuthGuard({ children }: { children: React.ReactNode }) {
 const crm = useCRM();
 
@@ -219,7 +220,11 @@ if (
 ) {
   return null;
 }
-return <ShellLayout>{children}</ShellLayout>;
+return (
+  <NotificationProvider>
+    <ShellLayout>{children}</ShellLayout>
+  </NotificationProvider>
+);
 }
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {

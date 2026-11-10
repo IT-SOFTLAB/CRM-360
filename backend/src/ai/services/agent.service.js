@@ -5,6 +5,51 @@ const WorkflowService = require("./workflow.service");
 
 class AgentService {
 
+
+    getGeneralResponse(message) {
+
+        const text = message.trim().toLowerCase();
+
+        // Greetings
+        if (/^(hi+|hello+|hey+|hii+|good morning|good afternoon|good evening)[!. ]*$/.test(text)) {
+            return "Hello! 👋 Welcome to CRM-360. How can I help you today?";
+        }
+
+        // How are you?
+        if (/^(how are you|how r u|how are you doing)[?.! ]*$/.test(text)) {
+            return "I'm doing great! 😊 I'm here to help you manage your CRM activities. What would you like to do today?";
+        }
+
+        // Thanks
+        if (/^(thanks|thank you|thankyou|thx)[!. ]*$/.test(text)) {
+            return "You're welcome! 😊 Let me know if you need any more help.";
+        }
+
+        // Capabilities
+        if (
+            text.includes("what can you do") ||
+            text.includes("your capabilities") ||
+            text.includes("help me")
+        ) {
+            return `I'm your CRM-360 AI Agent! 🤖
+
+I can help you with:
+
+• Lead management and tracking
+• Team performance reports
+• Sales analytics and forecasting
+• Referral management
+• Franchise information
+• CRM activities and tasks
+• Business reports
+
+Just tell me what you want to know!`;
+        }
+
+        return null;
+    }
+
+
     async chat(message, req = null) {
 
         //-----------------------------------
@@ -17,6 +62,12 @@ class AgentService {
                 message: "Message is required."
             };
         }
+
+        //-----------------------------------
+// Handle general conversation
+//-----------------------------------
+
+
 
         //-----------------------------------
         // Handle confirmation
@@ -73,6 +124,26 @@ class AgentService {
                 message: plan.error
             };
         }
+
+
+        //-----------------------------------
+        // Handle general conversation
+        //-----------------------------------
+
+        if (!plan.steps || plan.steps.length === 0) {
+
+            const reply =
+                await PlannerService.createConversationResponse(
+                    message
+                );
+
+            return {
+                success: true,
+                type: "conversation",
+                reply
+            };
+        }
+
 
         //-----------------------------------
         // Dangerous actions

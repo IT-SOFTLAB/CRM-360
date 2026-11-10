@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useEffect,
+  useCallback
+} from 'react';
 import api from '../services/api';
 import { ToastContext } from './ToastContext';
 
@@ -22,16 +28,30 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const fetchNotifications = async () => {
-    try {
-      const res = await api.get('/notifications');
-      if (res && res.data) {
-        setNotifications(res.data);
-      }
-    } catch (err) {
-      console.warn("Failed fetching notifications:", err);
+const fetchNotifications = useCallback(async () => {
+  try {
+    const res = await api.get('/notifications');
+
+    if (res && res.data) {
+      setNotifications(res.data);
     }
+  } catch (err) {
+    console.warn("Failed fetching notifications:", err);
+  }
+}, []);
+
+  useEffect(() => {
+  fetchNotifications();
+
+  // Refresh notifications every 30 seconds
+  const intervalId = window.setInterval(() => {
+    fetchNotifications();
+  }, 30000);
+
+  return () => {
+    window.clearInterval(intervalId);
   };
+}, [fetchNotifications]);
 
   const markAsRead = async (id: string) => {
     try {

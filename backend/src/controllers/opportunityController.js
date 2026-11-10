@@ -525,6 +525,7 @@ await invalidateOpportunityCache(req.organizationId);
   }
 };
 
+
 exports.bulkAssignOpportunities = async (req, res) => {
   try {
     const { ids, assignedSalesperson, assignedSalespersonId } = req.body;
@@ -536,57 +537,169 @@ exports.bulkAssignOpportunities = async (req, res) => {
       });
     }
 
-    // 1. Get opportunities to find leadIds
-    const opps = await prisma.opportunity.findMany({
-      where: { id: { in: ids }, organizationId: req.organizationId },
-      select: { leadId: true }
-    });
-    const leadIds = opps.map(o => o.leadId).filter(Boolean);
+    const organizationId = req.organizationId;
+    const adminName = req.user?.name || "Admin";
 
-    // 2. Update in PostgreSQL
-    const updated = await prisma.opportunity.updateMany({
-      where: {
-        id: {
-          in: ids,
+    // 1. Verify the assigned employee
+    let employee = null;
+
+    if (assignedSalespersonId) {
+      employee = await prisma.user.findFirst({
+        where: {
+          id: assignedSalespersonId,
+          organizationId,
         },
-        organizationId: req.organizationId
-      },
-      data: {
-        assignedSalesperson,
-        assignedSalespersonId,
-      },
-    });
-
-    // 3. Update associated leads in PostgreSQL
-    if (leadIds.length > 0) {
-      await prisma.lead.updateMany({
-        where: { id: { in: leadIds }, organizationId: req.organizationId },
-        data: {
-          assignedUser: assignedSalesperson,
-          assignedUserId: assignedSalespersonId
-        }
+        select: {
+          id: true,
+          name: true,
+        },
+      });
+    } else if (assignedSalesperson) {
+      employee = await prisma.user.findFirst({
+        where: {
+          name: {
+            equals: assignedSalesperson,
+            mode: "insensitive",
+          },
+          organizationId,
+        },
+        select: {
+          id: true,
+          name: true,
+        },
       });
     }
 
-    // Update associated customers in PostgreSQL
-    await prisma.customer.updateMany({
-      where: { opportunityId: { in: ids }, organizationId: req.organizationId },
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "Assigned employee not found in this organization.",
+      });
+    }
+
+    const finalAssignedUserId = employee.id;
+    const finalAssignedUser = employee.name;
+
+    // 2. Get selected opportunities before updating
+    const opps = await prisma.opportunity.findMany({
+      where: {
+        id: { in: ids },
+        organizationId,
+      },
+      select: {
+        id: true,
+        leadId: true,
+        assignedSalespersonId: true,
+      },
+    });
+
+    const leadIds = [
+      ...new Set(opps.map(o => o.leadId).filter(Boolean))
+    ];
+
+    // 3. Identify leads newly assigned to this employee
+  // Get actual lead assignment details before updating
+const existingLeads = leadIds.length > 0
+  ? await prisma.lead.findMany({
+      where: {
+        id: { in: leadIds },
+        organizationId
+      },
+      select: {
+        id: true,
+        assignedUserId: true
+      }
+    })
+  : [];
+
+const newlyAssignedLeadIds = existingLeads
+  .filter(lead => lead.assignedUserId !== finalAssignedUserId)
+  .map(lead => lead.id);
+
+console.log("Newly assigned lead count:", newlyAssignedLeadIds.length);
+console.log("Target employee:", finalAssignedUser);
+console.log("Admin:", adminName);
+
+    // 4. Update opportunities
+    const updated = await prisma.opportunity.updateMany({
+      where: {
+        id: { in: ids },
+        organizationId,
+      },
       data: {
-        assignedSalesperson,
-        assignedSalespersonId
+        assignedSalesperson: finalAssignedUser,
+        assignedSalespersonId: finalAssignedUserId,
+      },
+    });
+
+    // 5. Update associated leads
+    if (leadIds.length > 0) {
+      await prisma.lead.updateMany({
+        where: {
+          id: { in: leadIds },
+          organizationId,
+        },
+        data: {
+          assignedUser: finalAssignedUser,
+          assignedUserId: finalAssignedUserId,
+        },
+      });
+    }
+
+    // 6. Update associated customers
+    await prisma.customer.updateMany({
+      where: {
+        opportunityId: { in: ids },
+        organizationId,
+      },
+      data: {
+        assignedSalesperson: finalAssignedUser,
+        assignedSalespersonId: finalAssignedUserId,
+      },
+    });
+
+// 7. Create notification for assigned employee
+if (
+  finalAssignedUserId !== req.user.id &&
+  newlyAssignedLeadIds.length > 0
+) {
+  console.log("Creating lead assignment notification...");
+
+  try {
+    const notification = await prisma.notification.create({
+      data: {
+        userId: finalAssignedUserId,
+        title: "New Leads Assigned",
+        message: `You have been assigned ${newlyAssignedLeadIds.length} new leads by Admin ${adminName}.`,
+        read: false
       }
     });
 
+    console.log("NOTIFICATION CREATED SUCCESSFULLY:", notification);
 
-await invalidateOpportunityCache(req.organizationId);
+  } catch (notificationError) {
+    console.error("NOTIFICATION CREATION FAILED:", notificationError);
+  }
+} else {
+  console.log("Notification skipped:", {
+    sameUser: finalAssignedUserId === req.user.id,
+    newlyAssignedCount: newlyAssignedLeadIds.length
+  });
+}
+
+    // 8. Invalidate caches
+    await invalidateOpportunityCache(organizationId);
+
     res.status(200).json({
       success: true,
       message: `Successfully assigned ${ids.length} opportunities`,
-      updatedCount: updated.count
+      updatedCount: updated.count,
+      notificationCount: newlyAssignedLeadIds.length,
     });
 
   } catch (error) {
-    console.error(error);
+    console.error("Bulk assign opportunities error:", error);
+
     res.status(500).json({
       success: false,
       message: "Server Error",

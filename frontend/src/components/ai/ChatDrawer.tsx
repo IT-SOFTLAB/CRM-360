@@ -103,9 +103,114 @@ export default function ChatDrawer({ open, onClose }: Props) {
         crm.loadCRMData().catch((err: any) => console.warn("Failed to reload CRM data after AI action:", err));
       }
 
-      const result = data.result;
+     
+const result = data.result;
 
-      let reply = "Action completed.";
+let reply = "I'm here to help you with CRM-360!";
+
+// 1. Handle general AI conversation
+if (result?.type === "conversation" && result?.reply) {
+    reply = result.reply;
+}
+
+// 2. Handle CRM workflow results
+else if (result?.results?.steps) {
+    reply = result.results.steps
+        .map((step: any) => {
+
+            if (step.result) {
+                let msg = `• ${step.result.message || "Action completed."}`;
+
+                if (step.result.data) {
+                    const stepData = step.result.data;
+
+                    if (
+                        step.tool === "dashboard" &&
+                        step.action === "summary"
+                    ) {
+                        msg += `\n\n📊 Dashboard Summary`;
+                        msg += `\n- Total Leads: ${stepData.totalLeads ?? 0}`;
+                        msg += `\n- Total Opportunities: ${stepData.totalOpportunities ?? 0}`;
+                        msg += `\n- Won Deals: ${stepData.wonDeals ?? 0}`;
+                        msg += `\n- Lost Deals: ${stepData.lostDeals ?? 0}`;
+                        msg += `\n- Win Rate: ${stepData.winRate ?? 0}%`;
+                        msg += `\n- Pipeline Value: ₹${(stepData.pipelineValue ?? 0).toLocaleString()}`;
+                    }
+
+                    else if (
+                        step.tool === "lead" &&
+                        step.action === "search" &&
+                        Array.isArray(stepData)
+                    ) {
+                        if (stepData.length > 0) {
+                            msg += "\n\n🔍 Found Leads:";
+
+                            stepData.forEach((lead: any) => {
+                                msg += `\n- ${lead.contactName || lead.name || "Unnamed"} (${lead.company || "No Company"})`;
+                                msg += `\n  Status: ${lead.status || "N/A"}`;
+                            });
+                        } else {
+                            msg += "\n\nNo leads found.";
+                        }
+                    }
+
+                    else if (
+                        step.tool === "report" &&
+                        step.action === "generate"
+                    ) {
+                        msg += `\n\n📋 ${stepData.title || "CRM Performance Report"}`;
+
+                        if (stepData.summary) {
+                            const summary = stepData.summary;
+
+                            msg += `\n- Total Leads: ${summary.totalLeads ?? 0}`;
+                            msg += `\n- Total Opportunities: ${summary.totalOpportunities ?? 0}`;
+                            msg += `\n- Won Deals: ${summary.wonDeals ?? 0}`;
+                            msg += `\n- Win Rate: ${summary.winRate ?? 0}%`;
+                        }
+                    }
+
+                    else if (Array.isArray(stepData)) {
+                        if (stepData.length > 0) {
+                            msg += "\n\n📋 Details:";
+
+                            stepData.forEach((item: any) => {
+                                msg += `\n- ${item.customerName || item.contactName || item.name || item.title || "Item"}`;
+                            });
+                        }
+                    }
+                }
+
+                return msg;
+            }
+
+            if (step.message) return `• ${step.message}`;
+
+            return null;
+
+        })
+        .filter(Boolean)
+        .join("\n\n") || "CRM operation completed.";
+}
+
+// 3. Handle confirmation
+else if (result?.confirmation) {
+    reply = result.message ?? "Please confirm this action.";
+}
+
+// 4. Handle other backend messages
+else if (result?.message) {
+    reply = result.message;
+}
+
+// 5. Fallback
+else if (data?.message) {
+    reply = data.message;
+}
+
+// NOTE: the first setMessages call that was here has been removed.
+// It caused every AI response to be added twice. The message is now
+// added only once, at the end of this try block.
 
       if (result?.results?.steps) {
         reply = result.results.steps
@@ -344,13 +449,14 @@ export default function ChatDrawer({ open, onClose }: Props) {
           })
           .filter(Boolean)
           .join("\n\n");
-      } else if (result?.confirmation) {
-        reply = result.message;
-      } else if (result?.message) {
-        reply = result.message;
-      } else if (result?.ai?.reply) {
-        reply = result.ai.reply;
-      }
+      
+} else if (result?.confirmation) {
+    reply = result.message ?? "Please confirm this action.";
+} else if (result?.message) {
+    reply = result.message ?? "Action completed.";
+} else if (result?.ai?.reply) {
+    reply = result.ai.reply ?? "I'm here to help you!";
+}
 
       setMessages((prev) => [
         ...prev,
